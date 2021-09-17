@@ -1,7 +1,7 @@
 {
   "name": "verida-datastore-server",
-  "version": "1.1.1",
-  "description": "Verida Datastore middlewhere that manages users and permissions on the underlying CouchDB storage engine",
+  "version": "1.2.0",
+  "description": "Verida Storage Node middlewhere that bridges decentralised 3ID identities so they can control access to databases within a CouchDB storage engine",
   "main": "src/server.js",
   "scripts": {
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
@@ -23,7 +23,6 @@
   "dependencies": {
     "@ceramicnetwork/3id-did-resolver": "^1.2.7",
     "@ceramicnetwork/http-client": "^1.0.7",
-    "@verida/did-helper": "^0.7.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "did-resolver": "^3.1.0",
