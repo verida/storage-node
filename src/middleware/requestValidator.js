@@ -1,11 +1,8 @@
-const basicAuth = require('express-basic-auth');
-import ThreeIdResolver from '@ceramicnetwork/3id-did-resolver'
-import { Resolver } from 'did-resolver'
-import CeramicClient from '@ceramicnetwork/http-client'
-import { DID } from 'dids'
+const basicAuth = require('express-basic-auth')
+import { DIDClient } from '@verida/did-client'
 const mcache = require("memory-cache")
 
-let didHelper
+let didClient
 
 class RequestValidator {
 
@@ -19,37 +16,46 @@ class RequestValidator {
      * @param {*} req 
      */
     authorize(did, signature, req, cb) {
-        did = did.replace(/_/g, ":")
+        did = did.replace(/_/g, ":").toLowerCase()
         const cacheKey = `${did}/${req.headers['application-name']}`
 
         const authCheck = async () => {
             try {
-                let result = mcache.get(cacheKey)
-
-                if (!result) {
-                    if (!didHelper) {
-                        const { CERAMIC_URL }  = process.env
-                        const ceramic = new CeramicClient(CERAMIC_URL)
-                        const threeIdResolver = await ThreeIdResolver.getResolver(ceramic)
-                        const resolver = new Resolver(threeIdResolver)
-                        didHelper = new DID({ resolver })
-                    }
-
-                    result = await didHelper.verifyJWS(signature)
-                    const { DID_CACHE_DURATION }  = process.env
-                    mcache.put(cacheKey, result, DID_CACHE_DURATION * 1000)
-                }
-
+                let didDocument = mcache.get(cacheKey)
                 const storageContext = req.headers['application-name']
                 const consentMessage = `Do you wish to unlock this storage context: "${storageContext}"?\n\n${did}`
 
-                if (!result || result.payload.message != consentMessage) {
+                console.log(consentMessage)
+
+                if (!didDocument) {
+                    if (!didClient) {
+                        const { DID_SERVER_URL }  = process.env
+                        didClient = new DIDClient(DID_SERVER_URL)
+                    }
+
+                    didDocument = await didClient.get(did)
+
+                    if (!didDocument) {
+                        cb(null, false)
+                        return
+                    }
+
+                    if (didDocument) {
+                        const { DID_CACHE_DURATION }  = process.env
+                        mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
+                    }
+                }
+
+                const result = didDocument.verifySig(consentMessage, signature)
+
+                if (!result) {
                     cb(null, false)
                 } else {
                     cb(null, true)
                 }
             } catch (err) {
-                // Likeley unable to resolve DID
+                // @todo: Log error
+                // Likely unable to resolve DID
                 cb(null, false)
             }
         }

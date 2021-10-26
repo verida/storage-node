@@ -17,16 +17,14 @@
     "url": "https://github.com/verida/datastore-server/issues"
   },
   "engines": {
-    "node": "^12.0.0"
+    "node": "^14.0.0"
   },
   "homepage": "https://github.com/verida/datastore-server/README.md",
   "dependencies": {
-    "@ceramicnetwork/3id-did-resolver": "^1.2.7",
-    "@ceramicnetwork/http-client": "^1.0.7",
+    "@verida/did-client": "*",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "did-resolver": "^3.1.0",
-    "dids": "^2.3.0",
     "dotenv": "^8.2.0",
     "ethers": "^4.0.42",
     "express": "^4.17.1",
