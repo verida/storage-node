@@ -4,7 +4,7 @@ const crypto = require('crypto');
 class Utils {
 
     generateUsernameFromRequest(req) {
-        let did = req.auth.user
+        let did = req.auth.user.toLowerCase()
         let applicationName = req.headers['application-name']
         return this.generateUsername(did, applicationName)
     }
@@ -25,7 +25,7 @@ class Utils {
 
         let usernames = [];
         for (var d in dids) {
-            let did = dids[d];
+            let did = dids[d].toLowerCase();
             usernames.push(this.generateUsername(did, applicationName))
         }
 
