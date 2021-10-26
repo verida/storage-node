@@ -25,8 +25,6 @@ class RequestValidator {
                 const storageContext = req.headers['application-name']
                 const consentMessage = `Do you wish to unlock this storage context: "${storageContext}"?\n\n${did}`
 
-                console.log(consentMessage)
-
                 if (!didDocument) {
                     if (!didClient) {
                         const { DID_SERVER_URL }  = process.env
