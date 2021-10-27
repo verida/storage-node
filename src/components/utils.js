@@ -25,7 +25,11 @@ class Utils {
 
         let usernames = [];
         for (var d in dids) {
-            let did = dids[d].toLowerCase();
+            if (!dids[d]) {
+                continue
+            }
+
+            let did = dids[d].toLowerCase()
             usernames.push(this.generateUsername(did, applicationName))
         }
 
