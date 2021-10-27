@@ -1297,7 +1297,7 @@
   resolved "https://registry.yarnpkg.com/@types/tough-cookie/-/tough-cookie-4.0.1.tgz#8f80dd965ad81f3e1bc26d6f5c727e132721ff40"
   integrity sha512-Y0K95ThC3esLEYD6ZuqNek29lNX2EM1qxV8y2FTLUB0ff5wWrk7az+mLrnNFUnaXcgKye22+sFBRXOgpPILZNg==
 
-"@verida/did-client@*":
+"@verida/did-client@^0.1.2":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@verida/did-client/-/did-client-0.1.2.tgz#3ab7921114ce9df6bcc7e6712429dfde52dcc524"
   integrity sha512-0Kx7r7U+/KPqyT7+R9uCxVlUIpBmplSm8A8lweulAJbZcyzAVQ/SJvW+KWegymefeUwbCIiy79t1V4z0QG/FuA==
