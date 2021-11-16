@@ -4,11 +4,11 @@ This server acts as middleware between web applications built using the [Verida 
 
 Key features:
 
-- Ensure all API requests come from verified on chain users (via user signed messages)
-- Manage database users, linking them to valid on chain DID's
-- Manage permissions for individual databases
-- Add a second layer of security by managing per-database ACL validation rules
-- Providing applications with user's database DSN's (including user credentials)
+- Ensuring all API requests come from verified Verida network users (via user signed messages)
+- Managing database users, linking them to valid DID's
+- Managing permissions for individual databases
+- Adding a second layer of security by managing per-database ACL validation rules
+- Providing applications with user's database connection strings
 
 ## Usage
 
