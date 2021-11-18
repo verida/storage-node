@@ -17,7 +17,7 @@ $ yarn install
 $ yarn run start
 ```
 
-Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `localhost`, but you can point to testnet (https://dids.testnet.verida.io:5001)
+Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `testnet`, but you can point to a localhost instance for development purposes (http://localhost:5001) -- note, there is no trailing `/`
 
 This server is running on the Verida Testnet and is accessible by any application built on the Verida network during the pre-launch phase.
 
