@@ -409,7 +409,7 @@ describe("Permissions", function() {
     });
 
     // Test updating permissions correcty updates the list of valid users
-    /*describe("User update permissions", async function() {
+    describe("User update permissions", async function() {
         this.beforeAll(async function() {
             // Create test database where a list of users can write and read
             await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
@@ -472,7 +472,7 @@ describe("Permissions", function() {
             let response = await DbManager.deleteDatabase(testDbName);
         });
 
-    });*/
+    });
 
     after(async function() {
         // TODO: delete owner, user, but leave public
