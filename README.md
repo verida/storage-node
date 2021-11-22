@@ -4,11 +4,11 @@ This server acts as middleware between web applications built using the [Verida 
 
 Key features:
 
-- Ensure all API requests come from verified on chain users (via user signed messages)
-- Manage database users, linking them to valid on chain DID's
-- Manage permissions for individual databases
-- Add a second layer of security by managing per-database ACL validation rules
-- Providing applications with user's database DSN's (including user credentials)
+- Ensuring all API requests come from verified Verida network users (via user signed messages)
+- Managing database users, linking them to valid DID's
+- Managing permissions for individual databases
+- Adding a second layer of security by managing per-database ACL validation rules
+- Providing applications with user's database connection strings
 
 ## Usage
 
@@ -17,7 +17,7 @@ $ yarn install
 $ yarn run start
 ```
 
-Note: You may need to update `.env` to point to the appropriate Ceramic HTTP endpoint to use. By default it points to Ceramic Clay (testnet).
+Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `testnet`, but you can point to a localhost instance for development purposes (http://localhost:5001) -- note, there is no trailing `/`
 
 This server is running on the Verida Testnet and is accessible by any application built on the Verida network during the pre-launch phase.
 
@@ -28,7 +28,7 @@ This server is running on the Verida Testnet and is accessible by any applicatio
 Edit `.env` to update the configuration:
 
 - `HASH_KEY`: A unique hash key that is used as entropy when generating an alpha numeric username from a DID. Set this to a unique value when first running the server. DO NOT change this key once the server is up and running as you will end up with a mismatch of usernames. If you run multiple servers in front of a cluster of CouchDB instances, all servers must use the same `HASH_KEY`.
-- `CERAMIC_URL`: URL of a Ceramic HTTP node. Currently defaults to the public testnet (`https://gateway-clay.ceramic.network`).
+- `DID_SERVER_URL`: URL of a Verida DID Server endpoint.
 - `DB_PROTOCOL`: Protocol to use when connecting to CouchDB (`http` or `https`).
 - `DB_USER`: Username of CouchDB Admin (has access to create users and databases).
 - `DB_PASS`: Password of CouchDB Admin.
