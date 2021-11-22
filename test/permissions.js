@@ -6,10 +6,13 @@ import UserManager from "../src/components/userManager";
 import Utils from "../src/components/utils";
 
 const CouchDb = require('nano');
+import PouchDb from "pouchdb";
+import { resolve } from "path";
 
 describe("Permissions", function() {
-    var ownerUser, userUser, user2User, user3User;
-    var ownerDb, userDb, user2Db, user3Db, publicDb;
+    var ownerUser, userUser, user2User, user3User, user4User;
+    var ownerDb, userDb, user2Db, user3Db, user4Db, publicDb;
+    var pouchDbLocal, pouchDbRemote;
     var testDbName = "testdb1";
     var applicationName = "testApp";
 
@@ -17,11 +20,13 @@ describe("Permissions", function() {
     var userDid = "test-user";
     var user2Did = "test-user2";
     var user3Did = "test-user3";
+    var user4Did = "test-user4";
 
     var ownerName = Utils.generateUsername(ownerDid, applicationName);
     var userName = Utils.generateUsername(userDid, applicationName);
     var user2Name = Utils.generateUsername(user2Did, applicationName);
     var user3Name = Utils.generateUsername(user3Did, applicationName);
+    var user4Name = Utils.generateUsername(user4Did, applicationName);
 
     this.beforeAll(async function() {
         // The "owner" of a database
@@ -39,6 +44,10 @@ describe("Permissions", function() {
         // A third user that has no access
         await UserManager.create(user3Name, "test-user3");
         user3User = await UserManager.getByUsername(user3Name, "test-user3");
+
+        // A fourth user that has no access
+        await UserManager.create(user4Name, "test-user4");
+        user4User = await UserManager.getByUsername(user4Name, "test-user4");
 
         // A public user
         await UserManager.ensurePublicUser();
@@ -109,7 +118,6 @@ describe("Permissions", function() {
                 reason: "You are not allowed to access this db."
             });
         });
-        
 
         this.afterAll(async function() {
             // Delete test database
@@ -239,7 +247,7 @@ describe("Permissions", function() {
                     write: "users",
                     writeList: [userDid, user2Did],
                     read: "users",
-                    readList: [userDid, user2Did]
+                    readList: [userDid, user2Did, user4Did]
                 }
             });
 
@@ -254,6 +262,9 @@ describe("Permissions", function() {
 
             couchDb = new CouchDb({ url: user3User.dsn, requestDefaults: { rejectUnauthorized: false }});
             user3Db = couchDb.use(testDbName);
+
+            couchDb = new CouchDb({ url: user4User.dsn, requestDefaults: { rejectUnauthorized: false }});
+            user4Db = couchDb.use(testDbName);
 
             couchDb = new CouchDb({ url: UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS), requestDefaults: { rejectUnauthorized: false }});
             publicDb = couchDb.use(testDbName);
@@ -337,14 +348,68 @@ describe("Permissions", function() {
             });
         });
 
+        it("shouldn't allow read only user to write data", async function() {
+            await assert.rejects(user4Db.insert({
+                "_id": "user-read-trying-to-write",
+                "hello": "world"
+            }), {
+                name: "Error",
+                reason: "User is not permitted to write to database"
+            });
+        });
+
+        it("shouldn't allow read only user to sync to database", async function() {
+            pouchDbLocal = new PouchDb(testDbName);
+            pouchDbRemote = new PouchDb(`${user4User.dsn}/${testDbName}`);
+
+            const localInfo = await pouchDbLocal.info()
+            const remoteInfo = await pouchDbRemote.info()
+            
+            const promise = new Promise((resolve, rejects) => {
+                const result = pouchDbLocal.put({
+                    "_id": "user-read-trying-to-write",
+                    "hello": "world"
+                })
+                result.then((res) => {
+                    resolve(res)
+                }).catch((err) => {
+                    rejects(err)
+                }) 
+            })
+
+            const sync = PouchDb.sync(pouchDbLocal, pouchDbRemote, {
+                live: true,
+                retry: true,
+                // Dont sync design docs
+                filter: function (doc) {
+                  return doc._id.indexOf("_design") !== 0;
+                },
+              })
+                .on("error", function (err) {
+                  console.error(
+                    `Unknown error occurred syncing with remote database`
+                  );
+                  console.error(err);
+                })
+                .on("denied", function (err) {
+                  console.error(
+                    `Permission denied to sync with remote database`
+                  );
+                  resolve()
+                });
+
+            const result = await promise
+        })
+
         this.afterAll(async function() {
             // Delete test database
-            let response = await DbManager.deleteDatabase(testDbName);
+            await DbManager.deleteDatabase(testDbName);
+            pouchDbLocal.destroy(testDbName);
         });
     });
 
     // Test updating permissions correcty updates the list of valid users
-    describe("User update permissions", async function() {
+    /*describe("User update permissions", async function() {
         this.beforeAll(async function() {
             // Create test database where a list of users can write and read
             await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
@@ -402,8 +467,12 @@ describe("Permissions", function() {
             assert.equal(doc._id, "owner-write");
         });
 
+        this.afterAll(async function() {
+            // Delete test database
+            let response = await DbManager.deleteDatabase(testDbName);
+        });
 
-    });
+    });*/
 
     after(async function() {
         // TODO: delete owner, user, but leave public
