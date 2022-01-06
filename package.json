@@ -1,7 +1,7 @@
 {
-  "name": "verida-datastore-server",
+  "name": "@verida/storage-node",
   "version": "1.2.0",
-  "description": "Verida Storage Node middlewhere that bridges decentralised 3ID identities so they can control access to databases within a CouchDB storage engine",
+  "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
@@ -11,17 +11,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/verida/datastore-server.git"
+    "url": "git+https://github.com/verida/storage-node.git"
   },
   "author": "Verida",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/verida/datastore-server/issues"
+    "url": "https://github.com/verida/storage-node/issues"
   },
   "engines": {
     "node": "^14.0.0"
   },
-  "homepage": "https://github.com/verida/datastore-server/README.md",
+  "homepage": "https://github.com/verida/storage-node/README.md",
   "dependencies": {
     "@verida/did-client": "^0.1.2",
     "body-parser": "^1.19.0",
