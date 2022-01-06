@@ -57,7 +57,7 @@ class DbManager {
     try {
       return await couch.db.destroy(databaseName);
     } catch (err) {
-      //console.error("Database existed: "+databaseName);
+      // console.error("Database existed: "+databaseName);
       // The database may already exist, or may have been deleted so a file
       // already exists.
       // In that case, ignore the error and continue
