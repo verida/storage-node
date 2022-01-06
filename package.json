@@ -1,7 +1,7 @@
 {
   "name": "verida-datastore-server",
   "version": "1.2.0",
-  "description": "Verida Storage Node middlewhere that bridges decentralised 3ID identities so they can control access to databases within a CouchDB storage engine",
+  "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
