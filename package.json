@@ -4,9 +4,10 @@
   "description": "Verida Storage Node middlewhere that bridges decentralised 3ID identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
+    "clean": "rm -rf dist",
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
     "dev": "nodemon --exec babel-node src/server.js",
-    "build": "rm -rf dist && babel src -d dist --extensions '.js'",
+    "build": "yarn run clean && babel ./src --out-dir ./dist --copy-files",
     "serve": "node dist/server.js"
   },
   "repository": {
