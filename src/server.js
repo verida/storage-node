@@ -21,12 +21,14 @@ app.use(cors(corsConfig));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.get('/user/public', UserController.getPublic);
-app.use(basicAuth({
-  authorizer: requestValidator.authorize,
-  authorizeAsync: true,
-  unauthorizedResponse: requestValidator.getUnauthorizedResponse
-}));
-app.use(function(req, res, next) {
+app.use(
+  basicAuth({
+    authorizer: requestValidator.authorize,
+    authorizeAsync: true,
+    unauthorizedResponse: requestValidator.getUnauthorizedResponse,
+  })
+);
+app.use(function (req, res, next) {
   // Replace "_" in username with ":" to ensure DID is valid
   // This is caused because HTTP Basic Auth doesn't support ":" in username
   req.auth.user = req.auth.user.replace(/_/g, ':');
@@ -38,5 +40,5 @@ userManager.ensurePublicUser();
 
 const PORT = 5000;
 app.listen(PORT, () => {
-  console.log(`server running on port ${PORT}`)
+  console.log(`server running on port ${PORT}`);
 });
