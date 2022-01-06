@@ -1,6 +1,6 @@
 # Welcome to Verida Storage Node Server
 
-This server acts as middleware between web applications built using the [Verida Datastore](http://www.github.com/verida/datastore) and the underlying databases storing user data.
+This server acts as middleware between web applications built using the [Verida Datastore](https://developers.verida.io/docs/concepts/data-storage/) and the underlying databases storing user data.
 
 Key features:
 
