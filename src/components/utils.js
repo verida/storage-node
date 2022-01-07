@@ -1,41 +1,38 @@
-
 const crypto = require('crypto');
 
 class Utils {
+  generateUsernameFromRequest(req) {
+    let did = req.auth.user.toLowerCase();
+    let applicationName = req.headers['application-name'];
+    return this.generateUsername(did, applicationName);
+  }
 
-    generateUsernameFromRequest(req) {
-        let did = req.auth.user.toLowerCase()
-        let applicationName = req.headers['application-name']
-        return this.generateUsername(did, applicationName)
+  generateUsername(did, applicationName) {
+    let hash = crypto.createHmac('sha256', process.env.HASH_KEY);
+    hash.update(did + '/' + applicationName);
+    const username = hash.digest('hex');
+
+    // Username must start with a letter
+    return 'v' + username;
+  }
+
+  didsToUsernames(dids, applicationName) {
+    if (!dids || !dids.length) {
+      return [];
     }
 
-    generateUsername(did, applicationName) {
-        let hash = crypto.createHmac('sha256', process.env.HASH_KEY)
-        hash.update(did + "/" + applicationName)
-        const username = hash.digest('hex')
+    let usernames = [];
+    for (var d in dids) {
+      if (!dids[d]) {
+        continue;
+      }
 
-        // Username must start with a letter
-        return "v" + username;
+      let did = dids[d].toLowerCase();
+      usernames.push(this.generateUsername(did, applicationName));
     }
 
-    didsToUsernames(dids, applicationName) {
-        if (!dids || !dids.length) {
-            return [];
-        }
-
-        let usernames = [];
-        for (var d in dids) {
-            if (!dids[d]) {
-                continue
-            }
-
-            let did = dids[d].toLowerCase()
-            usernames.push(this.generateUsername(did, applicationName))
-        }
-
-        return usernames;
-    }
-
+    return usernames;
+  }
 }
 
 let utils = new Utils();
