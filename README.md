@@ -12,9 +12,10 @@ Key features:
 
 ## Usage
 
-```
-$ yarn install
-$ yarn run start
+```bash
+yarn install
+yarn build
+yarn serve
 ```
 
 Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `testnet`, but you can point to a localhost instance for development purposes (http://localhost:5001) -- note, there is no trailing `/`
