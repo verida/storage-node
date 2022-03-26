@@ -7,9 +7,26 @@
     "clean": "rm -rf dist",
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
     "dev": "nodemon --exec babel-node src/server.js",
-    "build": "yarn run clean && babel src -d dist --extensions .js",    
-    "serve": "node dist/server.js"
+    "build": "yarn run clean && babel src -d dist --extensions .js",
+    "serve": "node dist/server.js",
+    "lambda-deploy": "yarn build && yarn claudia create --region us-east-2 --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.prod.json",
+    "lambda-update": "yarn build && yarn claudia update --set-env-from-json .env.prod.json",
+    "lambda-pack": "yarn build && yarn claudia pack --no-optional-dependencies"
   },
+  "files": [
+    "**/*.ts",
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.json",
+    "**/*.svg",
+    "**/*.xml",
+    "**/*.yml",
+    "**/*.lock",
+    "**/*.bnf",
+    "**/*.map",
+    ".nvmrc"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/verida/storage-node.git"
@@ -26,11 +43,14 @@
   "dependencies": {
     "@babel/runtime": "^7.16.7",
     "@verida/did-client": "^0.1.2",
+    "aws-serverless-express": "^3.4.0",
     "cors": "^2.8.5",
     "did-resolver": "^3.1.0",
     "dotenv": "^8.2.0",
     "ethers": "^4.0.42",
     "express": "^4.17.1",
+    "express-basic-auth": "git+https://github.com/Mozzler/express-basic-auth.git",
+    "lodash": "^4.17.21",
     "memory-cache": "^0.2.0",
     "nano": "^8.1.0"
   },
@@ -46,9 +66,8 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
-    "body-parser": "^1.19.1",
-    "express-basic-auth": "git+https://github.com/Mozzler/express-basic-auth.git",
-    "lodash": "^4.17.21",
+    "body-parser": "^1.19.2",
+    "claudia": "^5.14.1",
     "mocha": "^7.0.0",
     "nodemon": "^2.0.14",
     "pouchdb": "^7.2.2",

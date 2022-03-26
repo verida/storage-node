@@ -2,4 +2,5 @@ node_modules
 couchdb
 dist
 
-.env.dev
+.env
+.env*
