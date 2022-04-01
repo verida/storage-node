@@ -36,9 +36,6 @@ app.use(function (req, res, next) {
 });
 app.use(router);
 
-userManager.ensurePublicUser();
+userManager.ensurePublicUser()
 
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`server running on port ${PORT}`);
-});
+module.exports=app
