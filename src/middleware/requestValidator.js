@@ -23,7 +23,6 @@ class RequestValidator {
             try {
                 let didDocument = mcache.get(cacheKey)
                 const storageContext = req.headers['application-name']
-                const consentMessage = `Do you wish to unlock this storage context: "${storageContext}"?\n\n${did}`
 
                 if (!didDocument) {
                     if (!didClient) {
@@ -44,6 +43,7 @@ class RequestValidator {
                     }
                 }
 
+                const consentMessage = `Do you wish to authenticate this storage context: "${storageContext}"?\n\n${did}`
                 const result = didDocument.verifySig(consentMessage, signature)
 
                 if (!result) {

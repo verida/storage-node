@@ -1,5 +1,6 @@
 const CouchDb = require('nano');
 import crypto from 'crypto';
+const jwt = require('jsonwebtoken')
 
 class UserManager {
 
@@ -17,12 +18,21 @@ class UserManager {
         let usersDb = couch.db.use('_users');
 
         try {
-            let response = await usersDb.get('org.couchdb.user:' + username)
-            let password = crypto.createHash('sha256').update(signature).digest("hex")
+            const response = await usersDb.get('org.couchdb.user:' + username)
+            const env = process.env;
+
+            // Generate a JWT that grants access to CouchDB, signed by the pre-configured secret
+            const token = jwt.sign({
+                // Specify the subject (CouchDB username)
+                sub: username
+            }, env.JWT_SIGN_PK, {
+                // expiry in minutes for this token
+                expiresIn: 60 * env.JWT_SIGN_EXPIRY
+            })
             return {
                 username: username,
-                dsn: this.buildDsn(username, password),
-                salt: response.salt
+                host: this.buildHost(),
+                token
             };
         } catch (err) {
             this.error = err;
@@ -104,6 +114,11 @@ class UserManager {
     buildDsn(username, password) {
         let env = process.env;
         return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + env.DB_HOST + ":" + env.DB_PORT;
+    }
+
+    buildHost() {
+        let env = process.env;
+        return env.DB_PROTOCOL + "://" + env.DB_HOST + ":" + env.DB_PORT;
     }
 
 }
