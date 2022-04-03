@@ -37,3 +37,42 @@ Edit `.env` to update the configuration:
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
 DB_PUBLIC_USER: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
 DB_PUBLIC_PASS: Alphanumeric string for a public database password.
+
+## CouchDB configuration
+
+### JWT
+
+[Ensure `{chttpd_auth, jwt_authentication_handler}` is added to the list of the active `chttpd/authentication_handlers`](https://docs.couchdb.org/en/stable/api/server/authn.html?highlight=jwt#jwt-authentication)
+
+```
+[chttpd]
+
+authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}, {chttpd_auth, default_authentication_handler}
+
+[jwt_auth]
+required_claims = exp
+
+[jwt_keys]
+hmac:_default = <base64 secret key>
+```
+
+Note: A secret key (string) can be base64 encoded with the following:
+
+```
+const secretKey = 'secretKey'
+const encodedKey = new Buffer(secretKey).toString('base64')
+```
+
+This can be tested via curl:
+
+```
+curl -H "Host: localhost:5984" \
+ -H "accept: application/json, text/plain, */*" \
+ -H "authorization: Bearer <bearer_token>" \
+  "http://localhost:5984/_session"
+```
+
+Where:
+
+- `bearer_token` - A bearer token generated via the `test/jwt` unit test
+- `localhost` - Replace this with the hostname of the server being tested
