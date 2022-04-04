@@ -1,6 +1,6 @@
 # Welcome to Verida Storage Node Server
 
-This server acts as middleware between web applications built using the [Verida Datastore](http://www.github.com/verida/datastore) and the underlying databases storing user data.
+This server acts as middleware between web applications built using the [Verida Datastore](https://developers.verida.io/docs/concepts/data-storage/) and the underlying databases storing user data.
 
 Key features:
 
@@ -37,6 +37,24 @@ Edit `.env` to update the configuration:
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
 DB_PUBLIC_USER: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
 DB_PUBLIC_PASS: Alphanumeric string for a public database password.
+
+### Windows environment variables
+
+* On a powershell execute the following ( replica of `.env` )
+```bash
+$env:HASH_KEY="wb4f9qf6789bqjqcj0cq4897cqn890tq0"
+$env:DID_SERVER_URL="https://dids.testnet.verida.io:5001"
+$env:DID_CACHE_DURATION=3600
+$env:DB_PROTOCOL="http"
+$env:DB_USER="admin"
+$env:DB_PASS="admin"
+$env:DB_HOST="localhost"
+$env:DB_PORT=5984
+$env:DB_REJECT_UNAUTHORIZED_SSL=false
+$env:DB_PUBLIC_USER="784c2n780c9cn0789"
+$env:DB_PUBLIC_PASS="784c2n780c9cn0789"
+```
+
 
 ## CouchDB configuration
 
