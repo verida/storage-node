@@ -4,8 +4,9 @@
   "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
+    "tests": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
+    "test": "mocha -mocha --require @babel/polyfill --require @babel/register ",
     "clean": "rm -rf dist",
-    "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js'",
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn run clean && babel src -d dist --extensions .js",
     "serve": "node dist/server.js"
@@ -31,6 +32,9 @@
     "dotenv": "^8.2.0",
     "ethers": "^4.0.42",
     "express": "^4.17.1",
+    "express-basic-auth": "git+https://github.com/Mozzler/express-basic-auth.git",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.15",
     "memory-cache": "^0.2.0",
     "nano": "^8.1.0"
   },

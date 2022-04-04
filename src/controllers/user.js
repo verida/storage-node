@@ -1,144 +1,139 @@
 import UserManager from '../components/userManager';
 import DbManager from '../components/dbManager';
-import Utils from '../components/utils';
+import Utils from "../components/utils";
 
 class UserController {
-  // @todo: Enforce HTTPS
+    // @todo: Enforce HTTPS
 
-  async get(req, res) {
-    let signature = req.auth.password;
-    let username = Utils.generateUsernameFromRequest(req);
-    let user = await UserManager.getByUsername(username, signature);
+    async get(req, res) {
+        let signature = req.auth.password;
+        let username = Utils.generateUsernameFromRequest(req);
+        let user = await UserManager.getByUsername(username, signature);
 
-    if (user) {
-      return res.status(200).send({
-        status: 'success',
-        user: user,
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        data: {
-          did: 'Invalid DID specified',
-        },
-      });
-    }
-  }
-
-  async getPublic(req, res) {
-    return res.status(200).send({
-      status: 'success',
-      user: {
-        username: process.env.DB_PUBLIC_USER,
-        password: process.env.DB_PUBLIC_PASS,
-        dsn: UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS),
-      },
-    });
-  }
-
-  async create(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let signature = req.auth.password;
-
-    // If user exists, simply return it
-    let user = await UserManager.getByUsername(username, signature);
-    if (user) {
-      return res.status(400).send({
-        status: 'fail',
-        code: 100,
-        data: {
-          did: 'User already exists',
-        },
-      });
+        if (user) {
+            return res.status(200).send({
+                status: "success",
+                user: user
+            });
+        }
+        else {
+            return res.status(400).send({
+                status: "fail",
+                data: {
+                    "did": "Invalid DID specified"
+                }
+            });
+        }
     }
 
-    let response = await UserManager.create(username, signature);
-
-    if (response.ok) {
-      user = await UserManager.getByUsername(username, signature);
+    async getPublic(req, res) {
+        return res.status(200).send({
+            status: "success",
+            user: {
+                username: process.env.DB_PUBLIC_USER,
+                password: process.env.DB_PUBLIC_PASS,
+                dsn: UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
+            }
+        });
     }
 
-    if (user) {
-      return res.status(200).send({
-        status: 'success',
-        user: user,
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        code: 100,
-        data: {
-          did: 'Unable to locate created user',
-        },
-      });
-    }
-  }
+    async create(req, res) {
+        let username = Utils.generateUsernameFromRequest(req);
+        let signature = req.auth.password;
 
-  // Grant a user access to a user's database
-  async createDatabase(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let databaseName = req.body.databaseName;
-    let options = req.body.options ? req.body.options : {};
+        // If user exists, simply return it
+        let user = await UserManager.getByUsername(username, signature);
+        if (user) {
+            return res.status(400).send({
+                status: "fail",
+                code: 100,
+                data: {
+                    "did": "User already exists"
+                }
+            });
+        }
 
-    let success;
-    try {
-      success = await DbManager.createDatabase(
-        username,
-        databaseName,
-        req.headers['application-name'],
-        options
-      );
-    } catch (err) {
-      return res.status(400).send({
-        status: 'fail',
-        message: err.error + ': ' + err.reason,
-      });
-    }
+        let response = await UserManager.create(username, signature);
 
-    if (success) {
-      return res.status(200).send({
-        status: 'success',
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        message: 'Unknown error',
-      });
-    }
-  }
+        if (response.ok) {
+            user = await UserManager.getByUsername(username, signature);
+        }
 
-  // Update permissions on a user's database
-  async updateDatabase(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let databaseName = req.body.databaseName;
-    let options = req.body.options ? req.body.options : {};
-
-    let success;
-    try {
-      success = await DbManager.updateDatabase(
-        username,
-        databaseName,
-        req.headers['application-name'],
-        options
-      );
-    } catch (err) {
-      return res.status(400).send({
-        status: 'fail',
-        message: err.error + ': ' + err.reason,
-      });
+        if (user) {
+            return res.status(200).send({
+                status: "success",
+                user: user
+            });
+        }
+        else {
+            return res.status(400).send({
+                status: "fail",
+                code: 100,
+                data: {
+                    "did": "Unable to locate created user"
+                }
+            });
+        }
     }
 
-    if (success) {
-      return res.status(200).send({
-        status: 'success',
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        message: 'Unknown error',
-      });
+    // Grant a user access to a user's database
+    async createDatabase(req, res) {
+        let username = Utils.generateUsernameFromRequest(req);
+        let databaseName = req.body.databaseName;
+        let options = req.body.options ? req.body.options : {};
+
+        let success;
+        try {
+            success = await DbManager.createDatabase(username, databaseName, req.headers['application-name'], options);
+        } catch (err) {
+            return res.status(400).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
+
+        if (success) {
+            return res.status(200).send({
+                status: "success"
+            });
+        }
+        else {
+            return res.status(400).send({
+                status: "fail",
+                message: "Unknown error"
+            });
+        }
     }
-  }
+
+    // Update permissions on a user's database
+    async updateDatabase(req, res) {
+        let username = Utils.generateUsernameFromRequest(req);
+        let databaseName = req.body.databaseName;
+        let options = req.body.options ? req.body.options : {};
+
+        let success;
+        try {
+            success = await DbManager.updateDatabase(username, databaseName, req.headers['application-name'], options);
+        } catch (err) {
+            return res.status(400).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
+
+        if (success) {
+            return res.status(200).send({
+                status: "success"
+            });
+        }
+        else {
+            return res.status(400).send({
+                status: "fail",
+                message: "Unknown error"
+            });
+        }
+    }
+
 }
 
 const userController = new UserController();
