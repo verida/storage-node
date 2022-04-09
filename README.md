@@ -54,3 +54,18 @@ $env:DB_REJECT_UNAUTHORIZED_SSL=false
 $env:DB_PUBLIC_USER="784c2n780c9cn0789"
 $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 ```
+
+## CouchDB configuration
+
+### CORS
+
+CORS must be enabled so that database requests can come from any domain name:
+
+
+```
+[httpd]
+enable_cors = true
+
+[cors]
+origins = *
+```
