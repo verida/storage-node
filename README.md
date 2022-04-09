@@ -57,14 +57,16 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 
 ## CouchDB configuration
 
-### CORS
-
-CORS must be enabled so that database requests can come from any domain name:
-
+- CORS must be enabled so that database requests can come from any domain name
+- A valid user must be enforced for security reasons
 
 ```
 [httpd]
+WWW-Authenticate = Basic realm="administrator"
 enable_cors = true
+
+[chttpd_auth]
+require_valid_user = true
 
 [cors]
 origins = *
