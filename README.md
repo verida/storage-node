@@ -73,6 +73,9 @@ require_valid_user = true
 
 [cors]
 origins = *
+credentials = true
+methods = GET, PUT, POST, HEAD, DELETE
+headers = accept, authorization, content-type, origin, referer, x-csrf-token
 ```
 
 ## Lambda deployment
