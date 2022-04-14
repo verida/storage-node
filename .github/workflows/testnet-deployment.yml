@@ -26,11 +26,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
-          role-duration-seconds: 1200
+          role-duration-seconds: 1500
           role-to-assume: arn:aws:iam::737954963756:role/github-testnet-deploy-role
           aws-region: us-east-1
-          
-      # install packages
+      
+      # make the required env variables available in the JSON format Claudia uses
+      - name: USE1 env
+        run: |
+          echo "${{secrets.USE1_TESTNET_JSON }}" > .env.use1.testnet.json      
+      
+      # install packages and run deploy
+      - name: install packages
       - uses: actions/checkout@v2
       - id: nvmrc
         uses: browniebroke/read-nvmrc-action@v1
@@ -38,8 +44,11 @@ jobs:
         with:
           node-version: '${{ steps.nvmrc.outputs.node_version }}'
           cache: 'yarn'
-      - run: yarn install     
+      - run: yarn install  
       
+      - name: do deployment
+      - run: yarn lambda-update-testnet-use1
+            
       # debugging
 #       - name: Setup tmate session
 #         uses: mxschmitt/action-tmate@v3      
