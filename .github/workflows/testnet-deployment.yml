@@ -46,8 +46,9 @@ jobs:
           cache: 'yarn'
       - run: yarn install  
       
+      # do deployment
       - name: do deployment
-      - run: yarn lambda-update-testnet-use1
+        run: yarn lambda-update-testnet-use1
             
       # debugging
 #       - name: Setup tmate session
