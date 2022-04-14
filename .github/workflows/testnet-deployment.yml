@@ -33,7 +33,7 @@ jobs:
       # make the required env variables available in the JSON format Claudia uses
       - name: USE1 env
         run: |
-          echo "${{secrets.USE1_TESTNET_JSON_BASE64 }}" > base64 -d > .env.use1.testnet.json      
+          echo "${{secrets.USE1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.use1.testnet.json      
       
       # install packages and run deploy
       - id: nvmrc
