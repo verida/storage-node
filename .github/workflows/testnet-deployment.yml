@@ -47,11 +47,10 @@ jobs:
       - run: yarn install  
       
       # do deployment
-      - name: do deployment
-        run: yarn lambda-update-testnet-use1
+      - run: yarn lambda-update-testnet-use1
             
       # debugging
-#       - name: Setup tmate session
-#         uses: mxschmitt/action-tmate@v3      
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3      
           
       # TODO: SG deployment
