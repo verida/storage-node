@@ -58,8 +58,27 @@ $env:DB_PUBLIC_USER="784c2n780c9cn0789"
 $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 ```
 
-## Deployment
+## CouchDB configuration
 
+- CORS must be enabled so that database requests can come from any domain name
+- A valid user must be enforced for security reasons
+
+```
+[httpd]
+WWW-Authenticate = Basic realm="administrator"
+enable_cors = true
+
+[chttpd_auth]
+require_valid_user = true
+
+[cors]
+origins = *
+credentials = true
+methods = GET, PUT, POST, HEAD, DELETE
+headers = accept, authorization, content-type, origin, referer, x-csrf-token
+```
+
+## Lambda deployment
 
 We use [Claudia.js](https://claudiajs.com/) to turn our Express app into an Express-on-Lambda app.
 

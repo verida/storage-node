@@ -29,10 +29,11 @@ describe('Permissions', function () {
   var user4Name = Utils.generateUsername(user4Did, applicationName);
 
   this.beforeAll(async function () {
+    this.timeout(100000)
     // The "owner" of a database
     await UserManager.create(ownerName, 'test-owner');
     ownerUser = await UserManager.getByUsername(ownerName, 'test-owner');
-
+    
     // Another user that isn't an "owner"
     await UserManager.create(userName, 'test-user');
     userUser = await UserManager.getByUsername(userName, 'test-user');
@@ -55,6 +56,7 @@ describe('Permissions', function () {
 
   describe('Owner (Read and Write)', async function () {
     this.beforeAll(async function () {
+      this.timeout(100000)
       // Create test database where only owner can read and write
       await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
         permissions: {
@@ -133,14 +135,16 @@ describe('Permissions', function () {
 
     this.afterAll(async function () {
       // Delete test database
-      let response = await DbManager.deleteDatabase(testDbName);
+      this.timeout(100000)
+      await DbManager.deleteDatabase(testDbName);
     });
   });
 
   describe('Public (Read, not Write)', async function () {
     this.beforeAll(async function () {
+      this.timeout(100000)
       // Create test database where public can read, but not write
-      await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+      const response = await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
         permissions: {
           write: 'owner',
           read: 'public',
@@ -192,13 +196,15 @@ describe('Permissions', function () {
     });
 
     this.afterAll(async function () {
+      this.timeout(100000)
       // Delete test database
-      let response = await DbManager.deleteDatabase(testDbName);
+      await DbManager.deleteDatabase(testDbName);
     });
   });
 
   describe('Public (Write, not Read)', async function () {
     this.beforeAll(async function () {
+      this.timeout(100000)
       // Create test database where public can write, but not read
       await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
         permissions: {
@@ -260,13 +266,15 @@ describe('Permissions', function () {
 
     this.afterAll(async function () {
       // Delete test database
-      let response = await DbManager.deleteDatabase(testDbName);
+      this.timeout(100000)
+      await DbManager.deleteDatabase(testDbName);
     });
   });
 
   // Test other user can read, but not write
   describe('User (Read, not Write)', async function () {
     this.beforeAll(async function () {
+      this.timeout(100000)
       // Create test database where a list of users can write and read
       await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
         permissions: {
@@ -400,6 +408,7 @@ describe('Permissions', function () {
     });
 
     it("shouldn't allow read only user to sync to database", async function () {
+      this.timeout(100000)
       pouchDbLocal = new PouchDb(testDbName);
       pouchDbRemote = new PouchDb(`${user4User.dsn}/${testDbName}`);
 
@@ -442,6 +451,7 @@ describe('Permissions', function () {
 
     this.afterAll(async function () {
       // Delete test database
+      this.timeout(100000)
       await DbManager.deleteDatabase(testDbName);
       pouchDbLocal.destroy(testDbName);
     });
@@ -450,6 +460,7 @@ describe('Permissions', function () {
   // Test updating permissions correcty updates the list of valid users
   describe('User update permissions', async function () {
     this.beforeAll(async function () {
+      this.timeout(100000)
       // Create test database where a list of users can write and read
       await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
         permissions: {
@@ -514,7 +525,8 @@ describe('Permissions', function () {
 
     this.afterAll(async function () {
       // Delete test database
-      let response = await DbManager.deleteDatabase(testDbName);
+      this.timeout(100000)
+      await DbManager.deleteDatabase(testDbName);
     });
   });
 

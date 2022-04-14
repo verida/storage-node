@@ -90,6 +90,7 @@ class UserManager {
     if (!this._couch) {
       this._couch = new CouchDb({
         url: dsn,
+        //log: console.log,
         requestDefaults: {
           rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != 'false',
         },
