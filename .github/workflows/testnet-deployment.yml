@@ -4,8 +4,11 @@ name: testnet-deployment
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
-
+  # Triggers the workflow on push events but only for the main branch
+  push:
+    branches:    
+      - 'main'
+      
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -33,7 +36,11 @@ jobs:
       # make the required env variables available in the JSON format Claudia uses
       - name: USE1 env
         run: |
-          echo "${{secrets.USE1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.use1.testnet.json      
+          echo "${{secrets.USE1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.use1.testnet.json
+          
+      - name: SG1 env
+        run: |
+          echo "${{secrets.USE1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.sg1.testnet.json              
       
       # install packages and run deploy
       - id: nvmrc
@@ -46,11 +53,9 @@ jobs:
           
       - run: yarn install  
       
-      # do deployment
+      # do USE1 deployment
       - run: yarn lambda-update-testnet-use1
-            
-      # debugging
-#       - name: Setup tmate session
-#         uses: mxschmitt/action-tmate@v3      
-          
-      # TODO: SG deployment
+
+      # do SG1 deployment
+      - run: yarn lambda-update-testnet-sg1
+
