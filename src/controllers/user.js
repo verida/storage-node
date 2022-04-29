@@ -1,9 +1,69 @@
 import UserManager from '../components/userManager';
 import DbManager from '../components/dbManager';
 import Utils from "../components/utils";
+import AuthManager from "./authManager"
+
 
 class UserController {
-    // @todo: Enforce HTTPS
+
+    async generateAuthJwt(req, res) {
+        const did = req.body.did;
+        const contextName = req.body.contextName;
+        const authJwt = AuthManager.generateAuthJwt(did, contextName)
+
+        return res.status(200).send({
+            status: "success",
+            authJwt
+        });
+    }
+    
+    //authenticate(authJwt: string, did: string, contextName: string, signature: string, applicationId: string)
+    async authenticate(req, res) {
+        const authJwt = req.body.authJwt;
+        const did = req.body.did;
+        const contextName = req.body.contextName;
+        const signature = req.body.signature;
+        const applicationId = req.body.applicationId;
+
+        const isValid = AuthManager.verifyAuthRequest(authJwt, did, contextName, signature)
+
+        if (!isValid) {
+            return res.status(400).send({
+                status: "fail",
+                data: {
+                    "auth": "Invalid credentials or auth token supplied"
+                }
+            });
+        }
+
+        // @todo: 
+
+        const username = Utils.generateUsername(did, contextName);
+        const user = await UserManager.getByUsername(username, signature);
+
+        if (!user) {
+            return res.status(400).send({
+                status: "fail",
+                data: {
+                    "did": "Invalid credentials supplied"
+                }
+            });
+        }
+
+        // generate request token
+        const requestTokenId = randtoken.generate(256);
+        const token = jwt.sign({
+            // Specify the subject (CouchDB username)
+            sub: did,
+            contextName,
+            
+        }, env.COUCHDB_JWT_SIGN_PK, {
+            // expiry in minutes for this token
+            expiresIn: 60 * env.JWT_SIGN_EXPIRY
+        })
+
+        // generate auth token
+    }
 
     async get(req, res) {
         let signature = req.auth.password;

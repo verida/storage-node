@@ -25,7 +25,7 @@ class UserManager {
             const token = jwt.sign({
                 // Specify the subject (CouchDB username)
                 sub: username
-            }, env.JWT_SIGN_PK, {
+            }, env.COUCHDB_JWT_SIGN_PK, {
                 // expiry in minutes for this token
                 expiresIn: 60 * env.JWT_SIGN_EXPIRY
             })
