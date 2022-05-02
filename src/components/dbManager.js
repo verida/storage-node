@@ -50,8 +50,16 @@ class DbManager {
         return true;
     }
 
-    async deleteDatabase(databaseName) {
-        let couch = Db.getCouch();
+    async deleteDatabase(databaseName, username) {
+        const couch = Db.getCouch();
+
+        // Do a sanity check to confirm the username is an admin of the database
+        const perms = await couch.request({db: databaseName, method: 'get', path: '/_security'})
+        const usernameIsAdmin = perms.admins.names.includes(username)
+
+        if (!usernameIsAdmin) {
+            return false
+        }
 
         // Create database
         try {
