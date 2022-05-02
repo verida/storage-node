@@ -59,7 +59,8 @@ class AuthManager {
         let decodedJwt
         try {
             decodedJwt = jwt.verify(authJwt, process.env.REFRESH_JWT_SIGN_PK, {
-                subject: did
+                sub: did,
+                contextName
             })
         } catch (err) {
             // Handle invalid JWT by rejecting verification
@@ -71,7 +72,7 @@ class AuthManager {
             throw err
         }
 
-        // Verify the signature
+        // Verify the signature signed the correct string
         const cacheKey = `${did}/${contextName}`
         try {
             let didDocument = mcache.get(cacheKey)
@@ -210,7 +211,7 @@ class AuthManager {
         return decodedJwt
     }
 
-    async regenerateRefreshToken(refreshToken) {
+    async regenerateRefreshToken(refreshToken, contextName) {
         const decodedJwt = await this.verifyRefreshToken(refreshToken, contextName)
         if (!decodedJwt) {
             return false;
@@ -287,6 +288,10 @@ class AuthManager {
      */
     async generateAccessToken(refreshToken, contextName) {
         const decodedJwt = await this.verifyRefreshToken(refreshToken, contextName)
+        if (!decodedJwt) {
+            return false;
+        }
+        
         const username = Utils.generateUsername(decodedJwt.sub.toLowerCase(), decodedJwt.contextName);
 
         const expiry = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
