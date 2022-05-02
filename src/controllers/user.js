@@ -22,6 +22,8 @@ class UserController {
      * 
      * Will automatically create the user if they don't already exist.
      * 
+     * Returns a refresh token, access token and database hostname for connections
+     * 
      * @param {*} req 
      * @param {*} res 
      * @returns 
@@ -63,15 +65,18 @@ class UserController {
 
         // Generate refresh token
         const refreshToken = await AuthManager.generateRefreshToken(did, contextName, deviceId)
+        const accessToken = await AuthManager.generateAccessToken(refreshToken, contextName)
+
         return res.status(200).send({
             status: "success",
-            refreshToken
+            refreshToken,
+            accessToken,
+            host: Db.buildHost()
         });
     }
 
     async get(req, res) {
         const refreshToken = req.body.refreshToken;
-        const did = req.body.did;
         const contextName = req.body.contextName;
 
         const accessToken = await AuthManager.generateAccessToken(refreshToken, contextName);
@@ -148,7 +153,7 @@ class UserController {
 
         let success;
         try {
-            success = await DbManager.deleteDatabase(databaseHash);
+            success = await DbManager.deleteDatabase(databaseHash, req.tokenData.username);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
