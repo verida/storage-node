@@ -50,6 +50,14 @@ describe("Server tests", function() {
             assert.ok(authenticateResponse.data.refreshToken.length, "Non zero length refresh token response")
 
             refreshToken = authenticateResponse.data.refreshToken
+
+            // Also returns a hostname
+            assert.ok(authenticateResponse.data.host.length, "Hostname provided")
+
+            // Also returns a valid access token
+            assert.ok(authenticateResponse.data.accessToken, "Has an access token")
+            const validAccessToken = AuthManager.verifyAccessToken(authenticateResponse.data.accessToken)
+            assert.ok(validAccessToken, "Have a valid access token")
         })
 
         it("Gets user access token", async () => {
@@ -65,6 +73,10 @@ describe("Server tests", function() {
             
             accessToken = userResponse.data.accessToken
         })
+
+        // regenerate refresh token
+
+        // sign out application id
     })
 
     describe("Database operations", () => {
@@ -81,6 +93,8 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
+
+            assert.equal(response.data.status, "success", "Successful create response")
         })
 
         it("Deletes database", async () => {
@@ -95,6 +109,10 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
+
+            assert.equal(response.data.status, "success", "Successful delete response")
         })
+
+
     })
 })
