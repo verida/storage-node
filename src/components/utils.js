@@ -1,22 +1,29 @@
 
-const crypto = require('crypto');
+import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {
 
-    generateUsernameFromRequest(req) {
-        const did = req.auth.user.toLowerCase()
-        const contextName = req.headers['context-name']
-        return this.generateUsername(did, contextName)
-    }
-
     generateUsername(did, contextName) {
         did = did.toLowerCase()
-        const hash = crypto.createHmac('sha256', process.env.HASH_KEY)
-        hash.update(did + "/" + contextName)
-        const username = hash.digest('hex')
+        const text = [
+            did,
+            contextName
+        ].join('/')
+
+        const hash = EncryptionUtils.hash(text).substring(2)
 
         // Username must start with a letter
-        return "v" + username;
+        return "v" + hash
+    }
+
+    generateDatabaseName(did, contextName, databaseName) {
+        let text = [
+            did.toLowerCase(),
+            contextName,
+            databaseName,
+        ].join("/");
+        
+        return EncryptionUtils.hash(text).substring(2);
     }
 
     didsToUsernames(dids, contextName) {

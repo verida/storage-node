@@ -109,13 +109,16 @@ class UserController {
     // @todo: database name should be in plain text, then hashed
     async createDatabase(req, res) {
         const username = req.tokenData.username
+        const did = req.tokenData.did
         const contextName = req.tokenData.contextName
         const databaseName = req.body.databaseName;
         const options = req.body.options ? req.body.options : {};
 
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
+
         let success;
         try {
-            success = await DbManager.createDatabase(username, databaseName, contextName, options);
+            success = await DbManager.createDatabase(username, databaseHash, contextName, options);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
@@ -136,17 +139,16 @@ class UserController {
         }
     }
 
-    // @todo: database name should be in plain text, then hashed
     async deleteDatabase(req, res) {
-        /*const username = req.tokenData.username
+        const did = req.tokenData.did
         const contextName = req.tokenData.contextName
-        const options = req.body.options ? req.body.options : {};
-        */
         const databaseName = req.body.databaseName;
+
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
         let success;
         try {
-            success = await DbManager.deleteDatabase(databaseName);
+            success = await DbManager.deleteDatabase(databaseHash);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
@@ -170,13 +172,17 @@ class UserController {
     // Update permissions on a user's database
     // @todo: database name should be in plain text, then hashed
     async updateDatabase(req, res) {
-        let username = Utils.generateUsernameFromRequest(req);
-        let databaseName = req.body.databaseName;
-        let options = req.body.options ? req.body.options : {};
+        const username = req.tokenData.username
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName;
+        const options = req.body.options ? req.body.options : {};
+
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
         let success;
         try {
-            success = await DbManager.updateDatabase(username, databaseName, req.headers['context-name'], options);
+            success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
