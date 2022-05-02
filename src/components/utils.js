@@ -4,22 +4,22 @@ const crypto = require('crypto');
 class Utils {
 
     generateUsernameFromRequest(req) {
-        let did = req.auth.user.toLowerCase()
-        let applicationName = req.headers['application-name']
-        return this.generateUsername(did, applicationName)
+        const did = req.auth.user.toLowerCase()
+        const contextName = req.headers['context-name']
+        return this.generateUsername(did, contextName)
     }
 
-    generateUsername(did, applicationName) {
+    generateUsername(did, contextName) {
         did = did.toLowerCase()
-        let hash = crypto.createHmac('sha256', process.env.HASH_KEY)
-        hash.update(did + "/" + applicationName)
+        const hash = crypto.createHmac('sha256', process.env.HASH_KEY)
+        hash.update(did + "/" + contextName)
         const username = hash.digest('hex')
 
         // Username must start with a letter
         return "v" + username;
     }
 
-    didsToUsernames(dids, applicationName) {
+    didsToUsernames(dids, contextName) {
         if (!dids || !dids.length) {
             return [];
         }
@@ -30,8 +30,8 @@ class Utils {
                 continue
             }
 
-            let did = dids[d].toLowerCase()
-            usernames.push(this.generateUsername(did, applicationName))
+            const did = dids[d].toLowerCase()
+            usernames.push(this.generateUsername(did, contextName))
         }
 
         return usernames;

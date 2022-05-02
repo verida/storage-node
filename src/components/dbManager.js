@@ -53,7 +53,6 @@ class DbManager {
     async deleteDatabase(databaseName) {
         let couch = Db.getCouch();
 
-        let response;
         // Create database
         try {
             return await couch.db.destroy(databaseName);

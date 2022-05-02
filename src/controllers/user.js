@@ -2,6 +2,7 @@ import UserManager from '../components/userManager';
 import DbManager from '../components/dbManager';
 import Utils from "../components/utils";
 import AuthManager from "../components/authManager"
+import Db from "../components/db"
 
 class UserController {
 
@@ -17,7 +18,9 @@ class UserController {
     }
     
     /**
-     * Authenticate the user with a signed consent message to obtain a refresh token
+     * Authenticate the user with a signed consent message to obtain a refresh token.
+     * 
+     * Will automatically create the user if they don't already exist.
      * 
      * @param {*} req 
      * @param {*} res 
@@ -45,13 +48,17 @@ class UserController {
         const username = Utils.generateUsername(did, contextName);
         const user = await UserManager.getByUsername(username);
 
+        // Create the user if they don't exist
         if (!user) {
-            return res.status(400).send({
-                status: "fail",
-                data: {
-                    "did": "Invalid user"
-                }
-            });
+            const response = await UserManager.create(username, signature);
+            if (!response || !response._id) {
+                return res.status(400).send({
+                    status: "fail",
+                    data: {
+                        "auth": "User does not exist and unable to create"
+                    }
+                })
+            }
         }
 
         // Generate refresh token
@@ -65,7 +72,9 @@ class UserController {
     async get(req, res) {
         const refreshToken = req.body.refreshToken;
         const did = req.body.did;
-        const accessToken = AuthManager.generateAccessToken(did, refreshToken);
+        const contextName = req.body.contextName;
+
+        const accessToken = await AuthManager.generateAccessToken(refreshToken, contextName);
 
         if (accessToken) {
             return res.status(200).send({
@@ -96,54 +105,48 @@ class UserController {
         });
     }
 
-    async create(req, res) {
-        let username = Utils.generateUsernameFromRequest(req);
-        let signature = req.auth.password;
+    // Grant a user access to a user's database
+    // @todo: database name should be in plain text, then hashed
+    async createDatabase(req, res) {
+        const username = req.tokenData.username
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName;
+        const options = req.body.options ? req.body.options : {};
 
-        // If user exists, simply return it
-        let user = await UserManager.getByUsername(username, signature);
-        if (user) {
+        let success;
+        try {
+            success = await DbManager.createDatabase(username, databaseName, contextName, options);
+        } catch (err) {
             return res.status(400).send({
                 status: "fail",
-                code: 100,
-                data: {
-                    "did": "User already exists"
-                }
+                message: err.error + ": " + err.reason
             });
         }
 
-        let response = await UserManager.create(username, signature);
-
-        if (response.ok) {
-            user = await UserManager.getByUsername(username, signature);
-        }
-
-        if (user) {
+        if (success) {
             return res.status(200).send({
-                status: "success",
-                user: user
+                status: "success"
             });
         }
         else {
             return res.status(400).send({
                 status: "fail",
-                code: 100,
-                data: {
-                    "did": "Unable to locate created user"
-                }
+                message: "Unknown error"
             });
         }
     }
 
-    // Grant a user access to a user's database
-    async createDatabase(req, res) {
-        let username = Utils.generateUsernameFromRequest(req);
-        let databaseName = req.body.databaseName;
-        let options = req.body.options ? req.body.options : {};
+    // @todo: database name should be in plain text, then hashed
+    async deleteDatabase(req, res) {
+        /*const username = req.tokenData.username
+        const contextName = req.tokenData.contextName
+        const options = req.body.options ? req.body.options : {};
+        */
+        const databaseName = req.body.databaseName;
 
         let success;
         try {
-            success = await DbManager.createDatabase(username, databaseName, req.headers['application-name'], options);
+            success = await DbManager.deleteDatabase(databaseName);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
@@ -165,6 +168,7 @@ class UserController {
     }
 
     // Update permissions on a user's database
+    // @todo: database name should be in plain text, then hashed
     async updateDatabase(req, res) {
         let username = Utils.generateUsernameFromRequest(req);
         let databaseName = req.body.databaseName;
@@ -172,7 +176,7 @@ class UserController {
 
         let success;
         try {
-            success = await DbManager.updateDatabase(username, databaseName, req.headers['application-name'], options);
+            success = await DbManager.updateDatabase(username, databaseName, req.headers['context-name'], options);
         } catch (err) {
             return res.status(400).send({
                 status: "fail",

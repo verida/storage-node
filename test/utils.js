@@ -11,7 +11,6 @@ class Utils {
             environment: CONFIG.ENVIRONMENT
         })
 
-        const { CONTEXT_NAME } = CONFIG
         const did = await account.did()
 
         return {

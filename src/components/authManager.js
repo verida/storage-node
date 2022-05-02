@@ -295,6 +295,7 @@ class AuthManager {
         const requestTokenId = randtoken.generate(256);
         const token = jwt.sign({
             id: requestTokenId,
+            did: decodedJwt.sub,
             sub: username,
             contextName: decodedJwt.contextName,
             type: 'access'
@@ -353,6 +354,8 @@ class AuthManager {
 
         const response = await tokenDb.createIndex(indexDef);
     }
+
+    // @todo: garbage collection
 
 }
 
