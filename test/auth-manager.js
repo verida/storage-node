@@ -19,10 +19,11 @@ describe("AuthManager tests", function() {
             await AuthManager.initDb()
 
             const response = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
-            DID = response.did
+            DID = response.did.toLowerCase()
             account = response.account
 
-            const { authJwt } = AuthManager.generateAuthJwt(DID, CONTEXT_NAME)
+            const authData = AuthManager.generateAuthJwt(DID, CONTEXT_NAME)
+            authJwt = authData.authJwt
             assert.ok(authJwt, 'Have a token response')
             decodedJwt = jwt.verify(authJwt, process.env.REFRESH_JWT_SIGN_PK)
 
