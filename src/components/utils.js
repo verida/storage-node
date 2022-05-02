@@ -23,7 +23,10 @@ class Utils {
             databaseName,
         ].join("/");
         
-        return EncryptionUtils.hash(text).substring(2);
+        const hash = EncryptionUtils.hash(text).substring(2);
+
+        // Database name must start with a letter
+        return "v" + hash
     }
 
     didsToUsernames(dids, contextName) {
