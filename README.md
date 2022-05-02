@@ -78,7 +78,7 @@ Note: A secret key (string) can be base64 encoded with the following:
 
 ```
 const secretKey = 'secretKey'
-const encodedKey = new Buffer(secretKey).toString('base64')
+const encodedKey = Buffer.from(secretKey).toString('base64')
 ```
 
 This can be tested via curl:

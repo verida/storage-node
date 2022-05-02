@@ -1,24 +1,16 @@
 var assert = require("assert");
 require('dotenv').config();
 
+import AuthManager from "../src/components/authManager"
 import DbManager from "../src/components/dbManager";
 import UserManager from "../src/components/userManager";
+import Db from "../src/components/db";
 import Utils from "../src/components/utils";
+import TestUtils from "./utils";
 
 const CouchDb = require('nano');
 const PouchDb = require('pouchdb');
 import { resolve } from "path";
-
-function buildCouch(user) {
-    return new CouchDb({
-        url: user.host,
-        requestDefaults: { rejectUnauthorized: false },
-        fetch: function(url, opts) {
-            opts.headers.set('Authorization', `Bearer ${user.token}`)
-            return CouchDb.fetch(url, opts)
-        }
-    });
-}
 
 function buildPouch(user, dbName) {
     return new PouchDb(`${user.host}/${dbName}`, {
@@ -26,20 +18,28 @@ function buildPouch(user, dbName) {
             rejectUnauthorized: false
         },
         fetch: function(url, opts) {
-            opts.headers.set('Authorization', `Bearer ${user.token}`)
+            opts.headers.set('Authorization', `Bearer ${user.accessToken}`)
             return PouchDb.fetch(url, opts)
         }
     });
+}
+
+const PRIVATE_KEYS = {
+    ownerUser: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165000',
+    userDid: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165001',
+    user2Did: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165002',
+    user3Did: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165003',
+    user4Did: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165004',
 }
 
 describe("Permissions", function() {
     var ownerUser, userUser, user2User, user3User, user4User;
     var ownerDb, userDb, user2Db, user3Db, user4Db, publicDb;
     var pouchDbLocal, pouchDbRemote;
-    var testDbName = "testdb1";
-    var applicationName = "testApp";
+    var testDbName = "permissiontestdb";
+    var applicationName = "Verida Test: Permissions";
 
-    var ownerDid = "test-owner";
+    /*var ownerDid = "test-owner";
     var userDid = "test-user";
     var user2Did = "test-user2";
     var user3Did = "test-user3";
@@ -49,15 +49,31 @@ describe("Permissions", function() {
     var userName = Utils.generateUsername(userDid, applicationName);
     var user2Name = Utils.generateUsername(user2Did, applicationName);
     var user3Name = Utils.generateUsername(user3Did, applicationName);
-    var user4Name = Utils.generateUsername(user4Did, applicationName);
+    var user4Name = Utils.generateUsername(user4Did, applicationName);*/
+
+    let userDid, user2Did, user3Did, user4Did
+    let accounts = {}
 
     this.beforeAll(async function() {
-        // The "owner" of a database
+        for (var userType in PRIVATE_KEYS) {
+            accounts[userType] = await TestUtils.connectAccount(PRIVATE_KEYS[userType]);
+            accounts[userType].username = Utils.generateUsername(accounts[userType].did, applicationName);
+
+            accounts[userType].refreshToken = await AuthManager.generateRefreshToken(accounts[userType].did, applicationName)
+            accounts[userType].accessToken = await AuthManager.generateAccessToken(accounts[userType].refreshToken)
+
+            accounts[userType].host = Db.buildHost()
+        }
+
+
+        /*// The "owner" of a database
         await UserManager.create(ownerName, "test-owner");
         ownerUser = await UserManager.getByUsername(ownerName, "test-owner");
 
         // Another user that isn't an "owner"
+        console.log('c')
         await UserManager.create(userName, "test-user");
+        console.log('d')
         userUser = await UserManager.getByUsername(userName, "test-user");
 
         // A second user that isn't an "owner"
@@ -70,7 +86,7 @@ describe("Permissions", function() {
 
         // A fourth user that has no access
         await UserManager.create(user4Name, "test-user4");
-        user4User = await UserManager.getByUsername(user4Name, "test-user4");
+        user4User = await UserManager.getByUsername(user4Name, "test-user4");*/
 
         // A public user
         await UserManager.ensurePublicUser();
@@ -79,16 +95,16 @@ describe("Permissions", function() {
     describe("Owner (Read and Write)", async function() {
         this.beforeAll(async function() {
             // Create test database where only owner can read and write
-            await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+            const result = await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "owner",
                     read: "owner"
                 }
             });
 
-            ownerDb = buildPouch(ownerUser, testDbName)
-            userDb = buildPouch(userUser, testDbName)
-            publicDb = new PouchDb(UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
+            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            userDb = buildPouch(accounts['userDid'], testDbName)
+            publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
         })
@@ -141,22 +157,22 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            let response = await DbManager.deleteDatabase(testDbName);
+            await DbManager.deleteDatabase(testDbName);
         });
     });
 
     describe("Public (Read, not Write)", async function() {
         this.beforeAll(async function() {
             // Create test database where public can read, but not write
-            await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+            await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "owner",
                     read: "public"
                 }
             });
 
-            ownerDb = buildPouch(ownerUser, testDbName)
-            publicDb = new PouchDb(UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
+            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
         });
@@ -199,15 +215,15 @@ describe("Permissions", function() {
     describe("Public (Write, not Read)", async function() {
         this.beforeAll(async function() {
             // Create test database where public can write, but not read
-            await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+            await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "public",
                     read: "owner"
                 }
             });
 
-            ownerDb = buildPouch(ownerUser, testDbName)
-            publicDb = new PouchDb(UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
+            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
         });
@@ -260,21 +276,21 @@ describe("Permissions", function() {
     describe("User (Read, not Write)", async function() {
         this.beforeAll(async function() {
             // Create test database where a list of users can write and read
-            await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+            await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "users",
-                    writeList: [userDid, user2Did],
+                    writeList: [accounts['userDid'].did, accounts['user2Did'].did],
                     read: "users",
-                    readList: [userDid, user2Did, user4Did]
+                    readList: [accounts['userDid'].did, accounts['user2Did'].did, accounts['user4Did'].did]
                 }
             });
 
-            ownerDb = buildPouch(ownerUser, testDbName)
-            userDb = buildPouch(userUser, testDbName)
-            user2Db = buildPouch(user2User, testDbName)
-            user3Db = buildPouch(user3User, testDbName)
-            user4Db = buildPouch(user4User, testDbName)
-            publicDb = new PouchDb(UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
+            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            userDb = buildPouch(accounts['userDid'], testDbName)
+            user2Db = buildPouch(accounts['user2Did'], testDbName)
+            user3Db = buildPouch(accounts['user3Did'], testDbName)
+            user4Db = buildPouch(accounts['user4Did'], testDbName)
+            publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             })
         });
@@ -369,7 +385,7 @@ describe("Permissions", function() {
 
         it("shouldn't allow read only user to sync to database", async function() {
             pouchDbLocal = new PouchDb(testDbName);
-            pouchDbRemote = buildPouch(user4User, testDbName)
+            pouchDbRemote = buildPouch(accounts['user4Did'], testDbName)
 
             const localInfo = await pouchDbLocal.info()
             const remoteInfo = await pouchDbRemote.info()
@@ -421,28 +437,28 @@ describe("Permissions", function() {
     describe("User update permissions", async function() {
         this.beforeAll(async function() {
             // Create test database where a list of users can write and read
-            await DbManager.createDatabase(ownerUser.username, testDbName, applicationName, {
+            await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "users",
-                    writeList: [userDid],
+                    writeList: [accounts['userDid'].did],
                     read: "users",
-                    readList: [userDid]
+                    readList: [accounts['userDid'].did]
                 }
             });
 
-            ownerDb = buildPouch(ownerUser, testDbName)
-            userDb = buildPouch(userUser, testDbName)
-            user2Db = buildPouch(user2User, testDbName)
-            publicDb = new PouchDb(UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
+            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            userDb = buildPouch(accounts['userDid'], testDbName)
+            user2Db = buildPouch(accounts['user2Did'], testDbName)
+            publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             })
 
-            await DbManager.updateDatabase(ownerUser.username, testDbName, applicationName, {
+            await DbManager.updateDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
                 permissions: {
                     write: "users",
-                    writeList: [userDid, user2Did],
+                    writeList: [accounts['userDid'].did, accounts['user2Did'].did],
                     read: "users",
-                    readList: [userDid, user2Did]
+                    readList: [accounts['userDid'].did, accounts['user2Did'].did]
                 }
             });
         });
@@ -473,7 +489,7 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            let response = await DbManager.deleteDatabase(testDbName);
+            await DbManager.deleteDatabase(testDbName);
         });
 
     });

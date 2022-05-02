@@ -5,8 +5,8 @@ const mcache = require("memory-cache")
 
 import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
-
-import Db from "./db"
+import Utils from "./utils";
+import Db from "./db";
 
 let didClient
 
@@ -23,6 +23,7 @@ class AuthManager {
      * @returns 
      */
     generateAuthJwt(did, contextName) {
+        did = did.toLowerCase()
         const authRequestId = randtoken.generate(256);
         const authJwt = jwt.sign({
             sub: did,
@@ -34,7 +35,10 @@ class AuthManager {
             expiresIn: 60
         })
 
-        return authJwt;
+        return {
+            authRequestId,
+            authJwt
+        }
     }
 
     /**
@@ -49,6 +53,8 @@ class AuthManager {
      * @returns 
      */
     async verifyAuthRequest(authJwt, did, contextName, signature) {
+        did = did.toLowerCase()
+
         // verify authJwt is valid
         let decodedJwt
         try {
@@ -117,10 +123,11 @@ class AuthManager {
      */
     async generateRefreshToken(did, contextName, deviceId, expiry) {
         const requestTokenId = randtoken.generate(256);
+        did = did.toLowerCase()
 
         // Set the token to expire
         if (!expiry) {
-            expiry = 60 * process.env.REFRESH_TOKEN_EXPIRY
+            expiry = parseInt(process.env.REFRESH_TOKEN_EXPIRY)
         }
 
         const deviceHash = EncryptionUtils.hash(`${did}/${contextName}/${deviceId}`)
@@ -154,7 +161,7 @@ class AuthManager {
     }
 
     /**
-     * Verify a refresht token is valid:
+     * Verify a refresh token is valid:
      * 
      * - JWT is valid (private key matches, hasn't expired etc.)
      * - Is of type `refresh` token
@@ -163,13 +170,19 @@ class AuthManager {
      * @param {*} refreshToken 
      * @returns The decoded JWT
      */
-    async verifyRefreshToken(refreshToken) {
+    async verifyRefreshToken(refreshToken, contextName) {
+        const verifyData = {
+            type: 'refresh'
+        }
+
+        if (contextName) {
+            verifyData.contextName = contextName
+        }
+
         // verify refreshToken is valid
         let decodedJwt
         try {
-            decodedJwt = jwt.verify(refreshToken, process.env.REFRESH_JWT_SIGN_PK, {
-                type: 'refresh'
-            })
+            decodedJwt = jwt.verify(refreshToken, process.env.REFRESH_JWT_SIGN_PK, verifyData)
         } catch (err) {
             // Handle invalid JWT by rejecting verification
             if (err.name == "JsonWebTokenError") {
@@ -198,7 +211,7 @@ class AuthManager {
     }
 
     async regenerateRefreshToken(refreshToken) {
-        const decodedJwt = await this.verifyRefreshToken(refreshToken)
+        const decodedJwt = await this.verifyRefreshToken(refreshToken, contextName)
         if (!decodedJwt) {
             return false;
         }
@@ -269,21 +282,25 @@ class AuthManager {
      * 
      * @param {*} did 
      * @param {*} refreshToken 
+     * @param {*} contextName optionally verify the refresh token matches the provided `contextName`
      * @returns 
      */
-    async generateAccessToken(did, refreshToken) {
-        const decodedJwt = await this.verifyRefreshToken(did, refreshToken)
+    async generateAccessToken(refreshToken, contextName) {
+        const decodedJwt = await this.verifyRefreshToken(refreshToken, contextName)
+        const username = Utils.generateUsername(decodedJwt.sub.toLowerCase(), decodedJwt.contextName);
+
+        const expiry = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
 
         // generate new request token
         const requestTokenId = randtoken.generate(256);
         const token = jwt.sign({
             id: requestTokenId,
-            sub: decodedJwt.did,
+            sub: username,
             contextName: decodedJwt.contextName,
             type: 'access'
         }, process.env.ACCESS_JWT_SIGN_PK, {
-            // expiry in minutes for this token
-            expiresIn: 60 * process.env.ACCESS_TOKEN_EXPIRY
+            // expiry in seconds for this token
+            expiresIn: expiry
         })
 
         return token

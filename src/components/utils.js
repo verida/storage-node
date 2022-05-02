@@ -10,6 +10,7 @@ class Utils {
     }
 
     generateUsername(did, applicationName) {
+        did = did.toLowerCase()
         let hash = crypto.createHmac('sha256', process.env.HASH_KEY)
         hash.update(did + "/" + applicationName)
         const username = hash.digest('hex')

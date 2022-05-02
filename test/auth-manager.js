@@ -3,29 +3,26 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 import AuthManager from "../src/components/authManager";
-import { AutoAccount } from "@verida/account-node"
+import TestUtils from "./utils"
 
 import CONFIG from './config'
-
-const account = new AutoAccount(CONFIG.DEFAULT_ENDPOINTS, {
-    privateKey: CONFIG.VDA_PRIVATE_KEY,
-    didServerUrl: CONFIG.DID_SERVER_URL,
-    environment: CONFIG.ENVIRONMENT
-})
 
 const { CONTEXT_NAME } = CONFIG
 
 describe("AuthManager tests", function() {
 
     describe("Authenticate", async function() {
-        let authJwt, decodedJwt, DID
+        let authJwt, decodedJwt, DID, account
         let refreshToken, accessToken
 
         it("Generates AuthJWT", async () => {
             await AuthManager.initDb()
 
-            DID = await account.did()
-            authJwt = AuthManager.generateAuthJwt(DID, CONTEXT_NAME)
+            const response = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
+            DID = response.did
+            account = response.account
+
+            const { authJwt } = AuthManager.generateAuthJwt(DID, CONTEXT_NAME)
             assert.ok(authJwt, 'Have a token response')
             decodedJwt = jwt.verify(authJwt, process.env.REFRESH_JWT_SIGN_PK)
 
@@ -65,7 +62,7 @@ describe("AuthManager tests", function() {
             refreshToken = await AuthManager.generateRefreshToken(DID, CONTEXT_NAME)
             assert.ok(refreshToken && refreshToken.length, "Refresh token returned")
 
-            const isValid = await AuthManager.verifyRefreshToken(refreshToken)
+            const isValid = await AuthManager.verifyRefreshToken(refreshToken, CONTEXT_NAME)
             assert.equal(isValid !== false, true, "Refresh token is valid")
 
             decodedJwt = jwt.verify(refreshToken, process.env.REFRESH_JWT_SIGN_PK)
@@ -90,10 +87,10 @@ describe("AuthManager tests", function() {
         })
 
         it("Regenerates refresh token", async () => {
-            const newToken = await AuthManager.regenerateRefreshToken(refreshToken)
+            const newToken = await AuthManager.regenerateRefreshToken(refreshToken, CONTEXT_NAME)
             assert.ok(newToken && newToken.length, "Refresh token returned")
 
-            const isValid = await AuthManager.verifyRefreshToken(newToken)
+            const isValid = await AuthManager.verifyRefreshToken(newToken, CONTEXT_NAME)
             assert.equal(isValid !== false, true, "Refresh token is valid")
 
             const newDecodedJwt = jwt.verify(refreshToken, process.env.REFRESH_JWT_SIGN_PK)
@@ -102,7 +99,7 @@ describe("AuthManager tests", function() {
             assert.equal(newDecodedJwt.contextName, CONTEXT_NAME, "Context name is correct")
             assert.equal(newDecodedJwt.type, 'refresh', "Correct token type")
 
-            const oldIsValid = await AuthManager.verifyRefreshToken(refreshToken)
+            const oldIsValid = await AuthManager.verifyRefreshToken(refreshToken, CONTEXT_NAME)
             assert.equal(oldIsValid === false, true, "Previous refresth token has been revoked")
         })
 
@@ -114,7 +111,7 @@ describe("AuthManager tests", function() {
             const invalidated = await AuthManager.invalidateRefreshToken(token)
             assert.equal(invalidated, true, "Token successfully invalidated")
 
-            const isValid2 = await AuthManager.verifyRefreshToken(token)
+            const isValid2 = await AuthManager.verifyRefreshToken(token, CONTEXT_NAME)
             assert.equal(isValid2 === false, true, "Token is no longer valid")
         })
 

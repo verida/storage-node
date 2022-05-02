@@ -1,6 +1,6 @@
-const CouchDb = require('nano');
 import Utils from './utils';
 import _ from 'lodash';
+import Db from "./db"
 
 class DbManager {
 
@@ -9,12 +9,12 @@ class DbManager {
     }
 
     async createDatabase(username, databaseName, applicationName, options) {
-        let couch = this._getCouch();
+        let couch = Db.getCouch();
 
         let response;
         // Create database
         try {
-            response = await couch.db.create(databaseName);
+            await couch.db.create(databaseName);
         } catch (err) {
             // The database may already exist, or may have been deleted so a file
             // already exists.
@@ -37,7 +37,7 @@ class DbManager {
     }
 
     async updateDatabase(username, databaseName, applicationName, options) {
-        const couch = this._getCouch();
+        const couch = Db.getCouch();
         const db = couch.db.use(databaseName);
 
         try {
@@ -51,7 +51,7 @@ class DbManager {
     }
 
     async deleteDatabase(databaseName) {
-        let couch = this._getCouch();
+        let couch = Db.getCouch();
 
         let response;
         // Create database
@@ -97,7 +97,7 @@ class DbManager {
                 break;
         }
 
-        let dbMembers = _.union(readUsers, writeUsers);
+        const dbMembers = _.union(readUsers, writeUsers);
 
         let securityDoc = {
             admins: {
@@ -183,33 +183,6 @@ class DbManager {
         }
     }
 
-    /**
-     * Get a couch db instance
-     */
-    _getCouch() {
-        let dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-
-        if (!this._couch) {
-            this._couch = new CouchDb({
-                url: dsn,
-                requestDefaults: {
-                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != "false"
-                }
-            });
-        }
-
-        return this._couch;
-    }
-
-    /**
-     * Build a DSN for a username / password combination
-     * @param {*} username 
-     * @param {*} password 
-     */
-    buildDsn(username, password) {
-        let env = process.env;
-        return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + env.DB_HOST + ":" + env.DB_PORT;
-    }
 }
 
 let dbManager = new DbManager();

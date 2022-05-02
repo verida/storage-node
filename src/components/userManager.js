@@ -1,6 +1,7 @@
-const CouchDb = require('nano');
 import crypto from 'crypto';
 const jwt = require('jsonwebtoken')
+import Db from "./db"
+import AuthManager from './authManager';
 
 class UserManager {
 
@@ -13,27 +14,11 @@ class UserManager {
      * 
      * @param {} did 
      */
-    async getByUsername(username, signature) {
-        let couch = this._getCouch();
-        let usersDb = couch.db.use('_users');
-
+    async getByUsername(username) {
         try {
-            const response = await usersDb.get('org.couchdb.user:' + username)
-            const env = process.env;
-
-            // Generate a JWT that grants access to CouchDB, signed by the pre-configured secret
-            const token = jwt.sign({
-                // Specify the subject (CouchDB username)
-                sub: username
-            }, env.COUCHDB_JWT_SIGN_PK, {
-                // expiry in minutes for this token
-                expiresIn: 60 * env.JWT_SIGN_EXPIRY
-            })
-            return {
-                username: username,
-                host: this.buildHost(),
-                token
-            };
+            const usersDb = couch.db.use('_users');
+            const user = await usersDb.get(username);
+            return user
         } catch (err) {
             this.error = err;
             return false;
@@ -41,7 +26,7 @@ class UserManager {
     }
 
     async create(username, signature) {
-        let couch = this._getCouch()
+        let couch = Db.getCouch()
         let password = crypto.createHash('sha256').update(signature).digest("hex")
 
         // Create CouchDB database user matching username and password
@@ -57,6 +42,11 @@ class UserManager {
         try {
             return await usersDb.insert(userData);
         } catch (err) {
+            if (err.error == 'conflict') {
+                // User already existed
+                return userData
+            }
+
             this.error = err;
             return false;
         }
@@ -71,7 +61,7 @@ class UserManager {
         let username = process.env.DB_PUBLIC_USER;
         let password = process.env.DB_PUBLIC_PASS;
 
-        let couch = this._getCouch();
+        let couch = Db.getCouch();
 
         // Create CouchDB database user matching username and password and save keyring
         let userData = {
@@ -92,33 +82,7 @@ class UserManager {
             } else {
                 throw err;
             }
-            
         }
-    }
-
-    _getCouch() {
-        let dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-
-        if (!this._couch) {
-            this._couch = new CouchDb({
-                url: dsn,
-                requestDefaults: {
-                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != "false"
-                }
-            });
-        }
-
-        return this._couch;
-    }
-
-    buildDsn(username, password) {
-        let env = process.env;
-        return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + env.DB_HOST + ":" + env.DB_PORT;
-    }
-
-    buildHost() {
-        let env = process.env;
-        return env.DB_PROTOCOL + "://" + env.DB_HOST + ":" + env.DB_PORT;
     }
 
 }

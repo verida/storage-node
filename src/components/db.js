@@ -4,9 +4,8 @@ const CouchDb = require('nano');
 class Db {
 
     getCouch() {
-        let dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-
         if (!this._couch) {
+            const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
             this._couch = new CouchDb({
                 url: dsn,
                 requestDefaults: {
