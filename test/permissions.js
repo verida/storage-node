@@ -55,7 +55,7 @@ describe("Permissions", function() {
         await UserManager.ensurePublicUser();
     });
 
-    describe.only("Owner (Read and Write)", async function() {
+    describe("Owner (Read and Write)", async function() {
         this.beforeAll(async function() {
             // Create test database where only owner can read and write
             const result = await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
@@ -171,7 +171,7 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            let response = await DbManager.deleteDatabase(testDbName);
+            let response = await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
         });
     });
 
@@ -231,7 +231,7 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            let response = await DbManager.deleteDatabase(testDbName);
+            let response = await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
         });
     });
 
@@ -391,7 +391,7 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            await DbManager.deleteDatabase(testDbName);
+            await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
             pouchDbLocal.destroy(testDbName);
         });
     });
@@ -458,6 +458,7 @@ describe("Permissions", function() {
     });
 
     after(async function() {
+        await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
         // TODO: delete owner, user, but leave public
     })
 });
