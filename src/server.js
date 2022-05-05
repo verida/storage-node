@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import router from './routes/index.js';
 import requestValidator from './middleware/requestValidator.js';
 import userManager from './components/userManager';
+import AuthController from './controllers/auth';
 import UserController from './controllers/user';
 import AuthManager from './components/authManager';
 require('dotenv').config();
@@ -23,10 +24,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 // Specify public endpoints
-app.get('/user/public', UserController.getPublic);
-app.post('/user/generateAuthJwt', UserController.generateAuthJwt);
-app.post('/user/authenticate', UserController.authenticate);
-app.post('/user/get', UserController.get);
+app.get('/auth/public', UserController.getPublic);
+app.post('/auth/generateAuthJwt', AuthController.generateAuthJwt);
+app.post('/auth/authenticate', AuthController.authenticate);
+app.post('/auth/connect', AuthController.connect);
+app.post('/auth/regenerateRefreshToken', AuthController.regenerateRefreshToken);
 
 app.use(requestValidator);
 app.use(router);

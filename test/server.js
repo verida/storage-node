@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken');
 import Axios from 'axios'
 
 import AuthManager from "../src/components/authManager";
+import UserManager from "../src/components/userManager";
 import TestUtils from "./utils"
-import Db from "../src/components/db"
 
 import CONFIG from './config'
 
@@ -22,7 +22,7 @@ describe("Server tests", function() {
 
     describe("Authenticate", () => {
         it("Generates AuthJWT", async () => {
-            const authJwtResult = await Axios.post(`${SERVER_URL}/user/generateAuthJwt`, {
+            const authJwtResult = await Axios.post(`${SERVER_URL}/auth/generateAuthJwt`, {
                 did: accountInfo.did,
                 contextName: CONTEXT_NAME
             });
@@ -37,7 +37,7 @@ describe("Server tests", function() {
             const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did}\n${authRequestId}`
             const signature = await accountInfo.account.sign(consentMessage)
 
-            const authenticateResponse = await Axios.post(`${SERVER_URL}/user/authenticate`, {
+            const authenticateResponse = await Axios.post(`${SERVER_URL}/auth/authenticate`, {
                 authJwt,
                 did: accountInfo.did,
                 contextName: CONTEXT_NAME,
@@ -60,8 +60,8 @@ describe("Server tests", function() {
             assert.ok(validAccessToken, "Have a valid access token")
         })
 
-        it("Gets user access token", async () => {
-            const userResponse = await Axios.post(`${SERVER_URL}/user/get`, {
+        it("Connect a user", async () => {
+            const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
                 refreshToken,
                 did: accountInfo.did,
                 contextName: CONTEXT_NAME
@@ -74,9 +74,27 @@ describe("Server tests", function() {
             accessToken = userResponse.data.accessToken
         })
 
-        // regenerate refresh token
+        it("Regenerates refresh token", async () => {
+            const response = await Axios.post(`${SERVER_URL}/auth/regenerateRefreshToken`, {
+                refreshToken,
+                contextName: CONTEXT_NAME
+            });
+
+            assert.ok(response && response.data && response.data.refreshToken, "New refresh token returned")
+            const newRefreshToken = response.data.refreshToken
+            
+            const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
+                refreshToken: newRefreshToken,
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            });
+
+            assert.ok(userResponse, "New refresh token can make valid request")
+        })
 
         // sign out application id
+
+        // check timeouts?
     })
 
     describe("Database operations", () => {
