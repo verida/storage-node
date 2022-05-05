@@ -33,25 +33,11 @@ const PRIVATE_KEYS = {
 }
 
 describe("Permissions", function() {
-    var ownerUser, userUser, user2User, user3User, user4User;
-    var ownerDb, userDb, user2Db, user3Db, user4Db, publicDb;
-    var pouchDbLocal, pouchDbRemote;
-    var testDbName = "permissiontestdb";
-    var applicationName = "Verida Test: Permissions";
+    let ownerDb, userDb, user2Db, user3Db, user4Db, publicDb;
+    let pouchDbLocal, pouchDbRemote;
+    let testDbName = "permissiontestdb";
+    let applicationName = "Verida Test: Permissions";
 
-    /*var ownerDid = "test-owner";
-    var userDid = "test-user";
-    var user2Did = "test-user2";
-    var user3Did = "test-user3";
-    var user4Did = "test-user4";
-
-    var ownerName = Utils.generateUsername(ownerDid, applicationName);
-    var userName = Utils.generateUsername(userDid, applicationName);
-    var user2Name = Utils.generateUsername(user2Did, applicationName);
-    var user3Name = Utils.generateUsername(user3Did, applicationName);
-    var user4Name = Utils.generateUsername(user4Did, applicationName);*/
-
-    let userDid, user2Did, user3Did, user4Did
     let accounts = {}
 
     this.beforeAll(async function() {
@@ -65,34 +51,11 @@ describe("Permissions", function() {
             accounts[userType].host = Db.buildHost()
         }
 
-
-        /*// The "owner" of a database
-        await UserManager.create(ownerName, "test-owner");
-        ownerUser = await UserManager.getByUsername(ownerName, "test-owner");
-
-        // Another user that isn't an "owner"
-        console.log('c')
-        await UserManager.create(userName, "test-user");
-        console.log('d')
-        userUser = await UserManager.getByUsername(userName, "test-user");
-
-        // A second user that isn't an "owner"
-        await UserManager.create(user2Name, "test-user2");
-        user2User = await UserManager.getByUsername(user2Name, "test-user2");
-
-        // A third user that has no access
-        await UserManager.create(user3Name, "test-user3");
-        user3User = await UserManager.getByUsername(user3Name, "test-user3");
-
-        // A fourth user that has no access
-        await UserManager.create(user4Name, "test-user4");
-        user4User = await UserManager.getByUsername(user4Name, "test-user4");*/
-
         // A public user
         await UserManager.ensurePublicUser();
     });
 
-    describe("Owner (Read and Write)", async function() {
+    describe.only("Owner (Read and Write)", async function() {
         this.beforeAll(async function() {
             // Create test database where only owner can read and write
             const result = await DbManager.createDatabase(accounts['ownerUser'].username, testDbName, applicationName, {
@@ -157,7 +120,7 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            await DbManager.deleteDatabase(testDbName);
+            await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
         });
     });
 
