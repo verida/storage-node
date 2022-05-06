@@ -6,28 +6,6 @@ import Db from "../components/db"
 
 class UserController {
 
-    async invalidateDeviceId(deviceId) {
-        const refreshToken = req.body.refreshToken;
-        const contextName = req.body.contextName;
-
-        const newRefreshToken = await AuthManager.regenerateRefreshToken(refreshToken, contextName);
-
-        if (newRefreshToken) {
-            return res.status(200).send({
-                status: "success",
-                refreshToken: newRefreshToken
-            });
-        }
-        else {
-            return res.status(400).send({
-                status: "fail",
-                data: {
-                    "did": "Invalid refresh token or context name"
-                }
-            });
-        }
-    }
-
     async getPublic(req, res) {
         return res.status(200).send({
             status: "success",

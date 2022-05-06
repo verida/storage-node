@@ -6,6 +6,5 @@ const router = express.Router();
 router.post('/user/createDatabase', UserController.createDatabase);
 router.post('/user/updateDatabase', UserController.updateDatabase);
 router.post('/user/deleteDatabase', UserController.deleteDatabase);
-router.post('/auth/invalidateDeviceId', UserController.invalidateDeviceId);
 
 export default router;

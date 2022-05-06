@@ -29,6 +29,7 @@ app.post('/auth/generateAuthJwt', AuthController.generateAuthJwt);
 app.post('/auth/authenticate', AuthController.authenticate);
 app.post('/auth/connect', AuthController.connect);
 app.post('/auth/regenerateRefreshToken', AuthController.regenerateRefreshToken);
+app.post('/auth/invalidateDeviceId', AuthController.invalidateDeviceId);
 
 app.use(requestValidator);
 app.use(router);

@@ -262,18 +262,22 @@ class AuthManager {
             selector: {
                 deviceHash
             },
-            fields: [ "deviceHash" ]
+            fields: [ "deviceHash" , "_id", "_rev" ]
         };
 
         const couch = Db.getCouch();
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
-        const tokenRow = await alice.find(query)
+        const tokenRows = await tokenDb.find(query)
 
-        if (!tokenRow) {
+        if (!tokenRows || !tokenRows.docs.length) {
             return false
         }
 
-        await tokenDb.destroy(tokenRow._id, tokenRow._rev);
+        for (let i in tokenRows.docs) {
+            const tokenRow = tokenRows.docs[i]
+            const result = await tokenDb.destroy(tokenRow._id, tokenRow._rev);
+            // @todo: log wrarning if result.ok != true
+        }
 
         return true;
     }

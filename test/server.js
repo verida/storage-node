@@ -12,7 +12,7 @@ import CONFIG from './config'
 const { CONTEXT_NAME, SERVER_URL, DEVICE_ID } = CONFIG
 
 let authJwt, accountInfo, authRequestId
-let refreshToken, accessToken
+let refreshToken, accessToken, newRefreshToken
 
 describe("Server tests", function() {
     this.beforeAll(async () => {
@@ -81,7 +81,7 @@ describe("Server tests", function() {
             });
 
             assert.ok(response && response.data && response.data.refreshToken, "New refresh token returned")
-            const newRefreshToken = response.data.refreshToken
+            newRefreshToken = response.data.refreshToken
             
             const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
                 refreshToken: newRefreshToken,
@@ -92,7 +92,26 @@ describe("Server tests", function() {
             assert.ok(userResponse, "New refresh token can make valid request")
         })
 
-        // sign out application id
+        it("Invalidate device tokens", async () => {
+            try {
+                console.log('a')
+                const response = await Axios.post(`${SERVER_URL}/auth/invalidateDeviceId`, {
+                    did: accountInfo.did,
+                    refreshToken: newRefreshToken,
+                    contextName: CONTEXT_NAME,
+                    deviceId: DEVICE_ID
+                });
+
+                console.log('b')
+                const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
+                    refreshToken: newRefreshToken,
+                    did: accountInfo.did,
+                    contextName: CONTEXT_NAME
+                });
+            } catch (err) {
+                console.log(err.response.data)
+            }
+        })
 
         // check timeouts?
     })

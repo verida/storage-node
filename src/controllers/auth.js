@@ -74,6 +74,13 @@ class AuthController {
         });
     }
 
+    /**
+     * Public endpoint
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async connect(req, res) {
         const refreshToken = req.body.refreshToken;
         const contextName = req.body.contextName;
@@ -98,7 +105,42 @@ class AuthController {
         }
     }
 
+    /**
+     * Public endpoint
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async regenerateRefreshToken(req, res) {
+        const refreshToken = req.body.refreshToken;
+        const contextName = req.body.contextName;
+
+        const newRefreshToken = await AuthManager.regenerateRefreshToken(refreshToken, contextName);
+
+        if (newRefreshToken) {
+            return res.status(200).send({
+                status: "success",
+                refreshToken: newRefreshToken
+            });
+        }
+        else {
+            return res.status(400).send({
+                status: "fail",
+                data: {
+                    "did": "Invalid refresh token or context name"
+                }
+            });
+        }
+    }
+
+    /**
+     * Public endpoint
+     * 
+     * @param {*} deviceId 
+     * @returns 
+     */
+    async invalidateDeviceId(req, res) {
         const refreshToken = req.body.refreshToken;
         const contextName = req.body.contextName;
 

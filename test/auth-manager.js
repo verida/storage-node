@@ -9,6 +9,9 @@ import CONFIG from './config'
 
 const { CONTEXT_NAME } = CONFIG
 
+const DEVICE_1 = "Test Device 1"
+const DEVICE_2 = "Test Device 2"
+
 describe("AuthManager tests", function() {
 
     describe("Authenticate", async function() {
@@ -116,10 +119,29 @@ describe("AuthManager tests", function() {
             assert.equal(isValid2 === false, true, "Token is no longer valid")
         })
 
+        // invalidate refresh tokens for a given device Id (did + context + deviceId)
+        it("Invalidate device tokens", async () => {
+            const token1 = await AuthManager.generateRefreshToken(DID, CONTEXT_NAME, DEVICE_1)
+            let deviceValid1 = await AuthManager.verifyRefreshToken(token1)
+            assert.ok(deviceValid1, "Generated a valid refresh token for device 1")
+
+            const token2 = await AuthManager.generateRefreshToken(DID, CONTEXT_NAME, DEVICE_2)
+            let deviceValid2 = await AuthManager.verifyRefreshToken(token2)
+            assert.ok(deviceValid2, "Generated a valid refresh token for device 2")
+
+            await AuthManager.invalidateDeviceId(DID, CONTEXT_NAME, DEVICE_1)
+
+            deviceValid1 = await AuthManager.verifyRefreshToken(token1, CONTEXT_NAME)
+            assert.equal(deviceValid1 === false, true, "Token for device 1 is no longer valid")
+
+            deviceValid2 = await AuthManager.verifyRefreshToken(token1, CONTEXT_NAME)
+            assert.equal(deviceValid2 === false, true, "Token for device 2 is no longer valid")
+        })
+
+        // @todo:
         // custom refresh token expiry works
         // refresh token times out
         // access token times out
-        // invalidate refresh tokens for a given device Id (did + context + deviceId: 
         // garbage collection
     })
 })
