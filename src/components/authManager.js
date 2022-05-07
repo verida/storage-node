@@ -72,8 +72,14 @@ class AuthManager {
             throw err
         }
 
+        const consentMessage = `Authenticate this application context: "${contextName}"?\n\n${did}\n${decodedJwt.authRequestId}`
+        return this.verifySignedConsentMessage(did, contextName, signature, consentMessage)
+    }
+
+    async verifySignedConsentMessage(did, contextName, signature, consentMessage) {
         // Verify the signature signed the correct string
         const cacheKey = `${did}/${contextName}`
+
         try {
             let didDocument = mcache.get(cacheKey)
 
@@ -95,10 +101,10 @@ class AuthManager {
                 }
             }
 
-            const consentMessage = `Authenticate this application context: "${contextName}"?\n\n${did}\n${decodedJwt.authRequestId}`
             const result = didDocument.verifySig(consentMessage, signature)
 
             if (!result) {
+                // Invalid signature
                 return false
             }
 
@@ -249,14 +255,25 @@ class AuthManager {
     }
 
     /**
-     * Invalidate a token for a combination of DID, contextName and deviceId
+     * Invalidate a token for a combination of DID, contextName and deviceId.
+     * 
+     * Note: The deviceId of the fresh token doesn't have to match as it's
+     * expected the privateKey will be used to generate this request.
      * 
      * @param {*} did 
      * @param {*} contextName 
      * @param {*} deviceId 
      * @returns 
      */
-    async invalidateDeviceId(did, contextName, deviceId) {
+    async invalidateDeviceId(did, contextName, deviceId, signature) {
+        did = did.toLowerCase()
+        const consentMessage = `Invalidate device for this application context: "${contextName}"?\n\n${did}\n${deviceId}`
+        const validSignature = await this.verifySignedConsentMessage(did, contextName, signature, consentMessage)
+
+        if (!validSignature) {
+            return false
+        }
+
         const deviceHash = EncryptionUtils.hash(`${did}/${contextName}/${deviceId}`)
         const query = {
             selector: {

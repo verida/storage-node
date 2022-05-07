@@ -9,7 +9,7 @@ import TestUtils from "./utils"
 
 import CONFIG from './config'
 
-const { CONTEXT_NAME, SERVER_URL, DEVICE_ID } = CONFIG
+const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 
 let authJwt, accountInfo, authRequestId
 let refreshToken, accessToken, newRefreshToken
@@ -34,7 +34,7 @@ describe("Server tests", function() {
         })
 
         it("Authenticates using AuthJWT", async () => {
-            const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did}\n${authRequestId}`
+            const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did.toLowerCase()}\n${authRequestId}`
             const signature = await accountInfo.account.sign(consentMessage)
 
             const authenticateResponse = await Axios.post(`${SERVER_URL}/auth/authenticate`, {
@@ -42,7 +42,7 @@ describe("Server tests", function() {
                 did: accountInfo.did,
                 contextName: CONTEXT_NAME,
                 signature,
-                deviceId: DEVICE_ID
+                deviceId: TEST_DEVICE_ID
             });
 
             assert.ok(authenticateResponse && authenticateResponse.data && authenticateResponse.data.refreshToken, "Have refreshToken in response")
@@ -93,24 +93,40 @@ describe("Server tests", function() {
         })
 
         it("Invalidate device tokens", async () => {
-            try {
-                console.log('a')
-                const response = await Axios.post(`${SERVER_URL}/auth/invalidateDeviceId`, {
-                    did: accountInfo.did,
-                    refreshToken: newRefreshToken,
-                    contextName: CONTEXT_NAME,
-                    deviceId: DEVICE_ID
-                });
+            const consentMessage = `Invalidate device for this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did.toLowerCase()}\n${TEST_DEVICE_ID}`
+            const signature = await accountInfo.account.sign(consentMessage)
+            
+            const response = await Axios.post(`${SERVER_URL}/auth/invalidateDeviceId`, {
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME,
+                deviceId: TEST_DEVICE_ID,
+                signature
+            });
 
-                console.log('b')
-                const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
+            assert.equal(response.data.status, 'success', 'Successfull device invalidation response from server')
+
+            const pendingConnect = new Promise((resolve, rejects) => {
+                const request = Axios.post(`${SERVER_URL}/auth/connect`, {
                     refreshToken: newRefreshToken,
                     did: accountInfo.did,
                     contextName: CONTEXT_NAME
                 });
-            } catch (err) {
-                console.log(err.response.data)
-            }
+
+                request.then((res) => {
+                    // Valid response, which is unexpected
+                    resolve(false)
+                }).catch((err) => {
+                    if (err.response.data.status == 'fail') {
+                        resolve(true)
+                    }
+
+                    resolve(false)
+                }) 
+            })
+
+            const connectResult = await pendingConnect
+
+            assert.ok(connectResult, 'Unable to use device refresh token')
         })
 
         // check timeouts?

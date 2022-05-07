@@ -35,7 +35,7 @@ class AuthController {
         const deviceId = req.body.deviceId;
 
         // Verify we have a valid signed auth request
-        const isValid = AuthManager.verifyAuthRequest(authJwt, did, contextName, signature)
+        const isValid = await AuthManager.verifyAuthRequest(authJwt, did, contextName, signature)
         if (!isValid) {
             return res.status(400).send({
                 status: "fail",
@@ -141,19 +141,20 @@ class AuthController {
      * @returns 
      */
     async invalidateDeviceId(req, res) {
-        const refreshToken = req.body.refreshToken;
+        const did = req.body.did;
         const contextName = req.body.contextName;
+        const deviceId = req.body.deviceId;
+        const signature = req.body.signature;
 
-        const newRefreshToken = await AuthManager.regenerateRefreshToken(refreshToken, contextName);
+        const invalidated = await AuthManager.invalidateDeviceId(did, contextName, deviceId, signature);
 
-        if (newRefreshToken) {
+        if (invalidated) {
             return res.status(200).send({
-                status: "success",
-                refreshToken: newRefreshToken
+                status: "success"
             });
         }
         else {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
                 data: {
                     "did": "Invalid refresh token or context name"
