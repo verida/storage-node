@@ -125,16 +125,16 @@ class AuthManager {
      * @param {*} did DID that is authorized
      * @param {*} contextName Context name that is authorized
      * @param {*} requestTokenId Optional token ID (used when regenerating a refresh token)
-     * @param {*} expiry Optional unix epoch for when the token should expire
+     * @param {*} expiresIn Optional seconds in the future this token expires
      * @returns 
      */
-    async generateRefreshToken(did, contextName, deviceId, expiry) {
+    async generateRefreshToken(did, contextName, deviceId, expiresIn) {
         const requestTokenId = randtoken.generate(256);
         did = did.toLowerCase()
 
         // Set the token to expire
-        if (!expiry) {
-            expiry = parseInt(process.env.REFRESH_TOKEN_EXPIRY)
+        if (!expiresIn) {
+            expiresIn = parseInt(process.env.REFRESH_TOKEN_EXPIRY)
         }
 
         const deviceHash = EncryptionUtils.hash(`${did}/${contextName}/${deviceId}`)
@@ -148,21 +148,24 @@ class AuthManager {
         }
 
         const token = jwt.sign(tokenContent, process.env.REFRESH_JWT_SIGN_PK, {
-            // expiry in minutes for this token
-            expiresIn: expiry
+            // how many seconds in the future this expires
+            expiresIn
         })
 
         // Save refresh token in the database
         const couch = Db.getCouch();
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
+        const now = parseInt((new Date()).getTime() / 1000.0)
         const tokenRow = {
             _id: requestTokenId,
             deviceHash,
-            expiry
+            expiry: (now + expiresIn)
         }
 
         await tokenDb.insert(tokenRow);
+
+        this.gc()
 
         return token
     }
@@ -315,7 +318,7 @@ class AuthManager {
         
         const username = Utils.generateUsername(decodedJwt.sub.toLowerCase(), decodedJwt.contextName);
 
-        const expiry = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
+        const expiresIn = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
 
         // generate new request token
         const requestTokenId = randtoken.generate(256);
@@ -327,7 +330,7 @@ class AuthManager {
             type: 'access'
         }, process.env.ACCESS_JWT_SIGN_PK, {
             // expiry in seconds for this token
-            expiresIn: expiry
+            expiresIn
         })
 
         return token
@@ -373,15 +376,52 @@ class AuthManager {
 
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
-        const indexDef = {
+        const deviceIndex = {
             index: { fields: ['deviceHash'] },
             name: 'deviceHash'
         };
 
-        const response = await tokenDb.createIndex(indexDef);
+        const expiryIndex = {
+            index: { fields: ['expiry'] },
+            name: 'expiry'
+        };
+
+        await tokenDb.createIndex(deviceIndex);
+        await tokenDb.createIndex(expiryIndex);
     }
 
     // @todo: garbage collection
+    async gc() {
+        const GC_PERCENT = process.env.GC_PERCENT
+        const random = Math.random()
+
+        if (random >= GC_PERCENT) {
+            // Skip running GC
+            return
+        }
+
+        // Delete all expired refresh tokens
+        const now = parseInt((new Date()).getTime() / 1000.0)
+        const query = {
+            selector: {
+                expiry : { "$lt": now }
+            },
+            fields: [ "expiry", "_id", "_rev" ],
+            limit: 100
+        };
+
+        const couch = Db.getCouch();
+        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenRows = await tokenDb.find(query)
+
+        if (tokenRows && tokenRows.docs && tokenRows.docs.length) {
+            for (let i in tokenRows.docs) {
+                const doc = tokenRows.docs[i]
+                const res = await tokenDb.destroy(doc._id, doc._rev)
+            }
+        }
+
+    }
 
 }
 

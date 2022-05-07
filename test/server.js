@@ -105,7 +105,7 @@ describe("Server tests", function() {
 
             assert.equal(response.data.status, 'success', 'Successfull device invalidation response from server')
 
-            const pendingConnect = new Promise((resolve, rejects) => {
+            const pendingConnect = new Promise((resolve) => {
                 const request = Axios.post(`${SERVER_URL}/auth/connect`, {
                     refreshToken: newRefreshToken,
                     did: accountInfo.did,
@@ -129,7 +129,7 @@ describe("Server tests", function() {
             assert.ok(connectResult, 'Unable to use device refresh token')
         })
 
-        // check timeouts?
+        // @todo: check timeouts working as expected
     })
 
     describe("Database operations", () => {
@@ -149,6 +149,8 @@ describe("Server tests", function() {
 
             assert.equal(response.data.status, "success", "Successful create response")
         })
+
+        // @todo: updates
 
         it("Deletes database", async () => {
             const databaseName = "helloooo"
