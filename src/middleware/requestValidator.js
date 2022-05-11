@@ -53,6 +53,7 @@ class RequestValidator {
       } catch (err) {
         // @todo: Log error
         // Likely unable to resolve DID
+        console.error(err);
         cb(null, false);
       }
     };

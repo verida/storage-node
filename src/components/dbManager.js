@@ -28,8 +28,8 @@ class DbManager {
     try {
       await this.configurePermissions(db, username, applicationName, options.permissions);
     } catch (err) {
-      console.log('configure error');
-      console.log(err);
+      console.error('configuration error');
+      console.error(err);
     }
 
     return true;
@@ -42,8 +42,8 @@ class DbManager {
     try {
       await this.configurePermissions(db, username, applicationName, options.permissions);
     } catch (err) {
-      console.log('configure error');
-      console.log(err);
+      console.error('configuration error');
+      console.error(err);
     }
 
     return true;
@@ -57,11 +57,13 @@ class DbManager {
     try {
       return await couch.db.destroy(databaseName);
     } catch (err) {
-      // console.error("Database existed: "+databaseName);
       // The database may already exist, or may have been deleted so a file
       // already exists.
       // In that case, ignore the error and continue
+      console.group()
+      console.log("Database already exists. This is ok to ignore. Exception follows")
       console.log(err);
+      console.groupEnd()
     }
   }
 
@@ -123,7 +125,7 @@ class DbManager {
     try {
       await this._insertOrUpdate(db, securityDoc, '_security');
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return false;
     }
 

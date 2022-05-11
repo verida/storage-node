@@ -31,7 +31,7 @@ class UserManager {
 
   async create(username, signature) {
     let couch = this._getCouch();
-    let password = crypto.createHash('sha256').update(signature).digest('hex');
+    let password = crypto.createHash('sha256').update(signature).digest('hex');    
 
     // Create CouchDB database user matching username and password
     let userData = {
@@ -46,6 +46,7 @@ class UserManager {
     try {
       return await usersDb.insert(userData);
     } catch (err) {
+      console.log(err)
       this.error = err;
       return false;
     }
@@ -75,8 +76,9 @@ class UserManager {
     } catch (err) {
       if (err.error == 'conflict') {
         // this is ok - we can continue after this. 
-        console.log('Public user not created -- already existed');
+        console.info('Public user not created -- already existed. This is ok and can continue');
       } else {
+        console.error(err);
         throw err;
       }
     }
