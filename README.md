@@ -85,35 +85,5 @@ We use [Claudia.js](https://claudiajs.com/) to turn our Express app into an Expr
 Before doing any Lambda deployments you **MUST** translate your `.env` file (or one for production) to JSON as `.env.prod.json`.
 See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/claudia-2.2.0-environment-vars.html).
 
-A copy of `.env.prod.json` for this deployment is in BitWarden (name= "Storage Server .env.prod.json") but is **NOT** checked into Github. 
-
-You will need your [`AWS_PROFILE` set](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html). There are many ways to do this, but a simple one is:
-```
-export AWS_PROFILE=verida-prod
-```
-
-First time deployment can be done using:
-
-```
-yarn lambda-deploy
-```
-
-This does the following:
-
-- Create the Lambda (in us-east-2)
-- Create an (Edge) API Gateway pointing at it
-
-For brand new deployments, you will need to setup CloudWatch logging manually.
-
-- API Gateway ARN should be set to `arn:aws:iam::131554244047:role/APIGatewayLoggingRole` for the logging to work
-
-Updates can be done using:
-
-```
-yarn lambda-update
-```
-
-This uploads a new version of the code to the existing lambda.
-
-The command `yarn lambda-pack` exists to build a local zip file which can be helpful for debugging packaging issues.
+Verida staff can see the [internal Verida repo]( https://github.com/verida/infrastructure/blob/develop/storage_node.md) for docs on this. 
 
