@@ -1,0 +1,11 @@
+{
+  "lambda": {
+    "role": "arn:aws:iam::737954963756:role/verida_storage-node-executor",
+    "name": "storage-node-au1-testnet",
+    "region": "ap-southeast-2",
+    "sharedRole": true
+  },
+  "api": {
+    "id": "g1e2uq6mqf"
+  }
+}
