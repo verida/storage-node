@@ -41,6 +41,10 @@ jobs:
       - name: SG1 env
         run: |
           echo "${{secrets.SG1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.sg1.testnet.json              
+
+      - name: AU1 env
+        run: |
+          echo "${{secrets.AU1_TESTNET_JSON_BASE64 }}" | base64 -d > .env.au1.testnet.json              
       
       # install packages and run deploy
       - id: nvmrc
@@ -58,4 +62,7 @@ jobs:
 
       # do SG1 deployment
       - run: yarn lambda-update-testnet-sg1
+
+      # do AU1 deployment
+      - run: yarn lambda-update-testnet-au1
 

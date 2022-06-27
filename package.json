@@ -18,6 +18,9 @@
     "lambda-deploy-testnet-sg1": "yarn build && yarn claudia create --config claudia.sg1.testnet.json --name 'storage-node-sg1-testnet' --region ap-southeast-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.sg1.testnet.json",
     "lambda-update-testnet-sg1": "yarn build && yarn claudia update --config claudia.sg1.testnet.json --set-env-from-json .env.sg1.testnet.json",
 
+    "lambda-deploy-testnet-au1": "yarn build && yarn claudia create --config claudia.au1.testnet.json --name 'storage-node-au1-testnet' --region ap-southeast-2 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.au1.testnet.json",
+    "lambda-update-testnet-au1": "yarn build && yarn claudia update --config claudia.au1.testnet.json --set-env-from-json .env.au1.testnet.json",
+
     "lambda-pack": "yarn build && yarn claudia pack --no-optional-dependencies"
   },
   "files": [
