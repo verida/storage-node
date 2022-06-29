@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
 import router from './routes/index.js';
 import requestValidator from './middleware/requestValidator.js';
 import userManager from './components/userManager';
@@ -18,8 +17,8 @@ let corsConfig = {
 
 // Parse incoming requests data
 app.use(cors(corsConfig));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 app.get('/user/public', UserController.getPublic);
 app.use(
   basicAuth({
