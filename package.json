@@ -76,7 +76,6 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
-    "body-parser": "^1.19.2",
     "claudia": "^5.14.1",
     "mocha": "^7.0.0",
     "nodemon": "^2.0.14",
