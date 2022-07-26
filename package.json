@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
+  "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js' --timeout 30000",

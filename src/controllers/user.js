@@ -1,6 +1,6 @@
-import UserManager from '../components/userManager';
-import DbManager from '../components/dbManager';
-import Utils from '../components/utils';
+import UserManager from '../components/userManager.js';
+import DbManager from '../components/dbManager.js';
+import Utils from '../components/utils.js';
 
 class UserController {
   // @todo: Enforce HTTPS

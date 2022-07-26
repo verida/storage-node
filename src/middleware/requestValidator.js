@@ -1,6 +1,5 @@
-const basicAuth = require('express-basic-auth');
 import { DIDClient } from '@verida/did-client';
-const mcache = require('memory-cache');
+import mcache from 'memory-cache';
 
 let didClient;
 
@@ -10,9 +9,10 @@ class RequestValidator {
    *
    * @todo: cache the signature verifications
    *
-   * @param {*} did
-   * @param {*} password
-   * @param {*} req
+   * @param {string} did - username
+   * @param {string} signature - password
+   * @param {Request} req
+   * @param {function} cb
    */
   authorize(did, signature, req, cb) {
     did = did.replace(/_/g, ':').toLowerCase();
@@ -58,13 +58,13 @@ class RequestValidator {
       }
     };
 
-    const promise = new Promise((resolve, rejects) => {
+    const promise = new Promise((resolve, _rejects) => {
       authCheck();
       resolve();
     });
   }
 
-  getUnauthorizedResponse(req) {
+  getUnauthorizedResponse(_req) {
     return {
       status: 'fail',
       code: 90,

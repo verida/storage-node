@@ -1,4 +1,4 @@
-const CouchDb = require('nano');
+import CouchDb from 'nano';
 import crypto from 'crypto';
 
 class UserManager {
@@ -9,7 +9,8 @@ class UserManager {
   /**
    * Get a user by DID
    *
-   * @param {} did
+   * @param {string} username - did
+   * @param {string} signature
    */
   async getByUsername(username, signature) {
     let couch = this._getCouch();
@@ -74,7 +75,7 @@ class UserManager {
     try {
       await usersDb.insert(userData);
     } catch (err) {
-      if (err.error == 'conflict') {
+      if (err.error === 'conflict') {
         // this is ok - we can continue after this. 
         console.info('Public user not created -- already existed. This is ok and can continue');
       } else {
@@ -92,7 +93,7 @@ class UserManager {
         url: dsn,
         //log: console.log,
         requestDefaults: {
-          rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != 'false',
+          rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== 'false',
         },
       });
     }
@@ -101,10 +102,9 @@ class UserManager {
   }
 
   buildDsn(username, password) {
-    let env = process.env;
-    return (
-      env.DB_PROTOCOL + '://' + username + ':' + password + '@' + env.DB_HOST + ':' + env.DB_PORT
-    );
+    const { DB_PROTOCOL, DB_HOST, DB_PORT } = process.env;
+
+    return `${DB_PROTOCOL}://${username}:${password}@${DB_HOST}:${DB_PORT}`;
   }
 }
 

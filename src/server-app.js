@@ -1,12 +1,14 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
+import basicAuth from 'express-basic-auth';
+
 import router from './routes/index.js';
 import requestValidator from './middleware/requestValidator.js';
-import userManager from './components/userManager';
-import UserController from './controllers/user';
-require('dotenv').config();
+import userManager from './components/userManager.js';
+import UserController from './controllers/user.js';
 
-const basicAuth = require('express-basic-auth');
+dotenv.config();
 
 // Set up the express app
 const app = express();
@@ -35,6 +37,6 @@ app.use(function (req, res, next) {
 });
 app.use(router);
 
-userManager.ensurePublicUser()
+userManager.ensurePublicUser();
 
-module.exports=app
+export default app;
