@@ -1,9 +1,10 @@
-FROM node:14.17.1-slim as node
+FROM node:14.20.0-slim as node
 FROM ubuntu:focal-20220531 as base
 COPY --from=node /usr/local/include/ /usr/local/include/
 COPY --from=node /usr/local/lib/ /usr/local/lib/
 COPY --from=node /usr/local/bin/ /usr/local/bin/
-COPY --from=node /opt/ /opt
+# this ensures we fix simlinks for npx and yarn
+RUN corepack disable && corepack enable
 
 RUN apt-get update \
     && apt-get -qq install -y --no-install-recommends \
@@ -19,8 +20,6 @@ RUN mkdir /storage-node && chown -R node:node /storage-node
 WORKDIR /storage-node
 USER node
 COPY --chown=node:node package.json yarn.lock ./
-RUN echo $PATH
-RUN yarn --version
 RUN yarn install --prod --frozen-lockfile
 
 FROM base as source
