@@ -1,6 +1,6 @@
-const CouchDb = require('nano');
-import Utils from './utils';
+import CouchDb from 'nano';
 import _ from 'lodash';
+import Utils from './utils.js';
 
 class DbManager {
   constructor() {
@@ -10,15 +10,14 @@ class DbManager {
   async createDatabase(username, databaseName, applicationName, options) {
     let couch = this._getCouch();
 
-    let response;
     // Create database
     try {
-      response = await couch.db.create(databaseName);
+      await couch.db.create(databaseName);
     } catch (err) {
       // The database may already exist, or may have been deleted so a file
       // already exists.
       // In that case, ignore the error and continue
-      if (err.error != 'file_exists') {
+      if (err.error !== 'file_exists') {
         throw err;
       }
     }
@@ -52,7 +51,6 @@ class DbManager {
   async deleteDatabase(databaseName) {
     let couch = this._getCouch();
 
-    let response;
     // Create database
     try {
       return await couch.db.destroy(databaseName);
@@ -145,12 +143,12 @@ class DbManager {
       await this._insertOrUpdate(db, writeDoc, '_design/only_permit_write_users');
     } catch (err) {
       // CouchDB throws a document update conflict without any obvious reason
-      if (err.reason != 'Document update conflict.') {
+      if (err.reason !== 'Document update conflict.') {
         throw err;
       }
     }
 
-    if (permissions.write == 'public') {
+    if (permissions.write === 'public') {
       // If the public has write permissions, disable public from deleting records
       try {
         const deleteFunction =
@@ -164,7 +162,7 @@ class DbManager {
         await this._insertOrUpdate(db, deleteDoc, '_design/disable_public_delete');
       } catch (err) {
         // CouchDB throws a document update conflict without any obvious reason
-        if (err.reason != 'Document update conflict.') {
+        if (err.reason !== 'Document update conflict.') {
           throw err;
         }
       }
@@ -185,7 +183,7 @@ class DbManager {
     try {
       doc = await db.get(id);
     } catch (err) {
-      if (err.reason != 'missing') {
+      if (err.reason !== 'missing') {
         throw err;
       }
     }
@@ -209,7 +207,7 @@ class DbManager {
       this._couch = new CouchDb({
         url: dsn,
         requestDefaults: {
-          rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != 'false',
+          rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== 'false',
         },
       });
     }
@@ -223,10 +221,9 @@ class DbManager {
    * @param {*} password
    */
   buildDsn(username, password) {
-    let env = process.env;
-    return (
-      env.DB_PROTOCOL + '://' + username + ':' + password + '@' + env.DB_HOST + ':' + env.DB_PORT
-    );
+    const { DB_PROTOCOL, DB_HOST, DB_PORT } = process.env;
+
+    return `${DB_PROTOCOL}://${username}:${password}@${DB_HOST}:${DB_PORT}`;
   }
 }
 

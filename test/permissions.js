@@ -1,13 +1,15 @@
-var assert = require('assert');
-require('dotenv').config();
+import assert from 'assert';
+import dotenv from 'dotenv';
 
-import DbManager from '../src/components/dbManager';
-import UserManager from '../src/components/userManager';
-import Utils from '../src/components/utils';
+import DbManager from '../src/components/dbManager.js';
+import UserManager from '../src/components/userManager.js';
+import Utils from '../src/components/utils.js';
 
-const CouchDb = require('nano');
+import CouchDb from 'nano';
 import PouchDb from 'pouchdb';
 import { resolve } from 'path';
+
+dotenv.config();
 
 describe('Permissions', function () {
   var ownerUser, userUser, user2User, user3User, user4User;

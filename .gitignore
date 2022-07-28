@@ -4,6 +4,7 @@ dist
 .DS_Store
 .vscode
 curl_tests
+dbdata
 
 .env
 .env*
