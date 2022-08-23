@@ -1,7 +1,5 @@
-import UserManager from '../components/userManager';
 import DbManager from '../components/dbManager';
 import Utils from "../components/utils";
-import AuthManager from "../components/authManager"
 import Db from "../components/db"
 
 class UserController {
@@ -12,7 +10,7 @@ class UserController {
             user: {
                 username: process.env.DB_PUBLIC_USER,
                 password: process.env.DB_PUBLIC_PASS,
-                dsn: UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
+                dsn: Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
             }
         });
     }
