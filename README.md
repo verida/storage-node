@@ -65,7 +65,7 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 ```
 [chttpd]
 
-authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}, {chttpd_auth, default_authentication_handler}
+authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
 
 [jwt_auth]
 required_claims = exp
@@ -73,6 +73,10 @@ required_claims = exp
 [jwt_keys]
 hmac:_default = <base64 secret key>
 ```
+
+Note: DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentication handlers. This option is a default enable in CouchDB and causes web browsers to display a HTTP Basic Auth popup if authentication fails. This creates an awful UX and is unecessary as the protocol handles authentication issues automatically.
+
+Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
 
 Note: A secret key (string) can be base64 encoded with the following:
 
