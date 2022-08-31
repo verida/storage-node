@@ -10,6 +10,23 @@ Key features:
 - Adding a second layer of security by managing per-database ACL validation rules
 - Providing applications with user's database connection strings
 
+## How Authentication Works
+
+This is the login flow:
+
+1. The Verida Account makes a request to the storage node API to obtain an auth JWT to be signed (`/auth/generateAuthJwt`). This prevents replay attacks.
+2. The Verida Account signs a consent message using their private key. This consent message proves the user wants to unlock a specific application context
+3. The Verida Account submits the signed authorization request (`/auth/authenticate`). Assuming the signed AuthJWT is valid, the storage node returns a refresh token and an access token
+4. The Verida Account can then use the access token to either; 1) make storage node requests (ie: create database) or 2) directly access CouchDB as an authenticated user (using `Bearer` token auth)
+5. When the access token expires, the Verida Account can use the refresh token to request a new access token (`/auth/connect`)
+6. If a refresh token is close to expiry, the Verida Account can use the active refresh token to obtain a new refresh token (`/auth/regenerateRefreshToken`)
+
+When a Verida Account authenticates, it can designate an `authenticate` requst to be linked to a particular device by specifying the `deviceId` in the request.
+
+This allows a specific device to be linked to a refresh token. A call to `/auth/invalidateDeviceId` can be used to invalidate any refresh tokens linked to the specified `deviceId`. This allows the Verida Vault to remotely log out an application that previously logged in.
+
+Note: This only invalidates the refresh token. The access token will remain valid until it expires. It's for this reason that access tokens are configured to have a short expiry (5 minutes by default). CouchDB does not support manually invalidating access tokens, so we have to take this timeout approach to invalidation.
+
 ## Usage
 
 ```bash
