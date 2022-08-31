@@ -52,7 +52,7 @@ class AuthController {
         // Create the user if they don't exist
         if (!user) {
             const response = await UserManager.create(username, signature);
-            if (!response || !response._id) {
+            if (!response || !response.id) {
                 return res.status(400).send({
                     status: "fail",
                     data: {

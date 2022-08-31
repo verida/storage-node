@@ -195,7 +195,7 @@ class AuthManager {
             decodedJwt = jwt.verify(refreshToken, process.env.REFRESH_JWT_SIGN_PK, verifyData)
         } catch (err) {
             // Handle invalid JWT by rejecting verification
-            if (err.name == "JsonWebTokenError") {
+            if (err.name == "JsonWebTokenError" || err.name == "TokenExpiredError") {
                 return false
             }
             

@@ -15,9 +15,10 @@ class UserManager {
      * @param {} did 
      */
     async getByUsername(username) {
+        const couch = Db.getCouch()
         try {
             const usersDb = couch.db.use('_users');
-            const user = await usersDb.get(username);
+            const user = await usersDb.get(`org.couchdb.user:${username}`);
             return user
         } catch (err) {
             this.error = err;
@@ -26,12 +27,12 @@ class UserManager {
     }
 
     async create(username, signature) {
-        let couch = Db.getCouch()
-        let password = crypto.createHash('sha256').update(signature).digest("hex")
+        const couch = Db.getCouch()
+        const password = crypto.createHash('sha256').update(signature).digest("hex")
 
         // Create CouchDB database user matching username and password
         let userData = {
-            _id: "org.couchdb.user:" + username,
+            _id: `org.couchdb.user:${username}`,
             name: username,
             password: password,
             type: "user",
