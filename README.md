@@ -12,20 +12,23 @@ Key features:
 
 ## Usage
 
-```
-$ yarn install
-$ yarn run start
+```bash
+yarn install
+yarn build
+yarn serve
 ```
 
 Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `testnet`, but you can point to a localhost instance for development purposes (http://localhost:5001) -- note, there is no trailing `/`
 
 This server is running on the Verida Testnet and is accessible by any application built on the Verida network during the pre-launch phase.
 
-- Testnet: https://db.testnet.verida.io:5002/
+### Testnet
+- https://db.testnet.verida.tech/
+- https://messages.testnet.verida.tech/
 
 ## Configuration
 
-Edit `.env` to update the configuration:
+A `sample.env` is included. Copy this to `.env` and update the configuration:
 
 - `HASH_KEY`: A unique hash key that is used as entropy when generating an alpha numeric username from a DID. Set this to a unique value when first running the server. DO NOT change this key once the server is up and running as you will end up with a mismatch of usernames. If you run multiple servers in front of a cluster of CouchDB instances, all servers must use the same `HASH_KEY`.
 - `DID_SERVER_URL`: URL of a Verida DID Server endpoint.
@@ -35,16 +38,16 @@ Edit `.env` to update the configuration:
 - `DB_HOST`: Hostname of CouchDB Admin.
 - `DB_PORT`: Port of CouchDB server (`5984`).
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
-DB_PUBLIC_USER: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
-DB_PUBLIC_PASS: Alphanumeric string for a public database password.
+- `DB_PUBLIC_USER`: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
+- `DB_PUBLIC_PASS`: Alphanumeric string for a public database password.
 - `ACCESS_TOKEN_EXPIRY`: Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token. CouchDB does not support a way to force the expiry of an issued token, so the access token expiry should always be set to 5 minutes (300)
 - `REFRESH_TOKEN_EXPIRY`: Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached. This should be set to 7 days (604800).
 
-### Windows environment variables
+### Setting up environment variables on Windows
 
 * On a powershell execute the following ( replica of `.env` )
 ```bash
-$env:HASH_KEY="wb4f9qf6789bqjqcj0cq4897cqn890tq0"
+$env:HASH_KEY="this_is_not_prod_hash_key"
 $env:DID_SERVER_URL="https://dids.testnet.verida.io:5001"
 $env:DID_CACHE_DURATION=3600
 $env:DB_PROTOCOL="http"
@@ -57,30 +60,40 @@ $env:DB_PUBLIC_USER="784c2n780c9cn0789"
 $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 ```
 
-
 ## CouchDB configuration
 
-### JWT
+- CORS must be enabled so that database requests can come from any domain name
+- A valid user must be enforced for security reasons
 
 [Ensure `{chttpd_auth, jwt_authentication_handler}` is added to the list of the active `chttpd/authentication_handlers`](https://docs.couchdb.org/en/stable/api/server/authn.html?highlight=jwt#jwt-authentication)
 
+DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentication handlers. This option is a default enable in CouchDB and causes web browsers to display a HTTP Basic Auth popup if authentication fails. This creates an awful UX and is unecessary as the protocol handles authentication issues automatically.
+
+Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
+
 ```
 [chttpd]
-
 authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
+
+[chttpd_auth]
+require_valid_user = true
 
 [jwt_auth]
 required_claims = exp
 
 [jwt_keys]
 hmac:_default = <base64 secret key>
+
+[cors]
+origins = *
+credentials = true
+methods = GET, PUT, POST, HEAD, DELETE
+headers = accept, authorization, content-type, origin, referer, x-csrf-token
 ```
 
-Note: DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentication handlers. This option is a default enable in CouchDB and causes web browsers to display a HTTP Basic Auth popup if authentication fails. This creates an awful UX and is unecessary as the protocol handles authentication issues automatically.
+## Generating JWT key
 
-Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
-
-Note: A secret key (string) can be base64 encoded with the following:
+Note: A secret key (string) suitable for `jwt_keys` can be base64 encoded with the following:
 
 ```
 const secretKey = 'secretKey'
@@ -100,3 +113,43 @@ Where:
 
 - `bearer_token` - A bearer token generated via the `test/jwt` unit test
 - `localhost` - Replace this with the hostname of the server being tested
+
+## Lambda deployment
+
+We use [Claudia.js](https://claudiajs.com/) to turn our Express app into an Express-on-Lambda app.
+
+Before doing any Lambda deployments you **MUST** translate your `.env` file (or one for production) to JSON as `.env.prod.json`.
+See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/claudia-2.2.0-environment-vars.html).
+
+A copy of `.env.prod.json` for this deployment is in BitWarden (name= "Storage Server .env.prod.json") but is **NOT** checked into Github. 
+
+You will need your [`AWS_PROFILE` set](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html). There are many ways to do this, but a simple one is:
+```
+export AWS_PROFILE=verida-prod
+```
+
+First time deployment can be done using:
+
+```
+yarn lambda-deploy
+```
+
+This does the following:
+
+- Create the Lambda (in us-east-2)
+- Create an (Edge) API Gateway pointing at it
+
+For brand new deployments, you will need to setup CloudWatch logging manually.
+
+- API Gateway ARN should be set to `arn:aws:iam::131554244047:role/APIGatewayLoggingRole` for the logging to work
+
+Updates can be done using:
+
+```
+yarn lambda-update
+```
+
+This uploads a new version of the code to the existing lambda.
+
+The command `yarn lambda-pack` exists to build a local zip file which can be helpful for debugging packaging issues.
+

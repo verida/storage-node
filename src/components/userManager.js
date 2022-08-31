@@ -76,7 +76,6 @@ class UserManager {
         let usersDb = couch.db.use('_users');
         try {
             await usersDb.insert(userData);
-            console.log("Public user created");
         } catch (err) {
             if (err.error == "conflict") {
                 console.log("Public user not created -- already existed");

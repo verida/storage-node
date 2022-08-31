@@ -8,7 +8,6 @@ import Db from "../src/components/db";
 import Utils from "../src/components/utils";
 import TestUtils from "./utils";
 
-const CouchDb = require('nano');
 const PouchDb = require('pouchdb');
 import { resolve } from "path";
 

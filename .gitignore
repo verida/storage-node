@@ -1,5 +1,9 @@
 node_modules
 couchdb
 dist
+.DS_Store
+.vscode
+curl_tests
 
 .env
+.env*
