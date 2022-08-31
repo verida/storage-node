@@ -10,7 +10,7 @@ Key features:
 - Adding a second layer of security by managing per-database ACL validation rules
 - Providing applications with user's database connection strings
 
-## How Authentication Works
+## How Authorization Works
 
 This is the login flow:
 
