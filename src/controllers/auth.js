@@ -37,7 +37,7 @@ class AuthController {
         // Verify we have a valid signed auth request
         const isValid = await AuthManager.verifyAuthRequest(authJwt, did, contextName, signature)
         if (!isValid) {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
                 data: {
                     "auth": "Invalid credentials or auth token"
@@ -53,7 +53,7 @@ class AuthController {
         if (!user) {
             const response = await UserManager.create(username, signature);
             if (!response || !response.id) {
-                return res.status(400).send({
+                return res.status(500).send({
                     status: "fail",
                     data: {
                         "auth": "User does not exist and unable to create"
@@ -96,7 +96,7 @@ class AuthController {
             });
         }
         else {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
                 data: {
                     "did": "Invalid refresh token or DID"
@@ -125,7 +125,7 @@ class AuthController {
             });
         }
         else {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
                 data: {
                     "did": "Invalid refresh token or context name"

@@ -8,7 +8,7 @@ export default async function requestValidator(req, res, next) {
         const decodedToken = await AuthManager.verifyAccessToken(token)
         
         if (!decodedToken) {
-            return res.sendStatus(403);
+            return res.sendStatus(401);
         }
 
         req.tokenData = {

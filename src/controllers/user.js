@@ -16,7 +16,6 @@ class UserController {
     }
 
     // Grant a user access to a user's database
-    // @todo: database name should be in plain text, then hashed
     async createDatabase(req, res) {
         const username = req.tokenData.username
         const did = req.tokenData.did
@@ -28,23 +27,15 @@ class UserController {
 
         let success;
         try {
-            success = await DbManager.createDatabase(username, databaseHash, contextName, options);
+            await DbManager.createDatabase(username, databaseHash, contextName, options);
+            
+            return res.status(200).send({
+                status: "success"
+            });
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
                 message: err.error + ": " + err.reason
-            });
-        }
-
-        if (success) {
-            return res.status(200).send({
-                status: "success"
-            });
-        }
-        else {
-            return res.status(400).send({
-                status: "fail",
-                message: "Unknown error"
             });
         }
     }
@@ -60,7 +51,7 @@ class UserController {
         try {
             success = await DbManager.deleteDatabase(databaseHash, req.tokenData.username);
         } catch (err) {
-            return res.status(400).send({
+            return res.status(500).send({
                 status: "fail",
                 message: err.error + ": " + err.reason
             });
@@ -72,9 +63,9 @@ class UserController {
             });
         }
         else {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
-                message: "Unknown error"
+                message: "Not an admin"
             });
         }
     }
@@ -94,7 +85,7 @@ class UserController {
         try {
             success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
         } catch (err) {
-            return res.status(400).send({
+            return res.status(500).send({
                 status: "fail",
                 message: err.error + ": " + err.reason
             });
@@ -106,9 +97,9 @@ class UserController {
             });
         }
         else {
-            return res.status(400).send({
+            return res.status(401).send({
                 status: "fail",
-                message: "Unknown error"
+                message: "Not an admin"
             });
         }
     }

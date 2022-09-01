@@ -31,7 +31,7 @@ class AuthManager {
             authRequestId
             
         }, process.env.REFRESH_JWT_SIGN_PK, {
-            // expies in 1 minute
+            // expires in 1 minute
             expiresIn: 60
         })
 

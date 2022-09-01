@@ -40,6 +40,14 @@ class DbManager {
         const couch = Db.getCouch();
         const db = couch.db.use(databaseName);
 
+        // Do a sanity check to confirm the username is an admin of the database
+        const perms = await couch.request({db: databaseName, method: 'get', path: '/_security'})
+        const usernameIsAdmin = perms.admins.names.includes(username)
+
+        if (!usernameIsAdmin) {
+            return false
+        }
+
         try {
             await this.configurePermissions(db, username, applicationName, options.permissions);
         } catch (err) {
