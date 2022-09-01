@@ -129,7 +129,10 @@ describe("AuthManager tests", function() {
             let deviceValid2 = await AuthManager.verifyRefreshToken(token2)
             assert.ok(deviceValid2, "Generated a valid refresh token for device 2")
 
-            await AuthManager.invalidateDeviceId(DID, CONTEXT_NAME, DEVICE_1)
+            const consentMessage = `Invalidate device for this application context: "${CONTEXT_NAME}"?\n\n${DID}\n${DEVICE_1}`
+            const signature = await account.sign(consentMessage)
+            const invalidated = await AuthManager.invalidateDeviceId(DID, CONTEXT_NAME, DEVICE_1, signature)
+            assert.equal(invalidated, true, "Device invalidated")
 
             deviceValid1 = await AuthManager.verifyRefreshToken(token1, CONTEXT_NAME)
             assert.equal(deviceValid1 === false, true, "Token for device 1 is no longer valid")

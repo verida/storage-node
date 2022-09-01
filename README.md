@@ -59,6 +59,8 @@ A `sample.env` is included. Copy this to `.env` and update the configuration:
 - `DB_PUBLIC_PASS`: Alphanumeric string for a public database password.
 - `ACCESS_TOKEN_EXPIRY`: Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token. CouchDB does not support a way to force the expiry of an issued token, so the access token expiry should always be set to 5 minutes (300)
 - `REFRESH_TOKEN_EXPIRY`: Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached. This should be set to 7 days (604800).
+- `ACCESS_JWT_SIGN_PK`: The access token private key. The base64 version of this must be specified in the CouchDB configuration under `jwt_keys/hmac:_default`
+- `REFRESH_JWT_SIGN_PK`: The refresh token private key
 
 ### Setting up environment variables on Windows
 
@@ -107,6 +109,8 @@ credentials = true
 methods = GET, PUT, POST, HEAD, DELETE
 headers = accept, authorization, content-type, origin, referer, x-csrf-token
 ```
+
+The `hmac:_default` key is a base64 encoded representation of the 
 
 ## Generating JWT key
 

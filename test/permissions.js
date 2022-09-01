@@ -119,7 +119,11 @@ describe("Permissions", function() {
 
         this.afterAll(async function() {
             // Delete test database
-            await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
+            try {
+                const res = await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
+            } catch (err) {
+                // database may already be deleted which is fine
+            }
         });
     });
 
@@ -391,7 +395,7 @@ describe("Permissions", function() {
         this.afterAll(async function() {
             // Delete test database
             await DbManager.deleteDatabase(testDbName, accounts["ownerUser"].username);
-            pouchDbLocal.destroy(testDbName);
+            await pouchDbLocal.destroy(testDbName);
         });
     });
 
