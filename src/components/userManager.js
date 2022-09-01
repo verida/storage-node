@@ -38,11 +38,6 @@ class UserManager {
             type: "user",
             roles: []
         };
-=======
-  async create(username, signature) {
-    let couch = this._getCouch();
-    let password = crypto.createHash('sha256').update(signature).digest('hex');    
->>>>>>> develop
 
         let usersDb = couch.db.use('_users');
         try {
