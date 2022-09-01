@@ -5,7 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js' --timeout 30000",
+    "tests": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js' --timeout 30000",
+    "test": "mocha -mocha --require @babel/polyfill --require @babel/register --timeout 30000",
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn run clean && babel src -d dist --extensions .js",
     "serve": "node dist/server.js",
