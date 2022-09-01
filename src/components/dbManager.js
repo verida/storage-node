@@ -77,7 +77,7 @@ class DbManager {
             // The database may already exist, or may have been deleted so a file
             // already exists.
             // In that case, ignore the error and continue
-            console.log(err);
+            //console.log(err);
         }
     }
 
