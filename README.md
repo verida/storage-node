@@ -93,6 +93,7 @@ Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentica
 ```
 [chttpd]
 authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
+enable_cors = false
 
 [chttpd_auth]
 require_valid_user = true
