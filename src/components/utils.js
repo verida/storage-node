@@ -30,21 +30,7 @@ class Utils {
     }
 
     didsToUsernames(dids, contextName) {
-        if (!dids || !dids.length) {
-            return [];
-        }
-
-        let usernames = [];
-        for (var d in dids) {
-            if (!dids[d]) {
-                continue
-            }
-
-            const did = dids[d].toLowerCase()
-            usernames.push(this.generateUsername(did, contextName))
-        }
-
-        return usernames;
+        return dids ? dids.map(did => this.generateUsername(did, contextName)) : []
     }
 
 }
