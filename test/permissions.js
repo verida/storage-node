@@ -8,21 +8,6 @@ import Db from "../src/components/db";
 import Utils from "../src/components/utils";
 import TestUtils from "./utils";
 
-const PouchDb = require('pouchdb');
-import { resolve } from "path";
-
-function buildPouch(user, dbName) {
-    return new PouchDb(`${user.host}/${dbName}`, {
-        requestDefaults: {
-            rejectUnauthorized: false
-        },
-        fetch: function(url, opts) {
-            opts.headers.set('Authorization', `Bearer ${user.accessToken}`)
-            return PouchDb.fetch(url, opts)
-        }
-    });
-}
-
 const PRIVATE_KEYS = {
     ownerUser: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165000',
     userDid: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165001',
@@ -51,7 +36,7 @@ describe("Permissions", function() {
         }
 
         // A public user
-        await UserManager.ensurePublicUser();
+        await UserManager.ensureDefaultDatabases();
     });
 
     describe("Owner (Read and Write)", async function() {
@@ -64,8 +49,8 @@ describe("Permissions", function() {
                 }
             });
 
-            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
-            userDb = buildPouch(accounts['userDid'], testDbName)
+            ownerDb = TestUtils.buildPouch(accounts['ownerUser'], testDbName)
+            userDb = TestUtils.buildPouch(accounts['userDid'], testDbName)
             publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
@@ -137,7 +122,7 @@ describe("Permissions", function() {
                 }
             });
 
-            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            ownerDb = TestUtils.buildPouch(accounts['ownerUser'], testDbName)
             publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
@@ -188,7 +173,7 @@ describe("Permissions", function() {
                 }
             });
 
-            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
+            ownerDb = TestUtils.buildPouch(accounts['ownerUser'], testDbName)
             publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             });
@@ -251,11 +236,11 @@ describe("Permissions", function() {
                 }
             });
 
-            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
-            userDb = buildPouch(accounts['userDid'], testDbName)
-            user2Db = buildPouch(accounts['user2Did'], testDbName)
-            user3Db = buildPouch(accounts['user3Did'], testDbName)
-            user4Db = buildPouch(accounts['user4Did'], testDbName)
+            ownerDb = TestUtils.buildPouch(accounts['ownerUser'], testDbName)
+            userDb = TestUtils.buildPouch(accounts['userDid'], testDbName)
+            user2Db = TestUtils.buildPouch(accounts['user2Did'], testDbName)
+            user3Db = TestUtils.buildPouch(accounts['user3Did'], testDbName)
+            user4Db = TestUtils.buildPouch(accounts['user4Did'], testDbName)
             publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             })
@@ -351,7 +336,7 @@ describe("Permissions", function() {
 
         it("shouldn't allow read only user to sync to database", async function() {
             pouchDbLocal = new PouchDb(testDbName);
-            pouchDbRemote = buildPouch(accounts['user4Did'], testDbName)
+            pouchDbRemote = TestUtils.buildPouch(accounts['user4Did'], testDbName)
 
             const localInfo = await pouchDbLocal.info()
             const remoteInfo = await pouchDbRemote.info()
@@ -412,9 +397,9 @@ describe("Permissions", function() {
                 }
             });
 
-            ownerDb = buildPouch(accounts['ownerUser'], testDbName)
-            userDb = buildPouch(accounts['userDid'], testDbName)
-            user2Db = buildPouch(accounts['user2Did'], testDbName)
+            ownerDb = TestUtils.buildPouch(accounts['ownerUser'], testDbName)
+            userDb = TestUtils.buildPouch(accounts['userDid'], testDbName)
+            user2Db = TestUtils.buildPouch(accounts['user2Did'], testDbName)
             publicDb = new PouchDb(Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS) + '/' + testDbName, {
                 requestDefaults: { rejectUnauthorized: false }
             })

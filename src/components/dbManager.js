@@ -1,11 +1,113 @@
+require('dotenv').config();
 import Utils from './utils';
 import _ from 'lodash';
 import Db from "./db"
+import EncryptionUtils from "@verida/encryption-utils"
 
 class DbManager {
 
     constructor() {
         this.error = null;
+    }
+
+    async saveUserDatabase(did, contextName, databaseName, databaseHash, permissions) {
+        const couch = Db.getCouch()
+        const userDatabaseName = process.env.DB_DB_INFO
+        const db = couch.db.use(userDatabaseName)
+
+        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
+        const id = EncryptionUtils.hash(text).substring(2)
+
+        try {
+            const result = await this._insertOrUpdate(db, {
+                _id: id,
+                did,
+                contextName,
+                databaseName,
+                databaseHash,
+                permissions
+            }, id)
+        } catch (err) {
+            throw err
+        }
+    }
+
+    async getUserDatabases(did, contextName) {
+        const couch = Db.getCouch()
+        const userDatabaseName = process.env.DB_DB_INFO
+        const db = couch.db.use(userDatabaseName)
+
+        try {
+            const query = {
+                selector: {
+                    did,
+                    contextName
+                },
+                limit: 1000
+            }
+
+            const results = await db.find(query)
+            const finalResult = results.docs.map((item) => {
+                delete item['_id']
+                delete item['_rev']
+
+                return item
+            })
+
+            return finalResult
+        } catch (err) {
+            if (err.reason != "missing") {
+                throw err;
+            }
+        }
+    }
+
+    async getUserDatabase(did, contextName, databaseName) {
+        const couch = Db.getCouch()
+        const userDatabaseName = process.env.DB_DB_INFO
+        const db = couch.db.use(userDatabaseName)
+
+        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
+        const id = EncryptionUtils.hash(text).substring(2)
+
+        try {
+            const doc = await db.get(id)
+            const userDb = couch.use(doc.databaseHash)
+            const info = await userDb.info()
+
+            const result = {
+                did,
+                contextName,
+                databaseName,
+                info
+            }
+
+            return result
+        } catch (err) {
+            if (err.reason == "missing") {
+                return false
+            }
+
+            throw err
+        }
+    }
+
+    async deleteUserDatabase(did, contextName, databaseName, databaseHash) {
+        const couch = Db.getCouch()
+        const userDatabaseName = process.env.DB_DB_INFO
+        const db = couch.db.use(userDatabaseName)
+
+        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
+        const id = EncryptionUtils.hash(text).substring(2)
+
+        try {
+            await this._insertOrUpdate(db, {
+                _id: id,
+                _deleted: true
+            }, id)
+        } catch (err) {
+            throw err
+        }
     }
 
     async createDatabase(username, databaseName, applicationName, options) {
@@ -29,8 +131,8 @@ class DbManager {
         try {
             await this.configurePermissions(db, username, applicationName, options.permissions);
         } catch (err) {
-            console.log("configure error");
-            console.log(err);
+            //console.log("configure error");
+            //console.log(err);
         }
 
         return true;
@@ -51,8 +153,8 @@ class DbManager {
         try {
             await this.configurePermissions(db, username, applicationName, options.permissions);
         } catch (err) {
-            console.log("configure error");
-            console.log(err);
+            //console.log("update database error");
+            //console.log(err);
         }
 
         return true;
@@ -73,7 +175,6 @@ class DbManager {
         try {
             return await couch.db.destroy(databaseName);
         } catch (err) {
-            //console.error("Database existed: "+databaseName);
             // The database may already exist, or may have been deleted so a file
             // already exists.
             // In that case, ignore the error and continue
@@ -130,7 +231,6 @@ class DbManager {
         try {
             await this._insertOrUpdate(db, securityDoc, '_security');
         } catch (err) {
-            console.log(err);
             return false;
         }
 
@@ -184,7 +284,7 @@ class DbManager {
         try {
             doc = await db.get(id);
         } catch (err) {
-            if (err.reason != "missing") {
+            if (err.reason != "missing" && err.reason != 'deleted') {
                 throw err;
             }
         }

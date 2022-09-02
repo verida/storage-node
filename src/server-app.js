@@ -33,7 +33,7 @@ app.use(requestValidator);
 app.use(router);
 
 AuthManager.initDb();
-userManager.ensurePublicUser();
+userManager.ensureDefaultDatabases();
 
 
 module.exports=app

@@ -58,7 +58,7 @@ class UserManager {
     /**
      * Ensure we have a public user in the database for accessing public data
      */
-    async ensurePublicUser() {
+    async ensureDefaultDatabases() {
         let username = process.env.DB_PUBLIC_USER;
         let password = process.env.DB_PUBLIC_PASS;
 
@@ -79,6 +79,23 @@ class UserManager {
         } catch (err) {
             if (err.error == "conflict") {
                 console.log("Public user not created -- already existed");
+            } else {
+                throw err;
+            }
+        }
+
+        try {
+            await couch.db.create(process.env.DB_DB_INFO)
+            const dbInfo = couch.db.use(process.env.DB_DB_INFO)
+            await dbInfo.createIndex({
+                index: {
+                    fields: ['did', 'contextName']
+                },
+                name: 'didContext'
+            })
+        } catch (err) {
+            if (err.message == "The database could not be created, the file already exists.") {
+                console.log("Info database not created -- already existed");
             } else {
                 throw err;
             }

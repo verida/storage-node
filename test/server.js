@@ -133,10 +133,10 @@ describe("Server tests", function() {
     })
 
     describe("Database operations", () => {
+        const databaseName = "helloooo"
+        const databaseName2 = "helloooo2"
         
         it("Creates database", async () => {
-            const databaseName = "helloooo"
-
             const response = await Axios.post(`${SERVER_URL}/user/createDatabase`, {
                 databaseName,
                 did: accountInfo.did,
@@ -150,11 +150,69 @@ describe("Server tests", function() {
             assert.equal(response.data.status, "success", "Successful create response")
         })
 
+        it("Gets active databases for a user", async () => {
+            // create a second database
+            await Axios.post(`${SERVER_URL}/user/createDatabase`, {
+                databaseName: databaseName2,
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            const response = await Axios.post(`${SERVER_URL}/user/databases`, {
+                databaseName,
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            assert.equal(response.data.status, "success", "Successful databases response")
+            assert.ok(response.data.result.length > 1, 'At least two database returned')
+            
+            let found1 = false
+            let found2 = false
+            for (let i=0; i<response.data.result.length; i++) {
+                const database = response.data.result[i]
+                if (database.databaseName == databaseName) {
+                    found1 = true
+                }
+                if (database.databaseName == databaseName2) {
+                    found2 = true
+                }
+            }
+
+            assert.ok(found1, `Database 1 ${databaseName} found`)
+            assert.ok(found2, `Database 2 ${databaseName2} found`)
+        })
+
+        it("Gets database info for a user", async () => {
+            const response = await Axios.post(`${SERVER_URL}/user/databaseInfo`, {
+                databaseName,
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            assert.equal(response.data.status, "success", "Successful database info response")
+
+            const result = response.data.result
+            assert.equal(result.did.toLowerCase(), accountInfo.did.toLowerCase(), 'Expected DID in response')
+            assert.equal(result.contextName, CONTEXT_NAME, 'Expected context name in response')
+            assert.ok(result.info, 'Have an info response')
+        })
+
         // @todo: updates
 
         it("Deletes database", async () => {
-            const databaseName = "helloooo"
-
             const response = await Axios.post(`${SERVER_URL}/user/deleteDatabase`, {
                 databaseName,
                 did: accountInfo.did,
@@ -166,6 +224,16 @@ describe("Server tests", function() {
             });
 
             assert.equal(response.data.status, "success", "Successful delete response")
+
+            const response2 = await Axios.post(`${SERVER_URL}/user/deleteDatabase`, {
+                databaseName: databaseName2,
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
         })
 
 

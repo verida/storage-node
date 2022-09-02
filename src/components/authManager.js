@@ -296,7 +296,7 @@ class AuthManager {
         for (let i in tokenRows.docs) {
             const tokenRow = tokenRows.docs[i]
             const result = await tokenDb.destroy(tokenRow._id, tokenRow._rev);
-            // @todo: log wrarning if result.ok != true
+            return result && result.ok == true
         }
 
         return true;

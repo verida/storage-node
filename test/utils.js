@@ -1,3 +1,4 @@
+const PouchDb = require('pouchdb');
 import { AutoAccount } from "@verida/account-node"
 
 import CONFIG from './config'
@@ -17,6 +18,18 @@ class Utils {
             account,
             did
         }
+    }
+
+    buildPouch(user, dbName) {
+        return new PouchDb(`${user.host}/${dbName}`, {
+            requestDefaults: {
+                rejectUnauthorized: false
+            },
+            fetch: function(url, opts) {
+                opts.headers.set('Authorization', `Bearer ${user.accessToken}`)
+                return PouchDb.fetch(url, opts)
+            }
+        });
     }
 
 }

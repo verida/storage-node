@@ -144,3 +144,13 @@ See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/cla
 
 Verida staff can see the [internal Verida repo]( https://github.com/verida/infrastructure/blob/develop/storage_node.md) for docs on this. 
 
+## Tests
+
+Run tests with `yarn run tests`
+
+Note: The tests in `server.js` require the server to be running locally. The other tests operate fine without the server running.
+
+Common issues when running tests:
+
+1. `Bad key`: The key in CouchDB configuration for `jwt_keys/hmac:_default` is not a valid Base64 encoded key
+2. `HMAC error`: The key in CouchDB configuration for `jwt_keys/hmac:_default` does not match `ACCESS_JWT_SIGN_PK` in `.env`
