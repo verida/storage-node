@@ -28,11 +28,13 @@ class AuthController {
      * @returns 
      */
     async authenticate(req, res) {
-        const authJwt = req.body.authJwt;
-        const did = req.body.did;
-        const contextName = req.body.contextName;
-        const signature = req.body.signature;
-        const deviceId = req.body.deviceId;
+        const {
+            authJwt,
+            did,
+            contextName,
+            signature,
+            deviceId
+        } = req.body
 
         // Verify we have a valid signed auth request
         const isValid = await AuthManager.verifyAuthRequest(authJwt, did, contextName, signature)
@@ -142,9 +144,11 @@ class AuthController {
      */
     async invalidateDeviceId(req, res) {
         const did = req.body.did;
-        const contextName = req.body.contextName;
-        const deviceId = req.body.deviceId;
-        const signature = req.body.signature;
+        const {
+            contextName,
+            deviceId,
+            signature
+        } = req.body
 
         const invalidated = await AuthManager.invalidateDeviceId(did, contextName, deviceId, signature);
 
