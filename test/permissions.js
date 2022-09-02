@@ -1,6 +1,7 @@
 var assert = require("assert");
 require('dotenv').config();
 
+const PouchDb = require('pouchdb');
 import AuthManager from "../src/components/authManager"
 import DbManager from "../src/components/dbManager";
 import UserManager from "../src/components/userManager";
