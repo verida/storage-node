@@ -60,6 +60,37 @@ describe("Server tests", function() {
             assert.ok(validAccessToken, "Have a valid access token")
         })
 
+        it("Verifies refresh tokens", async () => {
+            const authenticateResponse = await Axios.post(`${SERVER_URL}/auth/isTokenValid`, {
+                refreshToken,
+                contextName: CONTEXT_NAME,
+            });
+
+            assert.ok(authenticateResponse.data.status, 'success', 'Token is valid')
+            assert.ok(authenticateResponse.data.expires, 'Token has valid expiry')
+
+            const pending = new Promise((resolve) => {
+                const request = Axios.post(`${SERVER_URL}/auth/isTokenValid`, {
+                    refreshToken: refreshToken + '-',
+                    contextName: CONTEXT_NAME,
+                })
+
+                request.then((res) => {
+                    // Valid response, which is unexpected
+                    resolve(false)
+                }).catch((err) => {
+                    if (err.response.data.status == 'fail') {
+                        resolve(true)
+                    }
+
+                    resolve(false)
+                }) 
+            })
+
+            const result = await pending
+            assert.ok(result, 'Token is invalid')
+        })
+
         it("Connect a user", async () => {
             const userResponse = await Axios.post(`${SERVER_URL}/auth/connect`, {
                 refreshToken,

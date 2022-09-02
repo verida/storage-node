@@ -167,6 +167,26 @@ class AuthController {
         }
     }
 
+    async isTokenValid(req, res) {
+        const {
+            refreshToken,
+            contextName
+         } = req.body
+
+         const isValid = await AuthManager.verifyRefreshToken(refreshToken, contextName)
+
+         if (isValid) {
+            return res.status(200).send({
+                status: "success",
+                expires:  isValid.exp
+            })
+        } else {
+            return res.status(401).send({
+                status: "fail"
+            });
+        }
+    }
+
 }
 
 const authController = new AuthController();
