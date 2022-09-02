@@ -64,6 +64,9 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 - A valid user must be enforced for security reasons
 
 ```
+[couchdb]
+single_node=true
+
 [httpd]
 WWW-Authenticate = Basic realm="administrator"
 enable_cors = true
@@ -87,3 +90,14 @@ See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/cla
 
 Verida staff can see the [internal Verida repo]( https://github.com/verida/infrastructure/blob/develop/storage_node.md) for docs on this. 
 
+## Docker
+
+You can spin up storage node API on your machine with Docker:
+```shell
+docker run --init --env-file=.env verida/storage-node:latest
+```
+
+Using the example [docker-compose.yml](./docker-compose.yml) you can run storage node together with CouchDB. 
+```shell
+docker compose up
+```
