@@ -26,8 +26,12 @@ class RequestValidator {
 
         if (!didDocument) {
           if (!didClient) {
-            const { DID_SERVER_URL } = process.env;
-            didClient = new DIDClient(DID_SERVER_URL);
+            const didClientConfig = {
+              network: process.env.DID_NETWORK ? process.env.DID_NETWORK : 'testnet',
+              rpcUrl: process.env.DID_RPC_URL
+            }
+
+            didClient = new DIDClient(didClientConfig);
           }
 
           didDocument = await didClient.get(did);
