@@ -1,144 +1,199 @@
-import UserManager from '../components/userManager';
 import DbManager from '../components/dbManager';
-import Utils from '../components/utils';
+import Utils from "../components/utils";
+import Db from "../components/db"
 
 class UserController {
-  // @todo: Enforce HTTPS
 
-  async get(req, res) {
-    let signature = req.auth.password;
-    let username = Utils.generateUsernameFromRequest(req);
-    let user = await UserManager.getByUsername(username, signature);
-
-    if (user) {
-      return res.status(200).send({
-        status: 'success',
-        user: user,
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        data: {
-          did: 'Invalid DID specified',
-        },
-      });
-    }
-  }
-
-  async getPublic(req, res) {
-    return res.status(200).send({
-      status: 'success',
-      user: {
-        username: process.env.DB_PUBLIC_USER,
-        password: process.env.DB_PUBLIC_PASS,
-        dsn: UserManager.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS),
-      },
-    });
-  }
-
-  async create(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let signature = req.auth.password;
-
-    // If user exists, simply return it
-    let user = await UserManager.getByUsername(username, signature);
-    if (user) {
-      return res.status(400).send({
-        status: 'fail',
-        code: 100,
-        data: {
-          did: 'User already exists',
-        },
-      });
+    async getPublic(req, res) {
+        return res.status(200).send({
+            status: "success",
+            user: {
+                username: process.env.DB_PUBLIC_USER,
+                password: process.env.DB_PUBLIC_PASS,
+                dsn: Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
+            }
+        });
     }
 
-    let response = await UserManager.create(username, signature);
+    // Grant a user access to a user's database
+    async createDatabase(req, res) {
+        const username = req.tokenData.username
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName;
+        const options = req.body.options ? req.body.options : {};
 
-    if (response.ok) {
-      user = await UserManager.getByUsername(username, signature);
+        if (!databaseName) {
+            return res.status(400).send({
+                status: "fail",
+                message: "Database must be specified"
+            });
+        }
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
+
+        let success;
+        try {
+            success = await DbManager.createDatabase(username, databaseHash, contextName, options);
+            if (success) {
+                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+
+                return res.status(200).send({
+                    status: "success"
+                });
+            }
+        } catch (err) {
+            return res.status(400).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
     }
 
-    if (user) {
-      return res.status(200).send({
-        status: 'success',
-        user: user,
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        code: 100,
-        data: {
-          did: 'Unable to locate created user',
-        },
-      });
-    }
-  }
+    async deleteDatabase(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName;
+        const username = req.tokenData.username
 
-  // Grant a user access to a user's database
-  async createDatabase(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let databaseName = req.body.databaseName;
-    let options = req.body.options ? req.body.options : {};
+        if (!databaseName) {
+            return res.status(400).send({
+                status: "fail",
+                message: "Database must be specified"
+            });
+        }
 
-    let success;
-    try {
-      success = await DbManager.createDatabase(
-        username,
-        databaseName,
-        req.headers['application-name'],
-        options
-      );
-    } catch (err) {
-      return res.status(400).send({
-        status: 'fail',
-        message: err.error + ': ' + err.reason,
-      });
-    }
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
 
-    if (success) {
-      return res.status(200).send({
-        status: 'success',
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        message: 'Unknown error',
-      });
-    }
-  }
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
-  // Update permissions on a user's database
-  async updateDatabase(req, res) {
-    let username = Utils.generateUsernameFromRequest(req);
-    let databaseName = req.body.databaseName;
-    let options = req.body.options ? req.body.options : {};
+        let success;
+        try {
+            success = await DbManager.deleteDatabase(databaseHash, username);
+            if (success) {
+                await DbManager.deleteUserDatabase(did, contextName, databaseName, databaseHash)
 
-    let success;
-    try {
-      success = await DbManager.updateDatabase(
-        username,
-        databaseName,
-        req.headers['application-name'],
-        options
-      );
-    } catch (err) {
-      return res.status(400).send({
-        status: 'fail',
-        message: err.error + ': ' + err.reason,
-      });
+                return res.status(200).send({
+                    status: "success"
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
     }
 
-    if (success) {
-      return res.status(200).send({
-        status: 'success',
-      });
-    } else {
-      return res.status(400).send({
-        status: 'fail',
-        message: 'Unknown error',
-      });
+    // Update permissions on a user's database
+    // @todo: database name should be in plain text, then hashed
+    async updateDatabase(req, res) {
+        const username = req.tokenData.username
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName;
+        const options = req.body.options ? req.body.options : {};
+
+        const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
+
+        try {
+            let success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
+            if (success) {
+                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+
+                return res.status(200).send({
+                    status: "success"
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
     }
-  }
+
+    async databases(req, res) {
+        const databaseName = req.body.databaseName;
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        try {
+            const result = await DbManager.getUserDatabases(did, contextName)
+            if (result) {
+                return res.status(200).send({
+                    status: "success",
+                    result
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
+    }
+
+    async databaseInfo(req, res) {
+        const databaseName = req.body.databaseName;
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+
+        if (!databaseName) {
+            return res.status(400).send({
+                status: "fail",
+                message: "Database must be specified"
+            });
+        }
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        try {
+            const result = await DbManager.getUserDatabase(did, contextName, databaseName)
+
+            if (result) {
+                return res.status(200).send({
+                    status: "success",
+                    result
+                });
+            } else {
+                return res.status(404).send({
+                    status: "fail",
+                    message: "Database not found"
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
+            });
+        }
+    }
+
 }
 
 const userController = new UserController();

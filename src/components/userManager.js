@@ -1,111 +1,107 @@
-const CouchDb = require('nano');
 import crypto from 'crypto';
+const jwt = require('jsonwebtoken')
+import Db from "./db"
+import AuthManager from './authManager';
 
 class UserManager {
-  constructor() {
-    this.error = null;
-  }
 
-  /**
-   * Get a user by DID
-   *
-   * @param {} did
-   */
-  async getByUsername(username, signature) {
-    let couch = this._getCouch();
-    let usersDb = couch.db.use('_users');
-
-    try {
-      let response = await usersDb.get('org.couchdb.user:' + username);
-      let password = crypto.createHash('sha256').update(signature).digest('hex');
-      return {
-        username: username,
-        dsn: this.buildDsn(username, password),
-        salt: response.salt,
-      };
-    } catch (err) {
-      this.error = err;
-      return false;
-    }
-  }
-
-  async create(username, signature) {
-    let couch = this._getCouch();
-    let password = crypto.createHash('sha256').update(signature).digest('hex');    
-
-    // Create CouchDB database user matching username and password
-    let userData = {
-      _id: 'org.couchdb.user:' + username,
-      name: username,
-      password: password,
-      type: 'user',
-      roles: [],
-    };
-
-    let usersDb = couch.db.use('_users');
-    try {
-      return await usersDb.insert(userData);
-    } catch (err) {
-      console.log(err)
-      this.error = err;
-      return false;
-    }
-  }
-
-  /**
-   * Ensure we have a public user in the database for accessing public data
-   */
-  async ensurePublicUser() {
-    let username = process.env.DB_PUBLIC_USER;
-    let password = process.env.DB_PUBLIC_PASS;
-
-    let couch = this._getCouch();
-
-    // Create CouchDB database user matching username and password and save keyring
-    let userData = {
-      _id: 'org.couchdb.user:' + username,
-      name: username,
-      password: password,
-      type: 'user',
-      roles: [],
-    };
-
-    let usersDb = couch.db.use('_users');
-    try {
-      await usersDb.insert(userData);
-    } catch (err) {
-      if (err.error == 'conflict') {
-        // this is ok - we can continue after this. 
-        console.info('Public user not created -- already existed. This is ok and can continue');
-      } else {
-        console.error(err);
-        throw err;
-      }
-    }
-  }
-
-  _getCouch() {
-    let dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-
-    if (!this._couch) {
-      this._couch = new CouchDb({
-        url: dsn,
-        //log: console.log,
-        requestDefaults: {
-          rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != 'false',
-        },
-      });
+    constructor() {
+        this.error = null;
     }
 
-    return this._couch;
-  }
+    /**
+     * Get a user by DID
+     * 
+     * @param {} did 
+     */
+    async getByUsername(username) {
+        const couch = Db.getCouch()
+        try {
+            const usersDb = couch.db.use('_users');
+            const user = await usersDb.get(`org.couchdb.user:${username}`);
+            return user
+        } catch (err) {
+            this.error = err;
+            return false;
+        }
+    }
 
-  buildDsn(username, password) {
-    let env = process.env;
-    return (
-      env.DB_PROTOCOL + '://' + username + ':' + password + '@' + env.DB_HOST + ':' + env.DB_PORT
-    );
-  }
+    async create(username, signature) {
+        const couch = Db.getCouch()
+        const password = crypto.createHash('sha256').update(signature).digest("hex")
+
+        // Create CouchDB database user matching username and password
+        let userData = {
+            _id: `org.couchdb.user:${username}`,
+            name: username,
+            password: password,
+            type: "user",
+            roles: []
+        };
+
+        let usersDb = couch.db.use('_users');
+        try {
+            return await usersDb.insert(userData);
+        } catch (err) {
+            if (err.error == 'conflict') {
+                // User already existed
+                return userData
+            }
+
+            this.error = err;
+            return false;
+        }
+    }
+
+    
+
+    /**
+     * Ensure we have a public user in the database for accessing public data
+     */
+    async ensureDefaultDatabases() {
+        let username = process.env.DB_PUBLIC_USER;
+        let password = process.env.DB_PUBLIC_PASS;
+
+        let couch = Db.getCouch();
+
+        // Create CouchDB database user matching username and password and save keyring
+        let userData = {
+            _id: "org.couchdb.user:" + username,
+            name: username,
+            password: password,
+            type: "user",
+            roles: []
+        };
+
+        let usersDb = couch.db.use('_users');
+        try {
+            await usersDb.insert(userData);
+        } catch (err) {
+            if (err.error == "conflict") {
+                console.log("Public user not created -- already existed");
+            } else {
+                throw err;
+            }
+        }
+
+        try {
+            await couch.db.create(process.env.DB_DB_INFO)
+            const dbInfo = couch.db.use(process.env.DB_DB_INFO)
+            await dbInfo.createIndex({
+                index: {
+                    fields: ['did', 'contextName']
+                },
+                name: 'didContext'
+            })
+        } catch (err) {
+            if (err.message == "The database could not be created, the file already exists.") {
+                console.log("Info database not created -- already existed");
+            } else {
+                throw err;
+            }
+        }
+    }
+
 }
 
 let userManager = new UserManager();
