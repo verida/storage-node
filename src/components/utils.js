@@ -1,38 +1,38 @@
-const crypto = require('crypto');
+
+import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {
-  generateUsernameFromRequest(req) {
-    let did = req.auth.user.toLowerCase();
-    let applicationName = req.headers['application-name'];
-    return this.generateUsername(did, applicationName);
-  }
 
-  generateUsername(did, applicationName) {
-    let hash = crypto.createHmac('sha256', process.env.HASH_KEY);
-    hash.update(did + '/' + applicationName);
-    const username = hash.digest('hex');
+    generateUsername(did, contextName) {
+        did = did.toLowerCase()
+        const text = [
+            did,
+            contextName
+        ].join('/')
 
-    // Username must start with a letter
-    return 'v' + username;
-  }
+        const hash = EncryptionUtils.hash(text).substring(2)
 
-  didsToUsernames(dids, applicationName) {
-    if (!dids || !dids.length) {
-      return [];
+        // Username must start with a letter
+        return "v" + hash
     }
 
-    let usernames = [];
-    for (var d in dids) {
-      if (!dids[d]) {
-        continue;
-      }
+    generateDatabaseName(did, contextName, databaseName) {
+        let text = [
+            did.toLowerCase(),
+            contextName,
+            databaseName,
+        ].join("/");
+        
+        const hash = EncryptionUtils.hash(text).substring(2);
 
-      let did = dids[d].toLowerCase();
-      usernames.push(this.generateUsername(did, applicationName));
+        // Database name must start with a letter
+        return "v" + hash
     }
 
-    return usernames;
-  }
+    didsToUsernames(dids, contextName) {
+        return dids ? dids.map(did => this.generateUsername(did, contextName)) : []
+    }
+
 }
 
 let utils = new Utils();
