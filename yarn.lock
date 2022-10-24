@@ -1021,7 +1021,7 @@
     "@ethersproject/logger" "^5.7.0"
     "@ethersproject/rlp" "^5.7.0"
 
-"@ethersproject/base64@5.7.0", "@ethersproject/base64@^5.7.0":
+"@ethersproject/base64@5.7.0", "@ethersproject/base64@^5.5.0", "@ethersproject/base64@^5.7.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/base64/-/base64-5.7.0.tgz#ac4ee92aa36c1628173e221d0d01f53692059e1c"
   integrity sha512-Dr8tcHt2mEbsZr/mwTPIQAf3Ai0Bks/7gTw9dSqk1mQvhW3XvRlmDJr/4n+wg1JmCl16NZue17CDh8xb/vZ0sQ==
@@ -1045,7 +1045,7 @@
     "@ethersproject/logger" "^5.7.0"
     bn.js "^5.2.1"
 
-"@ethersproject/bytes@5.7.0", "@ethersproject/bytes@^5.7.0":
+"@ethersproject/bytes@5.7.0", "@ethersproject/bytes@^5.5.0", "@ethersproject/bytes@^5.7.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/bytes/-/bytes-5.7.0.tgz#a00f6ea8d7e7534d6d87f47188af1148d71f155d"
   integrity sha512-nsbxwgFXWh9NyYWo+U8atvmMsSdKJprTcICAkvbBffT75qDocbuggBU0SJiVK2MuTrp0q+xvLkTnGMPK1+uA9A==
@@ -1246,7 +1246,7 @@
     "@ethersproject/logger" "^5.7.0"
     hash.js "1.1.7"
 
-"@ethersproject/signing-key@5.7.0", "@ethersproject/signing-key@^5.7.0":
+"@ethersproject/signing-key@5.7.0", "@ethersproject/signing-key@^5.5.0", "@ethersproject/signing-key@^5.7.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/signing-key/-/signing-key-5.7.0.tgz#06b2df39411b00bc57c7c09b01d1e41cf1b16ab3"
   integrity sha512-MZdy2nL3wO0u7gkB4nA/pEf8lu1TlFswPNmy8AiYkfKTdO6eXBJyUdmHO/ehm/htHw9K/qF8ujnTyUAD+Ry54Q==
@@ -1270,7 +1270,7 @@
     "@ethersproject/sha2" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@ethersproject/strings@5.7.0", "@ethersproject/strings@^5.7.0":
+"@ethersproject/strings@5.7.0", "@ethersproject/strings@^5.5.0", "@ethersproject/strings@^5.7.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/strings/-/strings-5.7.0.tgz#54c9d2a7c57ae8f1205c88a9d3a56471e14d5ed2"
   integrity sha512-/9nu+lj0YswRNSH0NXYqrh8775XNyEdUQAuf3f+SmOrnVewcJ5SBNAjF7lpgehKi4abvNNXyf+HX86czCdJ8Mg==
@@ -1303,7 +1303,7 @@
     "@ethersproject/constants" "^5.7.0"
     "@ethersproject/logger" "^5.7.0"
 
-"@ethersproject/wallet@5.7.0":
+"@ethersproject/wallet@5.7.0", "@ethersproject/wallet@^5.5.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/wallet/-/wallet-5.7.0.tgz#4e5d0790d96fe21d61d38fb40324e6c7ef350b2d"
   integrity sha512-MhmXlJXEJFBFVKrDLB4ZdDzxcBxQ3rLyCkhNqVu3CDYvR97E+8r01UgrI+TI99Le+aYm/in/0vp86guJuM7FCA==
@@ -1672,6 +1672,19 @@
     deepcopy "^2.1.0"
     ethers "^5.5.1"
 
+"@verida/did-client@^2.0.0-rc2":
+  version "2.0.0-rc2"
+  resolved "https://registry.yarnpkg.com/@verida/did-client/-/did-client-2.0.0-rc2.tgz#f52c167a335bedf33aed5b5ead09393526cd3fd5"
+  integrity sha512-qwf3e2sFD4SHdjaPuWj7MxwPxTwLncM8q1+KfrNIaRQjgT4LAOi+8G/1d082hIRUndQXaEyvJtH8PvPRsSRUxA==
+  dependencies:
+    "@verida/did-document" "^2.0.0-rc2"
+    "@verida/vda-did" "^2.0.0-rc2"
+    "@verida/vda-did-resolver" "^2.0.0-rc2"
+    "@verida/web3" "^2.0.0-rc2"
+    axios "^0.23.0"
+    deepcopy "^2.1.0"
+    ethers "^5.5.1"
+
 "@verida/did-document@^1.0.5":
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@verida/did-document/-/did-document-1.0.5.tgz#18ff73560b183f9601ef8f6f744e0bc0ebb0f7a8"
@@ -1691,6 +1704,19 @@
     "@verida/keyring" "^2.0.0-rc1"
     "@verida/vda-did-resolver" "^2.0.0-rc1"
     did-resolver "^3.1.2"
+    lodash "^4.17.21"
+
+"@verida/did-document@^2.0.0-rc2":
+  version "2.0.0-rc2"
+  resolved "https://registry.yarnpkg.com/@verida/did-document/-/did-document-2.0.0-rc2.tgz#3eeb1acffda2f15aaaa8c21c128244cbc93051c4"
+  integrity sha512-gX/0w3jfsOB2KAU1LDnGSBGps3i1+MgHXhg27tRzFcZct2RtZ4QPAsBRc1Sk6rx6zkOEzj1oTqrj0hE265sUQw==
+  dependencies:
+    "@ethersproject/bignumber" "^5.7.0"
+    "@verida/encryption-utils" "^2.0.0-rc1"
+    "@verida/keyring" "^2.0.0-rc1"
+    "@verida/vda-did-resolver" "^2.0.0-rc2"
+    did-resolver "^3.1.2"
+    ethers "^5.7.2"
     lodash "^4.17.21"
 
 "@verida/encryption-utils@^1.1.3":
@@ -1772,10 +1798,53 @@
     did-resolver "^3.1.5"
     ethers "^5.7.0"
 
+"@verida/vda-did-resolver@^2.0.0-rc2":
+  version "2.0.0-rc2"
+  resolved "https://registry.yarnpkg.com/@verida/vda-did-resolver/-/vda-did-resolver-2.0.0-rc2.tgz#00dfd6521dcff6896aa11bc192dbba1cc1bcc1a1"
+  integrity sha512-EkgEMFRA5pA/71838HMdpCLGDPCzCXk51zS8AXH/DpW8o4RPwiweyiN/QUGb9Dl3eNr66M7PO6SuRk/9NIxD5Q==
+  dependencies:
+    "@ethersproject/abi" "^5.5.0"
+    "@ethersproject/abstract-signer" "^5.5.0"
+    "@ethersproject/address" "^5.5.0"
+    "@ethersproject/basex" "^5.5.0"
+    "@ethersproject/bignumber" "^5.5.0"
+    "@ethersproject/contracts" "^5.5.0"
+    "@ethersproject/providers" "^5.5.0"
+    "@ethersproject/transactions" "^5.5.0"
+    "@verida/encryption-utils" "^2.0.0-rc1"
+    "@verida/web3" "^2.0.0-rc2"
+    did-resolver "^3.1.5"
+    ethers "^5.7.0"
+
+"@verida/vda-did@^2.0.0-rc2":
+  version "2.0.0-rc2"
+  resolved "https://registry.yarnpkg.com/@verida/vda-did/-/vda-did-2.0.0-rc2.tgz#8318fcbad16a3cf133643f600e15d86a4d68bfa7"
+  integrity sha512-tiIHwixvsHYBm41HS4+xmuvwFWsFjo3px5oK41ncJsEl5J3veBnNoe758wz+zoC3h0/EO/4PV6AP6Hkf/2AtvA==
+  dependencies:
+    "@ethersproject/abstract-signer" "^5.5.0"
+    "@ethersproject/base64" "^5.5.0"
+    "@ethersproject/basex" "^5.5.0"
+    "@ethersproject/bytes" "^5.5.0"
+    "@ethersproject/providers" "^5.5.0"
+    "@ethersproject/signing-key" "^5.5.0"
+    "@ethersproject/strings" "^5.5.0"
+    "@ethersproject/transactions" "^5.5.0"
+    "@ethersproject/wallet" "^5.5.0"
+    "@verida/vda-did-resolver" "^2.0.0-rc2"
+    did-jwt "^5.12.3"
+
 "@verida/web3@^2.0.0-rc1":
   version "2.0.0-rc1"
   resolved "https://registry.yarnpkg.com/@verida/web3/-/web3-2.0.0-rc1.tgz#0f63b455120306d9b920a232bc87367355af6f15"
   integrity sha512-T3qSfoQ4u9Aupj3U2FayGLkN9qh0XYr377DFtXVEJDCVmt5McUpnMu9rq6iolm+7mWVmWjtqnTnHQG0Yvvfc3g==
+  dependencies:
+    axios "^0.27.2"
+    ethers "^5.7.0"
+
+"@verida/web3@^2.0.0-rc2":
+  version "2.0.0-rc2"
+  resolved "https://registry.yarnpkg.com/@verida/web3/-/web3-2.0.0-rc2.tgz#8ba64be7c37e2f9ee49a9c22c49dc73001de14bb"
+  integrity sha512-QAz6mevIkS0G1f2ZFovBpvbGc617WMahHjwJdwwBAq36vPD7m3ECBE3/E9FHadwbJx0zsoAg3JHE8QcPQO2lYQ==
   dependencies:
     axios "^0.27.2"
     ethers "^5.7.0"
@@ -2819,6 +2888,11 @@ bech32@1.1.4:
   resolved "https://registry.yarnpkg.com/bech32/-/bech32-1.1.4.tgz#e38c9f37bf179b8eb16ae3a772b40c356d4832e9"
   integrity sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==
 
+bech32@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/bech32/-/bech32-2.0.0.tgz#078d3686535075c8c79709f054b1b226a133b355"
+  integrity sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==
+
 big.js@^5.2.2:
   version "5.2.2"
   resolved "https://registry.yarnpkg.com/big.js/-/big.js-5.2.2.tgz#65f0af382f578bcdc742bd9c281e9cb2d7768328"
@@ -3364,6 +3438,24 @@ did-jwt@5.7.0:
     js-sha3 "^0.8.0"
     uint8arrays "^3.0.0"
 
+did-jwt@^5.12.3:
+  version "5.12.4"
+  resolved "https://registry.yarnpkg.com/did-jwt/-/did-jwt-5.12.4.tgz#6357a550173b7155f2e5cf3b8ea3f8e8be180617"
+  integrity sha512-rFY7yIlE/79zB648Drn9vLiM+F4+3IzRkFvBcHelZqQmnPy037U9VWeeP/f2PlnQKgW5qbYXVJR5KftLfo58TA==
+  dependencies:
+    "@stablelib/ed25519" "^1.0.2"
+    "@stablelib/random" "^1.0.1"
+    "@stablelib/sha256" "^1.0.1"
+    "@stablelib/x25519" "^1.0.1"
+    "@stablelib/xchacha20poly1305" "^1.0.1"
+    bech32 "^2.0.0"
+    canonicalize "^1.0.5"
+    did-resolver "^3.1.5"
+    elliptic "^6.5.4"
+    js-sha3 "^0.8.0"
+    multiformats "^9.4.10"
+    uint8arrays "^3.0.0"
+
 did-resolver@^3.1.0, did-resolver@^3.1.2, did-resolver@^3.1.5:
   version "3.2.2"
   resolved "https://registry.yarnpkg.com/did-resolver/-/did-resolver-3.2.2.tgz#6f4e252a810f785d1b28a10265fad6dffee25158"
@@ -3612,7 +3704,7 @@ ethers@^5.5.1:
     "@ethersproject/web" "5.7.0"
     "@ethersproject/wordlists" "5.7.0"
 
-ethers@^5.7.0:
+ethers@^5.7.0, ethers@^5.7.2:
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.7.2.tgz#3a7deeabbb8c030d4126b24f84e525466145872e"
   integrity sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==
@@ -4936,6 +5028,11 @@ ms@2.1.3, ms@^2.1.1:
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
+
+multiformats@^9.4.10:
+  version "9.9.0"
+  resolved "https://registry.yarnpkg.com/multiformats/-/multiformats-9.9.0.tgz#c68354e7d21037a8f1f8833c8ccd68618e8f1d37"
+  integrity sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==
 
 multiformats@^9.4.2:
   version "9.7.1"
