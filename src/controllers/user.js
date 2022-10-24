@@ -97,6 +97,45 @@ class UserController {
         }
     }
 
+    async deleteDatabases(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const username = req.tokenData.username
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        const databases = await DbManager.getUserDatabases(did, contextName)
+        const results = []
+
+        for (let d in databases) {
+            const database = databases[d]
+            const databaseHash = Utils.generateDatabaseName(did, contextName, database.databaseName)
+            try {
+                let success = await DbManager.deleteDatabase(databaseHash, username);
+                if (success) {
+                    await DbManager.deleteUserDatabase(did, contextName, database.databaseName, databaseHash)
+                    results.push(database.databaseName)
+                }
+            } catch (err) {
+                return res.status(500).send({
+                    status: "fail",
+                    message: err.error + ": " + err.reason,
+                    results
+                });
+            }
+        };
+
+        return res.status(200).send({
+            status: "success",
+            results
+        });
+    }
+
     // Update permissions on a user's database
     // @todo: database name should be in plain text, then hashed
     async updateDatabase(req, res) {

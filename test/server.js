@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 import Axios from 'axios'
 
 import AuthManager from "../src/components/authManager";
-import UserManager from "../src/components/userManager";
 import TestUtils from "./utils"
 
 import CONFIG from './config'
@@ -14,9 +13,12 @@ const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 let authJwt, accountInfo, authRequestId
 let refreshToken, accessToken, newRefreshToken
 
+// @todo: Generate Verida account with private key so DID document exists and storage node can then verify signature!
+
 describe("Server tests", function() {
     this.beforeAll(async () => {
         await AuthManager.initDb()
+        await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY)
         accountInfo = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
     })
 
@@ -43,7 +45,7 @@ describe("Server tests", function() {
                 contextName: CONTEXT_NAME,
                 signature,
                 deviceId: TEST_DEVICE_ID
-            });
+            })
 
             assert.ok(authenticateResponse && authenticateResponse.data && authenticateResponse.data.refreshToken, "Have refreshToken in response")
             assert.equal(authenticateResponse.data.status, 'success', "Success response")
@@ -168,16 +170,7 @@ describe("Server tests", function() {
         const databaseName2 = "helloooo2"
         
         it("Creates database", async () => {
-            const response = await Axios.post(`${SERVER_URL}/user/createDatabase`, {
-                databaseName,
-                did: accountInfo.did,
-                contextName: CONTEXT_NAME
-            }, {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-
+            const response = await TestUtils.createDatabase(databaseName, accountInfo.did, CONTEXT_NAME, accessToken)
             assert.equal(response.data.status, "success", "Successful create response")
         })
 
@@ -265,6 +258,31 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
+        })
+
+        it("Deletes all database", async () => {
+            const db1 = await TestUtils.createDatabase('DeleteAll_1', accountInfo.did, CONTEXT_NAME, accessToken)
+            const db2 = await TestUtils.createDatabase('DeleteAll_2', accountInfo.did, CONTEXT_NAME, accessToken)
+            const db3 = await TestUtils.createDatabase('DeleteAll_3', accountInfo.did, CONTEXT_NAME, accessToken)
+
+            assert.equal(db1.data.status, "success", "Successful create response for db1")
+            assert.equal(db2.data.status, "success", "Successful create response for db2")
+            assert.equal(db3.data.status, "success", "Successful create response for db3")
+
+            const response = await Axios.post(`${SERVER_URL}/user/deleteDatabases`, {
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            assert.equal(response.data.status, "success", "Successful delete response")
+            assert.equal(response.data.results.length, 3, "Deleted three databases")
+            assert.ok(response.data.results.indexOf('DeleteAll_1') >= 0, 'Deleted correct databases (DeleteAll_1)')
+            assert.ok(response.data.results.indexOf('DeleteAll_2') >= 0, 'Deleted correct databases (DeleteAll_2)')
+            assert.ok(response.data.results.indexOf('DeleteAll_3') >= 0, 'Deleted correct databases (DeleteAll_3)')            
         })
 
 

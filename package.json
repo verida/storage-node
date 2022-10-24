@@ -12,21 +12,14 @@
     "serve": "node dist/server.js",
     "lambda-deploy-dev": "yarn build && yarn claudia create --config claudia.dev.json --region us-east-2 --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.prod.json",
     "lambda-update-dev": "yarn build && yarn claudia update --set-env-from-json .env.prod.json",
-
     "lambda-deploy-testnet-use1": "yarn build && yarn claudia create --config claudia.use1.testnet.json --name 'storage-node-use1-testnet' --region us-east-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.use1.testnet.json",
     "lambda-update-testnet-use1": "yarn build && yarn claudia update --config claudia.use1.testnet.json --set-env-from-json .env.use1.testnet.json",
-
     "lambda-deploy-testnet-sg1": "yarn build && yarn claudia create --config claudia.sg1.testnet.json --name 'storage-node-sg1-testnet' --region ap-southeast-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.sg1.testnet.json",
     "lambda-update-testnet-sg1": "yarn build && yarn claudia update --config claudia.sg1.testnet.json --set-env-from-json .env.sg1.testnet.json",
-
     "lambda-deploy-testnet-au1": "yarn build && yarn claudia create --config claudia.au1.testnet.json --name 'storage-node-au1-testnet' --region ap-southeast-2 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.au1.testnet.json",
     "lambda-update-testnet-au1": "yarn build && yarn claudia update --config claudia.au1.testnet.json --set-env-from-json .env.au1.testnet.json",
-
     "lambda-deploy-testnet-acacia": "yarn build && yarn claudia create --config claudia.acacia.testnet.json --name 'storage-node-acacia-testnet' --region ap-southeast-2 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.acacia.testnet.json",
     "lambda-update-testnet-acacia": "yarn build && yarn claudia update --config claudia.acacia.testnet.json --set-env-from-json .env.acacia.testnet.json",
-
-
-
     "lambda-pack": "yarn build && yarn claudia pack --no-optional-dependencies"
   },
   "files": [
@@ -81,6 +74,7 @@
     "@babel/polyfill": "^7.8.0",
     "@babel/preset-env": "^7.7.7",
     "@verida/account-node": "^1.1.9",
+    "@verida/client-ts": "^2.0.0-rc1",
     "axios": "^0.27.2",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.2.3",
