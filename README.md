@@ -111,7 +111,7 @@ methods = GET, PUT, POST, HEAD, DELETE
 headers = accept, authorization, content-type, origin, referer, x-csrf-token
 ```
 
-The `hmac:_default` key is a base64 encoded representation of the 
+The `hmac:_default` key is a base64 encoded representation of the access token JWT private key
 
 ## Generating JWT key
 
