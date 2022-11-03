@@ -13,12 +13,10 @@ const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 let authJwt, accountInfo, authRequestId
 let refreshToken, accessToken, newRefreshToken
 
-// @todo: Generate Verida account with private key so DID document exists and storage node can then verify signature!
-
 describe("Server tests", function() {
     this.beforeAll(async () => {
-        await AuthManager.initDb()
-        await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY)
+        //await AuthManager.initDb() -- This is required if the server is running locally and has never been run before, run just once
+        //await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) -- This is required if the private key has never been initilaized with an application context, run just once
         accountInfo = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
     })
 
@@ -35,6 +33,8 @@ describe("Server tests", function() {
             authJwt = authJwtResult.data.authJwt.authJwt
         })
 
+        // If running the tests against a remote server with a different access token JWT private key, this test will fail
+        // because it uses the private key on this local server config for verification of the access token
         it("Authenticates using AuthJWT", async () => {
             const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did.toLowerCase()}\n${authRequestId}`
             const signature = await accountInfo.account.sign(consentMessage)
@@ -149,6 +149,7 @@ describe("Server tests", function() {
                     // Valid response, which is unexpected
                     resolve(false)
                 }).catch((err) => {
+                    console.log('b')
                     if (err.response.data.status == 'fail') {
                         resolve(true)
                     }
