@@ -10,6 +10,23 @@ Key features:
 - Adding a second layer of security by managing per-database ACL validation rules
 - Providing applications with user's database connection strings
 
+## How Authorization Works
+
+This is the login flow:
+
+1. The Verida Account makes a request to the storage node API to obtain an auth JWT to be signed (`/auth/generateAuthJwt`). This prevents replay attacks.
+2. The Verida Account signs a consent message using their private key. This consent message proves the user wants to unlock a specific application context
+3. The Verida Account submits the signed authorization request (`/auth/authenticate`). Assuming the signed AuthJWT is valid, the storage node returns a refresh token and an access token
+4. The Verida Account can then use the access token to either; 1) make storage node requests (ie: create database) or 2) directly access CouchDB as an authenticated user (using `Bearer` token auth)
+5. When the access token expires, the Verida Account can use the refresh token to request a new access token (`/auth/connect`)
+6. If a refresh token is close to expiry, the Verida Account can use the active refresh token to obtain a new refresh token (`/auth/regenerateRefreshToken`)
+
+When a Verida Account authenticates, it can designate an `authenticate` requst to be linked to a particular device by specifying the `deviceId` in the request.
+
+This allows a specific device to be linked to a refresh token. A call to `/auth/invalidateDeviceId` can be used to invalidate any refresh tokens linked to the specified `deviceId`. This allows the Verida Vault to remotely log out an application that previously logged in.
+
+Note: This only invalidates the refresh token. The access token will remain valid until it expires. It's for this reason that access tokens are configured to have a short expiry (5 minutes by default). CouchDB does not support manually invalidating access tokens, so we have to take this timeout approach to invalidation.
+
 ## Usage
 
 ```bash
@@ -40,6 +57,10 @@ A `sample.env` is included. Copy this to `.env` and update the configuration:
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
 - `DB_PUBLIC_USER`: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
 - `DB_PUBLIC_PASS`: Alphanumeric string for a public database password.
+- `ACCESS_TOKEN_EXPIRY`: Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token. CouchDB does not support a way to force the expiry of an issued token, so the access token expiry should always be set to 5 minutes (300)
+- `REFRESH_TOKEN_EXPIRY`: Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached. This should be set to 7 days (604800).
+- `ACCESS_JWT_SIGN_PK`: The access token private key. The base64 version of this must be specified in the CouchDB configuration under `jwt_keys/hmac:_default`
+- `REFRESH_JWT_SIGN_PK`: The refresh token private key
 
 ### Setting up environment variables on Windows
 
@@ -63,16 +84,28 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 - CORS must be enabled so that database requests can come from any domain name
 - A valid user must be enforced for security reasons
 
+[Ensure `{chttpd_auth, jwt_authentication_handler}` is added to the list of the active `chttpd/authentication_handlers`](https://docs.couchdb.org/en/stable/api/server/authn.html?highlight=jwt#jwt-authentication)
+
+DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentication handlers. This option is a default enable in CouchDB and causes web browsers to display a HTTP Basic Auth popup if authentication fails. This creates an awful UX and is unecessary as the protocol handles authentication issues automatically.
+
+Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
+
 ```
 [couchdb]
 single_node=true
 
-[httpd]
-WWW-Authenticate = Basic realm="administrator"
-enable_cors = true
+[chttpd]
+authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
+enable_cors = false
 
 [chttpd_auth]
 require_valid_user = true
+
+[jwt_auth]
+required_claims = exp
+
+[jwt_keys]
+hmac:_default = <base64 secret key>
 
 [cors]
 origins = *
@@ -80,6 +113,31 @@ credentials = true
 methods = GET, PUT, POST, HEAD, DELETE
 headers = accept, authorization, content-type, origin, referer, x-csrf-token
 ```
+
+The `hmac:_default` key is a base64 encoded representation of the access token JWT private key
+
+## Generating JWT key
+
+Note: A secret key (string) suitable for `jwt_keys` can be base64 encoded with the following:
+
+```
+const secretKey = 'secretKey'
+const encodedKey = Buffer.from(secretKey).toString('base64')
+```
+
+This can be tested via curl:
+
+```
+curl -H "Host: localhost:5984" \
+ -H "accept: application/json, text/plain, */*" \
+ -H "authorization: Bearer <bearer_token>" \
+  "http://localhost:5984/_session"
+```
+
+Where:
+
+- `bearer_token` - A bearer token generated via the `test/jwt` unit test
+- `localhost` - Replace this with the hostname of the server being tested
 
 ## Lambda deployment
 
@@ -101,3 +159,14 @@ Using the example [docker-compose.yml](./docker-compose.yml) you can run storage
 ```shell
 docker compose up
 ```
+
+## Tests
+
+Run tests with `yarn run tests`
+
+Note: The tests in `server.js` require the server to be running locally. The other tests operate fine without the server running.
+
+Common issues when running tests:
+
+1. `Bad key`: The key in CouchDB configuration for `jwt_keys/hmac:_default` is not a valid Base64 encoded key
+2. `HMAC error`: The key in CouchDB configuration for `jwt_keys/hmac:_default` does not match `ACCESS_JWT_SIGN_PK` in `.env`

@@ -6,22 +6,21 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
-    "test": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js' --timeout 30000",
+    "tests": "mocha -mocha --require @babel/polyfill --require @babel/register './test/**/*.js' --timeout 30000",
+    "test": "mocha -mocha --require @babel/polyfill --require @babel/register --timeout 30000",
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn run clean && babel src -d dist --extensions .js",
     "serve": "node dist/server.js",
     "lambda-deploy-dev": "yarn build && yarn claudia create --config claudia.dev.json --region us-east-2 --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.prod.json",
     "lambda-update-dev": "yarn build && yarn claudia update --set-env-from-json .env.prod.json",
-
     "lambda-deploy-testnet-use1": "yarn build && yarn claudia create --config claudia.use1.testnet.json --name 'storage-node-use1-testnet' --region us-east-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.use1.testnet.json",
     "lambda-update-testnet-use1": "yarn build && yarn claudia update --config claudia.use1.testnet.json --set-env-from-json .env.use1.testnet.json",
-
     "lambda-deploy-testnet-sg1": "yarn build && yarn claudia create --config claudia.sg1.testnet.json --name 'storage-node-sg1-testnet' --region ap-southeast-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.sg1.testnet.json",
     "lambda-update-testnet-sg1": "yarn build && yarn claudia update --config claudia.sg1.testnet.json --set-env-from-json .env.sg1.testnet.json",
-
     "lambda-deploy-testnet-au1": "yarn build && yarn claudia create --config claudia.au1.testnet.json --name 'storage-node-au1-testnet' --region ap-southeast-2 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.au1.testnet.json",
     "lambda-update-testnet-au1": "yarn build && yarn claudia update --config claudia.au1.testnet.json --set-env-from-json .env.au1.testnet.json",
-
+    "lambda-deploy-testnet-acacia": "yarn build && yarn claudia create --config claudia.acacia.testnet.json --name 'storage-node-acacia-testnet' --region ap-southeast-2 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.acacia.testnet.json",
+    "lambda-update-testnet-acacia": "yarn build && yarn claudia update --config claudia.acacia.testnet.json --set-env-from-json .env.acacia.testnet.json",
     "lambda-pack": "yarn build && yarn claudia pack --no-optional-dependencies"
   },
   "files": [
@@ -53,7 +52,8 @@
   "homepage": "https://github.com/verida/storage-node/README.md",
   "dependencies": {
     "@babel/runtime": "^7.16.7",
-    "@verida/did-client": "^0.1.2",
+    "@verida/did-client": "^2.0.0-rc2",
+    "@verida/encryption-utils": "^2.0.0-rc1",
     "aws-serverless-express": "^3.4.0",
     "cors": "^2.8.5",
     "did-resolver": "^3.1.0",
@@ -61,9 +61,11 @@
     "ethers": "^4.0.42",
     "express": "^4.17.1",
     "express-basic-auth": "git+https://github.com/Mozzler/express-basic-auth.git",
+    "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "memory-cache": "^0.2.0",
-    "nano": "^8.1.0"
+    "nano": "^8.1.0",
+    "rand-token": "^1.0.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.15.7",
@@ -72,6 +74,9 @@
     "@babel/plugin-transform-runtime": "^7.16.7",
     "@babel/polyfill": "^7.8.0",
     "@babel/preset-env": "^7.7.7",
+    "@verida/account-node": "^2.0.0-rc2",
+    "@verida/client-ts": "^2.0.0-rc1",
+    "axios": "^0.27.2",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.2.3",
     "babel-polyfill": "^6.26.0",
