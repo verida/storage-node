@@ -139,15 +139,6 @@ Where:
 - `bearer_token` - A bearer token generated via the `test/jwt` unit test
 - `localhost` - Replace this with the hostname of the server being tested
 
-## Lambda deployment
-
-We use [Claudia.js](https://claudiajs.com/) to turn our Express app into an Express-on-Lambda app.
-
-Before doing any Lambda deployments you **MUST** translate your `.env` file (or one for production) to JSON as `.env.prod.json`.
-See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/claudia-2.2.0-environment-vars.html).
-
-Verida staff can see the [internal Verida repo]( https://github.com/verida/infrastructure/blob/develop/storage_node.md) for docs on this. 
-
 ## Docker
 
 You can spin up storage node API on your machine with Docker:
