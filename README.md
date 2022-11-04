@@ -151,6 +151,17 @@ Using the example [docker-compose.yml](./docker-compose.yml) you can run storage
 docker compose up
 ```
 
+### Deploying a new Docker Image to Docker Hub
+
+* Login (details in BitWarden)
+```
+docker build .
+docker tag <sha hash> verida/storage-node:<version>
+docker push verida/storage-node:latest
+
+```
+
+
 ## Tests
 
 Run tests with `yarn run tests`
