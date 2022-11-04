@@ -1,13 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import basicAuth from 'express-basic-auth';
+
 import router from './routes/index.js';
 import requestValidator from './middleware/requestValidator.js';
-import userManager from './components/userManager';
-import AuthController from './controllers/auth';
-import UserController from './controllers/user';
-import AuthManager from './components/authManager';
-require('dotenv').config();
+import userManager from './components/userManager.js';
+import UserController from './controllers/user.js';
+import AuthController from './controllers/auth.js';
+import AuthManager from './components/authManager.js';
+
+dotenv.config();
 
 // Set up the express app
 const app = express();
@@ -18,8 +21,8 @@ let corsConfig = {
 
 // Parse incoming requests data
 app.use(cors(corsConfig));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
 // Specify public endpoints
 app.get('/auth/public', UserController.getPublic);
@@ -36,5 +39,4 @@ app.use(router);
 AuthManager.initDb();
 userManager.ensureDefaultDatabases();
 
-
-module.exports=app
+export default app;

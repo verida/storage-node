@@ -1,5 +1,7 @@
-require('dotenv').config();
-const CouchDb = require('nano');
+import dotenv from 'dotenv';
+import CouchDb from 'nano';
+
+dotenv.config();
 
 class Db {
 
@@ -9,7 +11,7 @@ class Db {
             this._couch = new CouchDb({
                 url: dsn,
                 requestDefaults: {
-                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() != "false"
+                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
                 }
             });
         }

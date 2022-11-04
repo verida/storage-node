@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-const jwt = require('jsonwebtoken')
-import Db from "./db"
-import AuthManager from './authManager';
+//import jwt from 'jsonwebtoken';
+import Db from './db.js'
+//import AuthManager from './authManager.js';
 
 class UserManager {
 
@@ -77,7 +77,7 @@ class UserManager {
         try {
             await usersDb.insert(userData);
         } catch (err) {
-            if (err.error == "conflict") {
+            if (err.error === "conflict") {
                 console.log("Public user not created -- already existed");
             } else {
                 throw err;

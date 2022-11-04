@@ -1,5 +1,7 @@
 import { EnvironmentType } from "@verida/account"
-require('dotenv').config();
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export default {
     DID_CLIENT_CONFIG: {

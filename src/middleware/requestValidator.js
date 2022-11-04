@@ -1,4 +1,4 @@
-import AuthManager from "../components/authManager"
+import AuthManager from '../components/authManager.js'
 
 export default async function requestValidator(req, res, next) {
     const authHeader = req.headers.authorization;

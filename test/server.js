@@ -1,12 +1,13 @@
-var assert = require("assert");
-require('dotenv').config();
-const jwt = require('jsonwebtoken');
+import assert from 'assert';
+import dotenv from 'dotenv';
 import Axios from 'axios'
 
 import AuthManager from "../src/components/authManager";
 import TestUtils from "./utils"
 
 import CONFIG from './config'
+
+dotenv.config();
 
 const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 

@@ -1,7 +1,6 @@
-require('dotenv').config();
-import Utils from './utils';
+import Utils from './utils.js';
 import _ from 'lodash';
-import Db from "./db"
+import Db from "./db.js"
 import EncryptionUtils from "@verida/encryption-utils"
 
 class DbManager {
@@ -113,7 +112,6 @@ class DbManager {
     async createDatabase(username, databaseName, applicationName, options) {
         let couch = Db.getCouch();
 
-        let response;
         // Create database
         try {
             await couch.db.create(databaseName);
@@ -247,12 +245,12 @@ class DbManager {
             await this._insertOrUpdate(db, writeDoc, '_design/only_permit_write_users');
         } catch (err) {
             // CouchDB throws a document update conflict without any obvious reason
-            if (err.reason != "Document update conflict.") {
+            if (err.reason !== "Document update conflict.") {
                 throw err;
             }
         }
 
-        if (permissions.write == "public") {
+        if (permissions.write === "public") {
             // If the public has write permissions, disable public from deleting records
             try {
                 const deleteFunction = "\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if ("+deleteUsersJson+".indexOf(userCtx.name) == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}";

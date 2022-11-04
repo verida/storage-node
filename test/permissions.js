@@ -1,13 +1,15 @@
-var assert = require("assert");
-require('dotenv').config();
+import assert from 'assert';
+import dotenv from 'dotenv';
 
-const PouchDb = require('pouchdb');
-import AuthManager from "../src/components/authManager"
-import DbManager from "../src/components/dbManager";
-import UserManager from "../src/components/userManager";
-import Db from "../src/components/db";
-import Utils from "../src/components/utils";
-import TestUtils from "./utils";
+import PouchDb from 'pouchdb';
+import AuthManager from '../src/components/authManager.js';
+import DbManager from '../src/components/dbManager.js';
+import UserManager from '../src/components/userManager.js';
+import Db from '../src/components/db.js';
+import Utils from '../src/components/utils.js';
+import TestUtils from './utils.js';
+
+dotenv.config();
 
 const PRIVATE_KEYS = {
     ownerUser: '0x0003b996ec98a9a536efdffbae40e5eaaf117765a587483c69195c9460165000',

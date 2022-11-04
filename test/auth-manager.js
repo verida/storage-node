@@ -1,11 +1,12 @@
-var assert = require("assert");
-require('dotenv').config();
-const jwt = require('jsonwebtoken');
+import dotenv from 'dotenv';
+import assert from 'assert';
+import jwt from 'jsonwebtoken';
 
-import AuthManager from "../src/components/authManager";
-import TestUtils from "./utils"
+dotenv.config();
 
-import CONFIG from './config'
+import AuthManager from '../src/components/authManager.js';
+import TestUtils from './utils.js'
+import CONFIG from './config.js'
 
 const { CONTEXT_NAME } = CONFIG
 

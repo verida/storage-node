@@ -1,4 +1,3 @@
-
 import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {

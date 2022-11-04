@@ -1,7 +1,7 @@
-import UserManager from '../components/userManager';
-import Utils from "../components/utils";
-import AuthManager from "../components/authManager"
-import Db from "../components/db"
+import UserManager from '../components/userManager.js';
+import Utils from '../components/utils.js';
+import AuthManager from '../components/authManager.js';
+import Db from '../components/db.js';
 
 class AuthController {
 

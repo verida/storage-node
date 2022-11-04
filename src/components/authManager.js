@@ -1,12 +1,14 @@
-require('dotenv').config();
-const randtoken = require('rand-token');
-const jwt = require('jsonwebtoken');
-const mcache = require("memory-cache")
+import dotenv from 'dotenv';
+import randtoken from 'rand-token';
+import jwt from 'jsonwebtoken';
+import mcache from 'memory-cache';
 
 import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
-import Utils from "./utils";
-import Db from "./db";
+import Utils from './utils.js';
+import Db from './db.js';
+
+dotenv.config();
 
 let didClient
 

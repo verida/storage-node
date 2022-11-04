@@ -91,6 +91,9 @@ DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentic
 Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
 
 ```
+[couchdb]
+single_node=true
+
 [chttpd]
 authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
 enable_cors = false
@@ -144,6 +147,18 @@ Before doing any Lambda deployments you **MUST** translate your `.env` file (or 
 See the [Claudia Docs for information](https://claudiajs.com/news/2016/11/24/claudia-2.2.0-environment-vars.html).
 
 Verida staff can see the [internal Verida repo]( https://github.com/verida/infrastructure/blob/develop/storage_node.md) for docs on this. 
+
+## Docker
+
+You can spin up storage node API on your machine with Docker:
+```shell
+docker run --init --env-file=.env verida/storage-node:latest
+```
+
+Using the example [docker-compose.yml](./docker-compose.yml) you can run storage node together with CouchDB. 
+```shell
+docker compose up
+```
 
 ## Tests
 

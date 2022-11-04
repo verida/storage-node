@@ -1,9 +1,9 @@
 import Axios from 'axios'
-const PouchDb = require('pouchdb');
+import PouchDb from 'pouchdb'
 import { AutoAccount } from "@verida/account-node"
 import { Network } from "@verida/client-ts"
 
-import CONFIG from './config'
+import CONFIG from './config.js'
 
 class Utils {
 

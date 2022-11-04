@@ -1,6 +1,6 @@
-import DbManager from '../components/dbManager';
-import Utils from "../components/utils";
-import Db from "../components/db"
+import DbManager from '../components/dbManager.js';
+import Utils from '../components/utils.js';
+import Db from '../components/db.js'
 
 class UserController {
 
