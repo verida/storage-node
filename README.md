@@ -96,7 +96,7 @@ single_node=true
 
 [chttpd]
 authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
-enable_cors = false
+enable_cors = true
 
 [chttpd_auth]
 require_valid_user = true
