@@ -153,12 +153,11 @@ docker compose up
 
 ### Deploying a new Docker Image to Docker Hub
 
+Note that this uses the experimental `buildx` command to build both AMD64 (Intel/AMD servers) and ARM64 (Mac) images.
+
 * Login (details in BitWarden)
 ```
-docker build .
-docker tag <sha hash> verida/storage-node:<version>
-docker push verida/storage-node:latest
-
+docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/latest .
 ```
 
 
