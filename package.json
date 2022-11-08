@@ -52,6 +52,7 @@
   "dependencies": {
     "@babel/runtime": "^7.16.7",
     "@verida/did-client": "^2.0.0-rc3",
+    "@verida/did-document": "^2.0.0-rc3",
     "@verida/encryption-utils": "^2.0.0-rc1",
     "aws-serverless-express": "^3.4.0",
     "cors": "^2.8.5",

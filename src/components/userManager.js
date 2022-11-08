@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-//import jwt from 'jsonwebtoken';
 import Db from './db.js'
-//import AuthManager from './authManager.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 class UserManager {
 
@@ -96,6 +96,16 @@ class UserManager {
         } catch (err) {
             if (err.message == "The database could not be created, the file already exists.") {
                 console.log("Info database not created -- already existed");
+            } else {
+                throw err;
+            }
+        }
+
+        try {
+            await couch.db.create(process.env.DB_DIDS)
+        } catch (err) {
+            if (err.message == "The database could not be created, the file already exists.") {
+                console.log("DID database not created -- already existed");
             } else {
                 throw err;
             }

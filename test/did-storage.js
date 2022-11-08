@@ -1,22 +1,22 @@
-import assert from 'assert';
-import dotenv from 'dotenv';
 import Axios from 'axios'
-import {ethers} from 'ethers'
-
-import AuthManager from "../src/components/authManager";
-import TestUtils from "./utils"
+import assert from 'assert';
+import { ethers } from 'ethers'
+import { DIDDocument } from '@verida/did-document'
 
 import CONFIG from './config'
-const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
+const { SERVER_URL } = CONFIG
 
 const DID_URL = `${SERVER_URL}/did`
 
-
-let authJwt, accountInfo, authRequestId
-let refreshToken, accessToken, newRefreshToken
-
 const wallet = ethers.Wallet.createRandom()
-const DID = `did:vda:${wallet.address}`
+
+//const DID_ADDRESS = wallet.address
+//const DID = `did:vda:testnet:${DID_ADDRESS}`
+//const DID_PK = wallet.signingKey.publicKey
+
+const DID_ADDRESS = '0x56f2c429fC8fdd4911F472a3c451341EAEC989a2'
+const DID = 'did:vda:testnet:0x56f2c429fC8fdd4911F472a3c451341EAEC989a2'
+const DID_PK = '0x04d1c85058d70c637f8ec46df26cbe855829a51f3335731352e2d1587e478b66e350e49bd4650685039c4b4e0adab5bb2a680d5a13dfb176a311544ec503999f4f'
 
 describe("DID Storage Tests", function() {
     /*this.beforeAll(async () => {
@@ -27,12 +27,63 @@ describe("DID Storage Tests", function() {
 
     describe("Create", () => {
         it("Success", async () => {
-            console.log(`${DID_URL}/${DID}`)
+            const doc = new DIDDocument(DID, DID_PK)
+
             const createResult = await Axios.post(`${DID_URL}/${DID}`, {
-                hello: 'world'
+                document: doc.export()
             });
 
-            console.log(createResult.data)
+            assert.equal(createResult.data.status, 'success', 'Success response')
+        })
+
+        it("Fail - Duplicate DID Document", async () => {
+            const doc = new DIDDocument(DID, DID_PK)
+
+            try {
+                await Axios.post(`${DID_URL}/${DID}`, {
+                    document: doc.export()
+                });
+
+                assert.fail('DID Document was created a second time')
+            } catch (err) {
+                assert.equal(err.response.data.status, 'fail', 'DID Document create failed')
+                assert.ok(err.response.data.message.match('DID Document already exists'), 'Rejected because DID Document already exists')
+            }
+        })
+    })
+
+    describe.only("Get", () => {
+        it("Success - Latest", async () => {
+            const getResult = await Axios.get(`${DID_URL}/${DID}`);
+
+            assert.ok(getResult.data.status, 'success', 'Success response')
+
+            // @tgodo: re-build document and compare it matches
+            //console.log(getResult.data)
+        })
+
+        it("Fail - Invalid DID", async () => {
+            try {
+                const getResult = await Axios.get(`${DID_URL}/abc123`);
+
+                assert.fail(`DID Document was found, when it shouldn't have`)
+            } catch (err) {
+                assert.equal(err.response.data.status, 'fail', 'Get DID Document failed')
+                assert.ok(err.response.data.message.match('DID Document not found'), `Rejected because DID Document doesn't exists`)
+            }
+        })
+        
+        // versionId
+        // versionTime
+        // allVersions
+
+        it("Success - All versions", async () => {
+            const getResult = await Axios.get(`${DID_URL}/${DID}?allVersions=true`);
+
+            assert.ok(getResult.data.status, 'success', 'Success response')
+
+            // @tgodo: re-build document and compare it matches
+            console.log(getResult.data)
         })
     })
 
@@ -51,17 +102,6 @@ describe("DID Storage Tests", function() {
         it("Success", async () => {
             console.log(`${DID_URL}/${DID}`)
             const createResult = await Axios.delete(`${DID_URL}/${DID}`, {
-                hello: 'world'
-            });
-
-            console.log(createResult.data)
-        })
-    })
-
-    describe("Get", () => {
-        it("Success", async () => {
-            console.log(`${DID_URL}/${DID}`)
-            const createResult = await Axios.get(`${DID_URL}/${DID}`, {
                 hello: 'world'
             });
 
