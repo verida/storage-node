@@ -157,7 +157,7 @@ Note that this uses the experimental `buildx` command to build both AMD64 (Intel
 
 * Login (details in BitWarden)
 ```
-docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/latest .
+docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .
 ```
 
 
