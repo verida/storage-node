@@ -4,8 +4,6 @@ class Utils {
 
     // @todo
     verifyDocument(did, document, expectedValues = {}) {
-        console.log('verifying doc')
-
         const doc = document.export()
         for (let key in expectedValues) {
             if (doc[key] != expectedValues[key]) {
@@ -44,7 +42,7 @@ class Utils {
         return couch.db.use(process.env.DB_DIDS);
     }
 
-    async getDidDocument(did, allVersions=false) {
+    async getDidDocument(did, allVersions=false, stripCouchMetadata=true) {
         const db = this.getDidDocumentDb()
 
         const query = {
@@ -83,9 +81,12 @@ class Utils {
             if (item.doc) {
                 item = item.doc
             }
+
+            if (stripCouchMetadata) {
+                delete item['_id']
+                delete item['_rev']
+            }
             
-            delete item['_id']
-            delete item['_rev']
             return item
         })
 

@@ -84,7 +84,6 @@ class DidStorage {
         //  OR
         //  there is currently an entry and it references this storage node endpoint
 
-        // Save the DID document
         const didDb = Utils.getDidDocumentDb()
 
         // Create CouchDB database user matching username and password
@@ -106,13 +105,35 @@ class DidStorage {
     }
 
     async delete(req, res) {
-        const did = req.params.did
+        if (!req.params.did) {
+            return Utils.error(res, `No DID specified`)
+        }
 
-        return res.status(200).send({
-            status: "success-delete",
-            data: {
-                "did": did
-            }
+        const did = req.params.did.toLowerCase()
+        const didDocuments = await Utils.getDidDocument(did, true, false)
+
+        if (!didDocuments || didDocuments.length === 0) {
+            return Utils.error(res, `DID Document not found`)
+        }
+
+        const didDb = Utils.getDidDocumentDb()
+        const docs = []
+
+        didDocuments.forEach(doc => {
+            docs.push({
+                _id: doc._id,
+                _rev: doc._rev,
+                _deleted: true
+            })
+        })
+
+        const deleteResponse = await didDb.bulk({
+            docs
+        })
+
+        return Utils.success(res, {
+            did,
+            revisions: docs.length
         });
     }
 
@@ -129,6 +150,8 @@ class DidStorage {
     }
 
     async migrate(req, res) {
+        return Utils.error(res, `Not implemented (yet)`, 404)
+        /*
         const did = req.params.did
 
         return res.status(200).send({
@@ -136,7 +159,7 @@ class DidStorage {
             data: {
                 "did": did
             }
-        });
+        });*/
     }
 
 }
