@@ -44,22 +44,56 @@ class Utils {
         return couch.db.use(process.env.DB_DIDS);
     }
 
-    async getDidDocument(did, all=false) {
+    async getDidDocument(did, allVersions=false) {
         const db = this.getDidDocumentDb()
 
-        /*const res = await db.list({
-            include_docs: true
-        })
-        console.log(res.rows[3])*/
-
-        const options = {}
-        if (all) {
-            options.meta = true
+        const query = {
+            selector: {
+                id: did
+            },
+            fields: ['id', 'versionId'],
+            sort: [
+                {'versionId': 'desc'}
+            ],
+            limit: 1
         }
 
-        console.log(did, options)
+        const result = await db.find(query)
 
-        return db.get(did.toLowerCase(), options)
+        if (result.docs.length === 0) {
+            return
+        }
+
+        const latestDoc = result.docs[0]
+        let resultDocs = [latestDoc]
+
+        if (allVersions) {
+            const latestVersion = latestDoc.versionId
+            const keys = []
+            for (let i = 0; i<=latestVersion; i++) {
+                keys.push(`${did}-${i}`)
+            }
+
+            // Fetch all the versions
+            const allDocs = await db.fetch({ keys })
+            resultDocs = allDocs.rows
+        }
+
+        const docs = resultDocs.map(item => {
+            if (item.doc) {
+                item = item.doc
+            }
+            
+            delete item['_id']
+            delete item['_rev']
+            return item
+        })
+
+        if (!allVersions) {
+            return docs[0]
+        }
+
+        return docs
     }
 
 }

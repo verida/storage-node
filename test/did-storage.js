@@ -4,19 +4,23 @@ import { ethers } from 'ethers'
 import { DIDDocument } from '@verida/did-document'
 
 import CONFIG from './config'
+import { id } from 'ethers/utils';
 const { SERVER_URL } = CONFIG
 
 const DID_URL = `${SERVER_URL}/did`
 
 const wallet = ethers.Wallet.createRandom()
 
-//const DID_ADDRESS = wallet.address
-//const DID = `did:vda:testnet:${DID_ADDRESS}`
-//const DID_PK = wallet.signingKey.publicKey
+const DID_ADDRESS = wallet.address
+const DID = `did:vda:testnet:${DID_ADDRESS}`
+const DID_PK = wallet.signingKey.publicKey
 
-const DID_ADDRESS = '0x56f2c429fC8fdd4911F472a3c451341EAEC989a2'
-const DID = 'did:vda:testnet:0x56f2c429fC8fdd4911F472a3c451341EAEC989a2'
-const DID_PK = '0x04d1c85058d70c637f8ec46df26cbe855829a51f3335731352e2d1587e478b66e350e49bd4650685039c4b4e0adab5bb2a680d5a13dfb176a311544ec503999f4f'
+
+/*
+const DID_ADDRESS = '0xDd07ddBC34cE9794495B2d464073975ec2376930'
+const DID = 'did:vda:testnet:0xDd07ddBC34cE9794495B2d464073975ec2376930'
+const DID_PK = '0x04025e031149315eae2fea4514a4a47ca6b86c84fb89a17ab9cd3d808033ca8475f92cd204a768ea1c41cb3431527673957e4dfbcfc741e5d1f2c97a647da14874'
+*/
 
 describe("DID Storage Tests", function() {
     /*this.beforeAll(async () => {
@@ -24,6 +28,12 @@ describe("DID Storage Tests", function() {
         //await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) -- This is required if the private key has never been initilaized with an application context, run just once
         accountInfo = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
     })*/
+
+    this.beforeAll(async () => {
+        console.log('Executing with:')
+        console.log(`DID: ${DID}`)
+        console.log(`DID_PK: ${DID_PK}`)
+    })
 
     describe("Create", () => {
         it("Success", async () => {
@@ -52,7 +62,53 @@ describe("DID Storage Tests", function() {
         })
     })
 
-    describe.only("Get", () => {
+    describe("Update", () => {
+        it("Fail - Not next versionId", async () => {
+            const doc = new DIDDocument(DID, DID_PK)
+
+            try {
+                await Axios.put(`${DID_URL}/${DID}`, {
+                    document: doc.export()
+                });
+
+                assert.fail('DID Document was updated with invalid versionId')
+            } catch (err) {
+                assert.equal(err.response.data.status, 'fail', 'DID Document create failed')
+                console.log(err.response.data)
+                assert.ok(err.response.data.message.match('Invalid DID Document: Invalid value for versionId'), 'Rejected because incorrect version')
+            }
+        })
+
+        it("Fail - Invalid DID", async () => {
+            try {
+                const doc = new DIDDocument(DID, DID_PK)
+                await Axios.put(`${DID_URL}/abc123`, {
+                    document: doc.export()
+                });
+
+                assert.fail(`DID Document was found, when it shouldn't have`)
+            } catch (err) {
+                assert.equal(err.response.data.status, 'fail', 'Get DID Document failed')
+                console.log(err.response.data)
+                assert.ok(err.response.data.message.match('DID Document not found'), `Rejected because DID Document doesn't exists`)
+            }
+        })
+
+        it("Success", async () => {
+            const basicDoc = new DIDDocument(DID, DID_PK)
+            const document = basicDoc.export()
+            document.versionId = document.versionId + 1
+
+            console.log(`${DID_URL}/${DID}`)
+            const createResult = await Axios.put(`${DID_URL}/${DID}`, {
+                document
+            });
+
+            assert.equal(createResult.data.status, 'success', 'Success response')
+        })
+    })
+
+    describe("Get", () => {
         it("Success - Latest", async () => {
             const getResult = await Axios.get(`${DID_URL}/${DID}`);
 
@@ -82,19 +138,14 @@ describe("DID Storage Tests", function() {
 
             assert.ok(getResult.data.status, 'success', 'Success response')
 
+            console.log(getResult.data.data)
+
+            assert.equal(getResult.data.data.length, 2, 'Two versions returned')
+            assert.equal(getResult.data.data[0].versionId, 0, 'First doc is version 0')
+            assert.equal(getResult.data.data[1].versionId, 1, 'Second doc is version 1')
+
             // @tgodo: re-build document and compare it matches
-            console.log(getResult.data)
-        })
-    })
-
-    describe("Update", () => {
-        it("Success", async () => {
-            console.log(`${DID_URL}/${DID}`)
-            const createResult = await Axios.put(`${DID_URL}/${DID}`, {
-                hello: 'world'
-            });
-
-            console.log(createResult.data)
+            
         })
     })
 

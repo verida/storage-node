@@ -35,7 +35,7 @@ class DidStorage {
 
         // Create CouchDB database user matching username and password
         const documentData = {
-            _id: jsonDoc.id,
+            _id: `${jsonDoc.id}-0`,
             ...jsonDoc
         };
 
@@ -52,14 +52,57 @@ class DidStorage {
     }
     
     async update(req, res) {
-        const did = req.params.did
+        // Verify request parameters
+        if (!req.params.did) {
+            return Utils.error(res, `No DID specified`)
+        }
 
-        return res.status(200).send({
-            status: "success-update",
-            data: {
-                "did": did
+        if (!req.body.document) {
+            return Utils.error(res, `No document specified`)
+        }
+
+        const did = req.params.did.toLowerCase()
+        const didDocument = new DIDDocument(req.body.document)
+        const jsonDoc = didDocument.export()
+
+        let existingDoc
+        try {
+            existingDoc = await Utils.getDidDocument(did)
+            if (!existingDoc) {
+                return Utils.error(res, `DID Document not found`)
             }
-        });
+
+            const nextVersionId = existingDoc.versionId + 1
+            Utils.verifyDocument(did, didDocument, {
+                versionId: nextVersionId
+            })
+        } catch (err) {
+            return Utils.error(res, `Invalid DID Document: ${err.message}`)
+        }
+
+        // @ todo Ensure there is currently no entry for the given DID in the DID Registry
+        //  OR
+        //  there is currently an entry and it references this storage node endpoint
+
+        // Save the DID document
+        const didDb = Utils.getDidDocumentDb()
+
+        // Create CouchDB database user matching username and password
+        const documentData = {
+            _id: `${jsonDoc.id}-${jsonDoc.versionId}`,
+            ...jsonDoc
+        };
+
+        try {
+            await didDb.insert(documentData);
+            return Utils.success(res, {});
+        } catch (err) {
+            /*if (err.error == 'conflict') {
+                return Utils.error(res, `DID Document already exists. Use PUT request to update.`)
+            }*/
+
+            return Utils.error(res, `Unknown error: ${err.message}`)
+        }
     }
 
     async delete(req, res) {
@@ -77,38 +120,12 @@ class DidStorage {
         const did = req.params.did.toLowerCase()
         const allVersions = req.query.allVersions && req.query.allVersions === 'true'
 
-        try {
-            const document = await Utils.getDidDocument(did, allVersions)
-
-            let result
-            if (allVersions) {
-                // strip `_id`, `_rev` and `_revisions` from documents
-                console.log(document)
-                const versions = document.map(item => {
-                    delete item['_id']
-                    delete item['_rev']
-                    delete item['_revisions']
-
-                    return item
-                })
-
-                result = {
-                    versions
-                }
-            } else {
-                delete document['_id']
-                result = document
-            }
-
-            return Utils.success(res, result)
-        } catch (err) {
-            if (err.reason == 'missing') {
-                return Utils.error(res, `DID Document not found.`, 404)
-            }
-
-            console.error(err)
-            return Utils.error(res, `Unknown error: ${err.message}`)
+        const result = await Utils.getDidDocument(did, allVersions)
+        if (!result) {
+            return Utils.error(res, `DID Document not found.`, 404)
         }
+
+        return Utils.success(res, result)
     }
 
     async migrate(req, res) {
