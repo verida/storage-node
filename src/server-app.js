@@ -10,6 +10,7 @@ import didStorageRoutes from './services/didStorage/routes'
 import requestValidator from './middleware/requestValidator.js';
 import userManager from './components/userManager.js';
 import AuthManager from './components/authManager.js';
+import didUtils from './services/didStorage/utils'
 
 dotenv.config();
 
@@ -32,5 +33,6 @@ app.use(privateRoutes);
 
 AuthManager.initDb();
 userManager.ensureDefaultDatabases();
+didUtils.createDb()
 
 export default app;

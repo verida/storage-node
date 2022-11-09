@@ -68,6 +68,7 @@ class DidStorage {
         let existingDoc
         try {
             existingDoc = await Utils.getDidDocument(did)
+            
             if (!existingDoc) {
                 return Utils.error(res, `DID Document not found`)
             }

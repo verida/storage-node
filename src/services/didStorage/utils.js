@@ -1,4 +1,6 @@
 import Db from "../../components/db.js"
+import dotenv from 'dotenv';
+dotenv.config();
 
 class Utils {
 
@@ -11,7 +13,7 @@ class Utils {
 
         for (let key in expectedValues) {
             if (doc[key] != expectedValues[key]) {
-                throw new Error(`Invalid value for ${key}`)
+                throw new Error(`Missing value for ${key} (Expected ${expectedValues[key]})`)
             }
         }
 
@@ -23,13 +25,14 @@ class Utils {
         })
 
         if (typeof(doc.versionId) !== 'number') {
-            console.log(doc.versionId, typeof(doc.versionId))
             throw new Error(`versionId must be a number`)
         }
 
         // ie: 2020-12-20T19:17:47Z
         // @see https://www.w3.org/TR/did-core/#did-document-metadata
         if (!Date.parse(doc.created) || document.buildTimestamp(new Date(Date.parse(doc.created))) != doc.created) {
+            console.log(new Date(Date.parse(doc.created)))
+            console.log(doc.created)
             throw new Error(`created must be a valid timestamp`)
         }
 
@@ -64,9 +67,32 @@ class Utils {
         })
     }
 
+    getDb() {
+        return Db.getCouch()
+    }
+
+    async createDb() {
+        try {
+            const couch = this.getDb()
+            await couch.db.create(process.env.DB_DIDS)
+            const dbDids = couch.db.use(process.env.DB_DIDS)
+            await dbDids.createIndex({
+                index: {
+                    fields: ['id']
+                },
+                name: 'did'
+            })
+        } catch (err) {
+            if (err.message == "The database could not be created, the file already exists.") {
+                console.log("DID database not created -- already existed");
+            } else {
+                throw err;
+            }
+        }
+    }
+
     getDidDocumentDb() {
-        const couch = Db.getCouch()
-        return couch.db.use(process.env.DB_DIDS);
+        return this.getDb().use(process.env.DB_DIDS);
     }
 
     async getDidDocument(did, allVersions=false, stripCouchMetadata=true) {
@@ -76,7 +102,6 @@ class Utils {
             selector: {
                 id: did
             },
-            fields: ['id', 'versionId'],
             sort: [
                 {'versionId': 'desc'}
             ],
