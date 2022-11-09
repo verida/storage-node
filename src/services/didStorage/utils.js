@@ -5,20 +5,47 @@ class Utils {
     // @todo
     verifyDocument(did, document, expectedValues = {}) {
         const doc = document.export()
+        if (doc.id != did) {
+            throw new Error(`DID must match ID in the DID Document`)
+        }
+
         for (let key in expectedValues) {
             if (doc[key] != expectedValues[key]) {
                 throw new Error(`Invalid value for ${key}`)
             }
         }
 
-        //throw new Error(`versionId not set`)
-        /*
-        versionId
-        created
-        updated
-        deactivated
-        proof — A string representing the full DID Document as a JSON encoded string that has been hashed using keccak256 and signed with ed25519, the default Ethereum based signature scheme.
-        */
+        const requiredFields = ['versionId', 'created', 'updated', 'proof']
+        requiredFields.forEach(field => {
+            if (!doc.hasOwnProperty(field)) {
+                throw new Error(`Missing required field (${field})`)
+            }
+        })
+
+        if (typeof(doc.versionId) !== 'number') {
+            console.log(doc.versionId, typeof(doc.versionId))
+            throw new Error(`versionId must be a number`)
+        }
+
+        // ie: 2020-12-20T19:17:47Z
+        // @see https://www.w3.org/TR/did-core/#did-document-metadata
+        if (!Date.parse(doc.created) || document.buildTimestamp(new Date(Date.parse(doc.created))) != doc.created) {
+            throw new Error(`created must be a valid timestamp`)
+        }
+
+        // ie: 2020-12-20T19:17:47Z
+        // @see https://www.w3.org/TR/did-core/#did-document-metadata
+        if (!Date.parse(doc.updated) || document.buildTimestamp(new Date(Date.parse(doc.updated))) != doc.updated) {
+            throw new Error(`created must be a valid timestamp`)
+        }
+
+        if (doc.deactivated && typeof(doc.deactivated) !== 'boolean') {
+            throw new Error(`deactivated must be a valid boolean value`)
+        }
+
+        if (!document.verifyProof()) {
+            throw new Error(`Invalid proof`)
+        }
 
         return true
     }
@@ -86,7 +113,7 @@ class Utils {
                 delete item['_id']
                 delete item['_rev']
             }
-            
+
             return item
         })
 

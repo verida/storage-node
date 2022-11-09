@@ -14,17 +14,19 @@ const wallet = ethers.Wallet.createRandom()
 //const WALLET_TYPE = 'manual'
 const WALLET_TYPE = 'create'
 
-let DID_ADDRESS, DID, DID_PK
+let DID_ADDRESS, DID, DID_PK, DID_PRIVATE_KEY
 
 if (WALLET_TYPE == 'create') {
     DID_ADDRESS = wallet.address
     DID = `did:vda:testnet:${DID_ADDRESS}`
     DID_PK = wallet.signingKey.publicKey
+    DID_PRIVATE_KEY = wallet.privateKey
 }
 else {
     DID_ADDRESS = '0x3529bEae0adE19C53c9Dbcd08B8b20510E455e45'
     DID = 'did:vda:testnet:0x3529bEae0adE19C53c9Dbcd08B8b20510E455e45'
     DID_PK = '0x04648d3bdcdce7c0a47a25a8a19d19748f1e6767b6f5f3f0895ca04192bef84e90657b85a803b0573d9d4b1d8c6fb16ac97e3ccc2d8826dec524da5274a5ea7ef4'
+    DID_PRIVATE_KEY = '0xadc3930bb646015be35da24140d3fafa2c0c8fbfaefb85d25122ddc7384670f9'
 }
 
 describe("DID Storage Tests", function() {
@@ -37,18 +39,25 @@ describe("DID Storage Tests", function() {
     this.beforeAll(async () => {
         console.log('Executing with:')
         console.log(`DID: ${DID}`)
-        console.log(`DID_PK: ${DID_PK}`)
+        console.log(`DID_PUB_KEY: ${DID_PK}`)
+        console.log(`DID_PRIVATE_KEY: ${DID_PRIVATE_KEY}`)
     })
 
     describe("Create", () => {
-        it("Success", async () => {
-            const doc = new DIDDocument(DID, DID_PK)
+        it.only("Success", async () => {
+            try {
+                const doc = new DIDDocument(DID, DID_PK)
+                doc.signProof(wallet.privateKey)
 
-            const createResult = await Axios.post(`${DID_URL}/${DID}`, {
-                document: doc.export()
-            });
+                const createResult = await Axios.post(`${DID_URL}/${DID}`, {
+                    document: doc.export()
+                });
 
-            assert.equal(createResult.data.status, 'success', 'Success response')
+                assert.equal(createResult.data.status, 'success', 'Success response')
+            } catch (err) {
+                console.error(err.response.data)
+                assert.fail(err.response.data.message)
+            }
         })
 
         it("Fail - Duplicate DID Document", async () => {

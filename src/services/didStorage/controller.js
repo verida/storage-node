@@ -74,8 +74,13 @@ class DidStorage {
 
             const nextVersionId = existingDoc.versionId + 1
             Utils.verifyDocument(did, didDocument, {
+                created: existingDoc.created,
                 versionId: nextVersionId
             })
+
+            if (existingDoc.updated > jsonDoc.updated) {
+                return Utils.error(res, `updated must be after the current document`)
+            }
         } catch (err) {
             return Utils.error(res, `Invalid DID Document: ${err.message}`)
         }
