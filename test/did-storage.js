@@ -42,7 +42,7 @@ describe("DID Storage Tests", function() {
         console.log('destroyed!')
     })
 
-    describe.only("Create", () => {
+    describe("Create", () => {
         it("Success", async () => {
             try {
                 const doc = new DIDDocument(DID, DID_PK)
@@ -78,7 +78,7 @@ describe("DID Storage Tests", function() {
         })
     })
 
-    describe.only("Update", () => {
+    describe("Update", () => {
         it("Fail - Not next versionId", async () => {
             const doc = new DIDDocument(DID, DID_PK)
             doc.setAttributes({

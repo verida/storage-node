@@ -78,7 +78,7 @@ class Utils {
             const dbDids = couch.db.use(process.env.DB_DIDS)
             await dbDids.createIndex({
                 index: {
-                    fields: ['id']
+                    fields: ['id', 'versionId']
                 },
                 name: 'did'
             })
