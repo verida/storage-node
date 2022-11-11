@@ -58,7 +58,7 @@
     "cors": "^2.8.5",
     "did-resolver": "^3.1.0",
     "dotenv": "^8.2.0",
-    "ethers": "^4.0.42",
+    "ethers": "^5.7.2",
     "express": "^4.17.1",
     "express-basic-auth": "git+https://github.com/Mozzler/express-basic-auth.git",
     "jsonwebtoken": "^8.5.1",

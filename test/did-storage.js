@@ -14,17 +14,12 @@ const DID_URL = `${SERVER_URL}/did`
 
 const wallet = ethers.Wallet.createRandom()
 
-//const WALLET_TYPE = 'manual'
-const WALLET_TYPE = 'create'
-
 let DID_ADDRESS, DID, DID_PK, DID_PRIVATE_KEY
 
-if (WALLET_TYPE == 'create') {
-    DID_ADDRESS = wallet.address
-    DID = `did:vda:testnet:${DID_ADDRESS}`
-    DID_PK = wallet.signingKey.publicKey
-    DID_PRIVATE_KEY = wallet.privateKey
-}
+DID_ADDRESS = wallet.address
+DID = `did:vda:testnet:${DID_ADDRESS}`
+DID_PK = wallet.publicKey
+DID_PRIVATE_KEY = wallet.privateKey
 
 let masterDidDoc
 
@@ -146,7 +141,8 @@ describe("DID Storage Tests", function() {
         it("Success - Latest", async () => {
             const getResult = await Axios.get(`${DID_URL}/${DID}`);
 
-            assert.ok(getResult.data.status, 'success', 'Success response')
+            assert.ok(getResult.data.status, 'Success response')
+            assert.equal(getResult.data.data.id, DID.toLowerCase(), 'DID mathces')
 
             // @tgodo: re-build document and compare it matches
             //console.log(getResult.data)
