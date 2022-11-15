@@ -13,7 +13,7 @@ class Utils {
 
         for (let key in expectedValues) {
             if (doc[key] != expectedValues[key]) {
-                throw new Error(`Missing value for ${key} (Expected ${expectedValues[key]})`)
+                throw new Error(`Incorrect value for ${key} (Expected ${expectedValues[key]})`)
             }
         }
 
@@ -146,7 +146,9 @@ class Utils {
             return docs[0]
         }
 
-        return docs
+        return {
+            versions: docs
+        }
     }
 
 }
