@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import Utils from '../src/services/didStorage/utils'
+import TestUtils from './utils'
 import CONFIG from './config'
 const { SERVER_URL } = CONFIG
 
@@ -34,7 +35,6 @@ describe("DID Storage Tests", function() {
         const couch = Utils.getDb()
         await couch.db.destroy(process.env.DB_DIDS)
         await Utils.createDb()
-        console.log('destroyed!')
     })
 
     describe("Create", () => {
@@ -173,9 +173,20 @@ describe("DID Storage Tests", function() {
     })
 
     describe("Delete", () => {
+        let signature
+        this.beforeAll(() => {
+            const nowInMinutes = Math.round((new Date()).getTime() / 1000 / 60)
+            const proofString = `Delete DID Document ${DID.toLowerCase()} at ${nowInMinutes}`
+            signature = TestUtils.signString(proofString, wallet.privateKey)
+        })
+
         it("Fail - Invalid DID", async () => {
             try {
-                await Axios.delete(`${DID_URL}/abc123`);
+                await Axios.delete(`${DID_URL}/abc123`, {
+                    headers: {
+                        signature
+                    }
+                });
 
                 assert.fail(`DID Document was found, when it shouldn't have`)
             } catch (err) {
@@ -186,7 +197,9 @@ describe("DID Storage Tests", function() {
 
         it("Success", async () => {
             const deleteResult = await Axios.delete(`${DID_URL}/${DID}`, {
-                hello: 'world'
+                headers: {
+                    signature
+                }
             });
 
             assert.ok(deleteResult.data.status, 'success', 'Success response')
@@ -195,9 +208,13 @@ describe("DID Storage Tests", function() {
 
         it("Fail - Deleted", async () => {
             try {
-                await Axios.delete(`${DID_URL}/${DID}`);
+                await Axios.delete(`${DID_URL}/${DID}`, {
+                    headers: {
+                        signature
+                    }
+                });
 
-                assert.fail(`DID Document was found, when it shouldn't have`)
+                assert.fail(`DID Document was deleted, when it shouldn't have`)
             } catch (err) {
                 assert.equal(err.response.data.status, 'fail', 'Get DID Document failed')
                 assert.ok(err.response.data.message.match('DID Document not found'), `Rejected because DID Document doesn't exists`)

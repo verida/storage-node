@@ -2,6 +2,7 @@ import Axios from 'axios'
 import PouchDb from 'pouchdb'
 import { AutoAccount } from "@verida/account-node"
 import { Network } from "@verida/client-ts"
+import EncryptionUtils from '@verida/encryption-utils'
 
 import CONFIG from './config.js'
 
@@ -64,6 +65,14 @@ class Utils {
         });
         
         return response
+    }
+
+    signString(str, privateKey) {
+        if (privateKey == 'string') {
+            privateKey = new Uint8Array(Buffer.from(privateKey.substr(2),'hex'))
+        }
+        
+        return EncryptionUtils.signData(str, privateKey)
     }
 
 }

@@ -1,4 +1,5 @@
 import { DIDDocument } from "@verida/did-document"
+import { now } from "lodash"
 import Utils from './utils'
 
 class DidStorage {
@@ -26,7 +27,7 @@ class DidStorage {
             return Utils.error(res, `Invalid DID Document: ${err.message}`)
         }
 
-        // @ todo Ensure there is currently no entry for the given DID in the DID Registry
+        // @todo Ensure there is currently no entry for the given DID in the DID Registry
         //  OR
         //  there is currently an entry and it references this storage node endpoint
 
@@ -60,8 +61,6 @@ class DidStorage {
         if (!req.body.document) {
             return Utils.error(res, `No document specified`)
         }
-
-        // @todo: Verify signature
 
         const did = req.params.did.toLowerCase()
         const didDocument = new DIDDocument(req.body.document)
@@ -117,13 +116,33 @@ class DidStorage {
             return Utils.error(res, `No DID specified`)
         }
 
-        // @todo: Verify signature
+        if (!req.headers.signature) {
+            return Utils.error(res, `No signature specified`)
+        }
 
         const did = req.params.did.toLowerCase()
+        const signature = req.headers.signature
         const versionResponse = await Utils.getDidDocument(did, true, false)
+
 
         if (!versionResponse || !versionResponse.versions || versionResponse.versions.length === 0) {
             return Utils.error(res, `DID Document not found`)
+        }
+
+        // Verify signature with the most recent DID document
+        const didDocument = new DIDDocument(versionResponse.versions[0])
+        let validSig = false
+        const nowInMinutes = Math.round((new Date()).getTime() / 1000 / 60)
+        for (let i=-1; i<=1; i++) {
+            const proofString = `Delete DID Document ${did} at ${nowInMinutes+i}`
+            if (didDocument.verifySig(proofString, signature)) {
+                validSig = true
+                break
+            }
+        }
+
+        if (!validSig) {
+            return Utils.error(res, `Invalid signature`)
         }
 
         const didDocuments = versionResponse.versions
