@@ -90,7 +90,7 @@ describe("DID Storage Tests", function() {
                 assert.fail('DID Document was updated with invalid versionId')
             } catch (err) {
                 assert.equal(err.response.data.status, 'fail', 'DID Document create failed')
-                assert.equal(err.response.data.message, 'Invalid DID Document: Missing value for versionId (Expected 1)', 'Rejected because incorrect version')
+                assert.equal(err.response.data.message, 'Invalid DID Document: Incorrect value for versionId (Expected 1)', 'Rejected because incorrect version')
             }
         })
 
@@ -163,9 +163,9 @@ describe("DID Storage Tests", function() {
             const getResult = await Axios.get(`${DID_URL}/${DID}?allVersions=true`);
 
             assert.ok(getResult.data.status, 'success', 'Success response')
-            assert.equal(getResult.data.data.length, 2, 'Two versions returned')
-            assert.equal(getResult.data.data[0].versionId, 0, 'First doc is version 0')
-            assert.equal(getResult.data.data[1].versionId, 1, 'Second doc is version 1')
+            assert.equal(getResult.data.data.versions.length, 2, 'Two versions returned')
+            assert.equal(getResult.data.data.versions[0].versionId, 0, 'First doc is version 0')
+            assert.equal(getResult.data.data.versions[1].versionId, 1, 'Second doc is version 1')
         })
 
         // Get by versionId

@@ -61,6 +61,8 @@ class DidStorage {
             return Utils.error(res, `No document specified`)
         }
 
+        // @todo: Verify signature
+
         const did = req.params.did.toLowerCase()
         const didDocument = new DIDDocument(req.body.document)
         const jsonDoc = didDocument.export()
@@ -115,13 +117,16 @@ class DidStorage {
             return Utils.error(res, `No DID specified`)
         }
 
-        const did = req.params.did.toLowerCase()
-        const didDocuments = await Utils.getDidDocument(did, true, false)
+        // @todo: Verify signature
 
-        if (!didDocuments || didDocuments.length === 0) {
+        const did = req.params.did.toLowerCase()
+        const versionResponse = await Utils.getDidDocument(did, true, false)
+
+        if (!versionResponse || !versionResponse.versions || versionResponse.versions.length === 0) {
             return Utils.error(res, `DID Document not found`)
         }
 
+        const didDocuments = versionResponse.versions
         const didDb = Utils.getDidDocumentDb()
         const docs = []
 
@@ -159,6 +164,8 @@ class DidStorage {
         return Utils.error(res, `Not implemented (yet)`, 404)
         /*
         const did = req.params.did
+
+        // @todo: Verify signature
 
         return res.status(200).send({
             status: "success-migrate",
