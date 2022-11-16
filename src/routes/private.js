@@ -9,5 +9,6 @@ router.post('/user/deleteDatabase', UserController.deleteDatabase);
 router.post('/user/deleteDatabases', UserController.deleteDatabases);
 router.post('/user/databases', UserController.databases);
 router.post('/user/databaseInfo', UserController.databaseInfo);
+router.post('/user/usage', UserController.usage);
 
 export default router;

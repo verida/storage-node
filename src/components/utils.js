@@ -32,6 +32,19 @@ class Utils {
         return dids ? dids.map(did => this.generateUsername(did, contextName)) : []
     }
 
+    signResponse(response, privateKey) {
+        privateKey = new Uint8Array(Buffer.from(privateKey.substring(2),'hex'))
+        return EncryptionUtils.signData(response, privateKey)
+    }
+
+    signedResponse(data, response) {
+        const signature = this.signResponse(data, process.env.VDA_PRIVATE_KEY)
+        return response.status(200).send({
+            ...data,
+            signature
+        });
+    }
+
 }
 
 let utils = new Utils();

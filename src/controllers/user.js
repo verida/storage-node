@@ -5,14 +5,14 @@ import Db from '../components/db.js'
 class UserController {
 
     async getPublic(req, res) {
-        return res.status(200).send({
+        return Utils.signedResponse({
             status: "success",
             user: {
                 username: process.env.DB_PUBLIC_USER,
                 password: process.env.DB_PUBLIC_PASS,
                 dsn: Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
             }
-        });
+        }, res);
     }
 
     // Grant a user access to a user's database
@@ -45,14 +45,14 @@ class UserController {
             if (success) {
                 await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
 
-                return res.status(200).send({
+                return Utils.signedResponse({
                     status: "success"
-                });
+                }, res);
             }
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -85,14 +85,14 @@ class UserController {
             if (success) {
                 await DbManager.deleteUserDatabase(did, contextName, databaseName, databaseHash)
 
-                return res.status(200).send({
+                return Utils.signedResponse({
                     status: "success"
-                });
+                }, res);
             }
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -130,10 +130,10 @@ class UserController {
             }
         };
 
-        return res.status(200).send({
+        return Utils.signedResponse({
             status: "success",
             results
-        });
+        }, res);
     }
 
     // Update permissions on a user's database
@@ -152,20 +152,19 @@ class UserController {
             if (success) {
                 await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
 
-                return res.status(200).send({
+                return Utils.signedResponse({
                     status: "success"
-                });
+                }, res);
             }
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
 
     async databases(req, res) {
-        const databaseName = req.body.databaseName;
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
 
@@ -178,16 +177,17 @@ class UserController {
 
         try {
             const result = await DbManager.getUserDatabases(did, contextName)
+
             if (result) {
-                return res.status(200).send({
+                return Utils.signedResponse({
                     status: "success",
                     result
-                });
+                }, res)
             }
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -215,10 +215,10 @@ class UserController {
             const result = await DbManager.getUserDatabase(did, contextName, databaseName)
 
             if (result) {
-                return res.status(200).send({
+                return Utils.signedResponse({
                     status: "success",
                     result
-                });
+                }, res)
             } else {
                 return res.status(404).send({
                     status: "fail",
@@ -228,7 +228,45 @@ class UserController {
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
+            });
+        }
+    }
+
+    async usage(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        try {
+            const databases = await DbManager.getUserDatabases(did, contextName)
+
+            const result = {
+                databases: 0,
+                bytes: 0
+            }
+
+            for (let d in databases) {
+                const database = databases[d]
+                const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
+                result.databases++
+                result.bytes += dbInfo.info.sizes.file
+            }
+
+            return Utils.signedResponse({
+                status: "success",
+                result
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
             });
         }
     }

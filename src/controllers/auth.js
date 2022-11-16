@@ -10,10 +10,10 @@ class AuthController {
         const contextName = req.body.contextName;
         const authJwt = AuthManager.generateAuthJwt(did, contextName)
 
-        return res.status(200).send({
+        return Utils.signedResponse({
             status: "success",
             authJwt
-        });
+        }, res);
     }
     
     /**
@@ -41,9 +41,7 @@ class AuthController {
         if (!isValid) {
             return res.status(401).send({
                 status: "fail",
-                data: {
-                    "auth": "Invalid credentials or auth token"
-                }
+                message: "Invalid credentials or auth token"
             });
         }
 
@@ -176,10 +174,10 @@ class AuthController {
          const isValid = await AuthManager.verifyRefreshToken(refreshToken, contextName)
 
          if (isValid) {
-            return res.status(200).send({
+            return Utils.signedResponse({
                 status: "success",
                 expires:  isValid.exp
-            })
+            }, res)
         } else {
             return res.status(401).send({
                 status: "fail"
