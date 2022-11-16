@@ -52,7 +52,7 @@ class UserController {
         } catch (err) {
             return res.status(400).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -92,7 +92,7 @@ class UserController {
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -159,13 +159,12 @@ class UserController {
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
 
     async databases(req, res) {
-        const databaseName = req.body.databaseName;
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
 
@@ -188,7 +187,7 @@ class UserController {
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
             });
         }
     }
@@ -229,7 +228,45 @@ class UserController {
         } catch (err) {
             return res.status(500).send({
                 status: "fail",
-                message: err.error + ": " + err.reason
+                message: err.message
+            });
+        }
+    }
+
+    async usage(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+
+        if (!did || !contextName) {
+            return res.status(401).send({
+                status: "fail",
+                message: "Permission denied"
+            });
+        }
+
+        try {
+            const databases = await DbManager.getUserDatabases(did, contextName)
+
+            const result = {
+                databases: 0,
+                bytes: 0
+            }
+
+            for (let d in databases) {
+                const database = databases[d]
+                const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
+                result.databases++
+                result.bytes += dbInfo.info.sizes.file
+            }
+
+            return Utils.signedResponse({
+                status: "success",
+                result
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
             });
         }
     }
