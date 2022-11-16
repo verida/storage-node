@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 import Db from './db.js'
+import Utils from './utils.js'
+import DbManager from './dbManager.js';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -27,8 +30,17 @@ class UserManager {
     }
 
     async create(username, signature) {
+        const maxUsers = parseInt(process.env.MAX_USERS)
+        const currentUsers = await Db.totalUsers()
+
+        if (currentUsers >= maxUsers) {
+            throw new Error('Maximum user limit reached')
+        }
+
         const couch = Db.getCouch()
         const password = crypto.createHash('sha256').update(signature).digest("hex")
+
+        const storageLimit = process.env.DEFAULT_USER_CONTEXT_LIMIT_MB*1048576
 
         // Create CouchDB database user matching username and password
         let userData = {
@@ -36,7 +48,8 @@ class UserManager {
             name: username,
             password: password,
             type: "user",
-            roles: []
+            roles: [],
+            storageLimit
         };
 
         let usersDb = couch.db.use('_users');
@@ -52,8 +65,6 @@ class UserManager {
             return false;
         }
     }
-
-    
 
     /**
      * Ensure we have a public user in the database for accessing public data
@@ -100,6 +111,29 @@ class UserManager {
                 throw err;
             }
         }
+    }
+
+    async getUsage(did, contextName) {
+        const username = Utils.generateUsername(did, contextName);
+        const user = await this.getByUsername(username);
+        const databases = await DbManager.getUserDatabases(did, contextName)
+
+        const result = {
+            databases: 0,
+            bytes: 0,
+            storageLimit: user.storageLimit
+        }
+
+        for (let d in databases) {
+            const database = databases[d]
+            const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
+            result.databases++
+            result.bytes += dbInfo.info.sizes.file
+        }
+
+        const usage = result.bytes / parseInt(result.storageLimit)
+        result.usagePercent = Number(usage.toFixed(4))
+        return result
     }
 
 }
