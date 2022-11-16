@@ -11,7 +11,7 @@ export default {
         },
     },
     ENVIRONMENT: EnvironmentType.TESTNET,
-    SERVER_URL: `https://sn-acacia1.tn.verida.tech`,
+    SERVER_URL: `http://localhost:5000`,
     VDA_PRIVATE_KEY: '0x19d3b996ec98a9a536efdffbae41e5eaaf117765a587483c69195c9460165c34',
     CONTEXT_NAME: 'Verida Storage Node Test: Test Application 1',
     DATABASE_SERVER: 'https://sn-acacia1.tn.verida.tech/',  // http://localhost:5000/ for local testing when running local @verida/storage-node
