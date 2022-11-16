@@ -138,7 +138,7 @@ describe("Server tests", function() {
                 signature
             });
 
-            assert.equal(response.data.status, 'success', 'Successfull device invalidation response from server')
+            assert.equal(response.data.status, 'success', 'Successful device invalidation response from server')
 
             const pendingConnect = new Promise((resolve) => {
                 const request = Axios.post(`${SERVER_URL}/auth/connect`, {
@@ -233,13 +233,30 @@ describe("Server tests", function() {
             });
 
             assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
-
             assert.equal(response.data.status, "success", "Successful database info response")
 
             const result = response.data.result
             assert.equal(result.did.toLowerCase(), accountInfo.did.toLowerCase(), 'Expected DID in response')
             assert.equal(result.contextName, CONTEXT_NAME, 'Expected context name in response')
             assert.ok(result.info, 'Have an info response')
+        })
+
+        it('Gets usage stats for user and context', async () => {
+            const response = await Axios.post(`${SERVER_URL}/user/usage`, {
+                did: accountInfo.did,
+                contextName: CONTEXT_NAME
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
+            assert.equal(response.data.status, "success", "Successful usage response")
+
+            const result = response.data.result
+            assert.equal(result.databases, 2, 'Expected number of databases')
+            assert.ok(result.bytes > 0, 'More than 0 bytes used')
         })
 
         // @todo: updates

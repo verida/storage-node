@@ -41,9 +41,7 @@ class AuthController {
         if (!isValid) {
             return res.status(401).send({
                 status: "fail",
-                data: {
-                    "auth": "Invalid credentials or auth token"
-                }
+                message: "Invalid credentials or auth token"
             });
         }
 
