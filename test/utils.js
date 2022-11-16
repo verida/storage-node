@@ -2,8 +2,17 @@ import Axios from 'axios'
 import PouchDb from 'pouchdb'
 import { AutoAccount } from "@verida/account-node"
 import { Network } from "@verida/client-ts"
+import EncryptionUtils from '@verida/encryption-utils';
+import { ethers } from 'ethers'
 
 import CONFIG from './config.js'
+
+import dotenv from 'dotenv';
+dotenv.config();
+
+const VDA_PRIVATE_KEY = process.env.VDA_PRIVATE_KEY
+const wallet = new ethers.Wallet(VDA_PRIVATE_KEY)
+const VDA_PUBLIC_KEY = wallet.publicKey
 
 class Utils {
 
@@ -64,6 +73,16 @@ class Utils {
         });
         
         return response
+    }
+
+    verifySignature(response) {
+        if (!response.data.signature) {
+            return false
+        }
+
+        const signature = response.data.signature
+        delete response.data['signature']
+        return EncryptionUtils.verifySig(response.data, signature, VDA_PUBLIC_KEY)
     }
 
 }
