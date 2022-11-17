@@ -8,7 +8,7 @@ class Db {
     getCouch() {
         if (!this._couch) {
             const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-            console.log(`Couch connecting to ${this.buildHost()} as user ${process.env.DB_USER}`)
+            console.log(`Storage node connecting to ${this.buildHost()} as user ${process.env.DB_USER}`)
 
             this._couch = new CouchDb({
                 url: dsn,
