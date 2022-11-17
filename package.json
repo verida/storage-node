@@ -9,7 +9,7 @@
     "test": "mocha -mocha --require @babel/polyfill --require @babel/register --timeout 30000",
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn clean && yarn babel src -d dist --extensions .js",
-    "serve": "node dist/server.js",
+    "serve": "node --trace-warnings dist/server.js",
     "lambda-deploy-dev": "yarn build && yarn claudia create --config claudia.dev.json --region us-east-2 --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.prod.json",
     "lambda-update-dev": "yarn build && yarn claudia update --set-env-from-json .env.prod.json",
     "lambda-deploy-testnet-use1": "yarn build && yarn claudia create --config claudia.use1.testnet.json --name 'storage-node-use1-testnet' --region us-east-1 --role arn:aws:iam::737954963756:role/verida_storage-node-executor --handler lambda.handler --deploy-proxy-api --no-optional-dependencies --set-env-from-json .env.use1.testnet.json",
