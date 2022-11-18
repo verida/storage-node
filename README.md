@@ -86,16 +86,14 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 
 [Ensure `{chttpd_auth, jwt_authentication_handler}` is added to the list of the active `chttpd/authentication_handlers`](https://docs.couchdb.org/en/stable/api/server/authn.html?highlight=jwt#jwt-authentication)
 
-DO NOT include ` {chttpd_auth, default_authentication_handler}` in the authentication handlers. This option is a default enable in CouchDB and causes web browsers to display a HTTP Basic Auth popup if authentication fails. This creates an awful UX and is unecessary as the protocol handles authentication issues automatically.
 
-Learn more here: https://stackoverflow.com/questions/32670580/prevent-authentication-popup-401-with-couchdb-pouchdb
 
 ```
 [couchdb]
 single_node=true
 
 [chttpd]
-authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}
+authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}, {chttpd_auth, default_authentication_handler}
 enable_cors = true
 
 [chttpd_auth]

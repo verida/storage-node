@@ -367,13 +367,13 @@ class AuthManager {
 
     async initDb() {
         const couch = Db.getCouch();
-
         try {
             await couch.db.create(process.env.DB_REFRESH_TOKENS)
         } catch (err) {
             if (err.message.match(/already exists/)) {
                 // Database already exists
             } else {
+                console.error(err)
                 throw err
             }
         }
