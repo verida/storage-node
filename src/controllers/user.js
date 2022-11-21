@@ -5,14 +5,22 @@ import Db from '../components/db.js'
 class UserController {
 
     async getPublic(req, res) {
-        return Utils.signedResponse({
-            status: "success",
-            user: {
-                username: process.env.DB_PUBLIC_USER,
-                password: process.env.DB_PUBLIC_PASS,
-                dsn: Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
-            }
-        }, res);
+        try {
+            return Utils.signedResponse({
+                status: "success",
+                user: {
+                    username: process.env.DB_PUBLIC_USER,
+                    password: process.env.DB_PUBLIC_PASS,
+                    dsn: Db.buildDsn(process.env.DB_PUBLIC_USER, process.env.DB_PUBLIC_PASS)
+                }
+            }, res);
+        } catch (err) {
+            console.error(err);
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
+            });
+        }
     }
 
     // Grant a user access to a user's database
