@@ -47,7 +47,6 @@ This server is running on the Verida Testnet and is accessible by any applicatio
 
 A `sample.env` is included. Copy this to `.env` and update the configuration:
 
-- `HASH_KEY`: A unique hash key that is used as entropy when generating an alpha numeric username from a DID. Set this to a unique value when first running the server. DO NOT change this key once the server is up and running as you will end up with a mismatch of usernames. If you run multiple servers in front of a cluster of CouchDB instances, all servers must use the same `HASH_KEY`.
 - `DID_SERVER_URL`: URL of a Verida DID Server endpoint.
 - `DB_PROTOCOL`: Protocol to use when connecting to CouchDB (`http` or `https`).
 - `DB_USER`: Username of CouchDB Admin (has access to create users and databases).
