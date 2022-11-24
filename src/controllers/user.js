@@ -1,4 +1,5 @@
 import DbManager from '../components/dbManager.js';
+import UserManager from '../components/userManager.js';
 import Utils from '../components/utils.js';
 import Db from '../components/db.js'
 
@@ -42,6 +43,14 @@ class UserController {
             return res.status(401).send({
                 status: "fail",
                 message: "Permission denied"
+            });
+        }
+
+        const userUsage = await UserManager.getUsage(did, contextName)
+        if (userUsage.usagePercent >= 100) {
+            return res.status(400).send({
+                status: "fail",
+                message: 'Storage limit reached'
             });
         }
 
@@ -156,6 +165,14 @@ class UserController {
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
         try {
+            const userUsage = await UserManager.getUsage(did, contextName)
+            if (userUsage.usagePercent >= 100) {
+                return res.status(400).send({
+                    status: "fail",
+                    message: 'Storage limit reached'
+                });
+            }
+
             let success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
             if (success) {
                 await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
@@ -253,19 +270,7 @@ class UserController {
         }
 
         try {
-            const databases = await DbManager.getUserDatabases(did, contextName)
-
-            const result = {
-                databases: 0,
-                bytes: 0
-            }
-
-            for (let d in databases) {
-                const database = databases[d]
-                const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
-                result.databases++
-                result.bytes += dbInfo.info.sizes.file
-            }
+            const result = await UserManager.getUsage(did, contextName)
 
             return Utils.signedResponse({
                 status: "success",

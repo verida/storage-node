@@ -51,13 +51,20 @@ class AuthController {
 
         // Create the user if they don't exist
         if (!user) {
-            const response = await UserManager.create(username, signature);
-            if (!response || !response.id) {
+            try {
+                const response = await UserManager.create(username, signature);
+                if (!response || !response.id) {
+                    return res.status(500).send({
+                        status: "fail",
+                        data: {
+                            "auth": "User does not exist and unable to create"
+                        }
+                    })
+                }
+            } catch (err) {
                 return res.status(500).send({
-                    status: "fail",
-                    data: {
-                        "auth": "User does not exist and unable to create"
-                    }
+                    status: 'fail',
+                    message: err.message
                 })
             }
         }
@@ -84,6 +91,15 @@ class AuthController {
     async connect(req, res) {
         const refreshToken = req.body.refreshToken;
         const contextName = req.body.contextName;
+        const did = req.body.did
+
+        const userUsage = await UserManager.getUsage(did, contextName)
+        if (userUsage.usagePercent >= 100) {
+            return res.status(400).send({
+                status: "fail",
+                message: 'Storage limit reached'
+            });
+        }
 
         const accessToken = await AuthManager.generateAccessToken(refreshToken, contextName);
 
@@ -92,7 +108,6 @@ class AuthController {
                 status: "success",
                 accessToken,
                 host: Db.buildHost()    // required to know the CouchDB host
-                // username: removed, don't think it is needed
             });
         }
         else {

@@ -257,6 +257,8 @@ describe("Server tests", function() {
             const result = response.data.result
             assert.equal(result.databases, 2, 'Expected number of databases')
             assert.ok(result.bytes > 0, 'More than 0 bytes used')
+            assert.ok(result.usagePercent > 0, 'More than 0 percentage usage')
+            assert.equal(result.storageLimit, process.env.DEFAULT_USER_CONTEXT_LIMIT_MB*1048576, 'Storage limit is 100Mb')
         })
 
         // @todo: updates
@@ -312,7 +314,15 @@ describe("Server tests", function() {
             assert.ok(response.data.results.indexOf('DeleteAll_3') >= 0, 'Deleted correct databases (DeleteAll_3)')           
             assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response') 
         })
+    })
 
+    describe("Server info", () => {
+        it("Status", async () => {
+            const response = await Axios.get(`${SERVER_URL}/status`);
 
+            assert.equal(response.data.results.maxUsers, process.env.MAX_USERS, 'Correct maximum number of users')
+            assert.ok(response.data.results.currentUsers > 2, 'At least two users')
+            assert.ok(response.data.results.version && response.data.results.version.length, 'Version specified')
+        })
     })
 })

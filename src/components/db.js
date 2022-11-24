@@ -31,6 +31,14 @@ class Db {
         return env.DB_PROTOCOL + "://" + env.DB_HOST + ":" + env.DB_PORT;
     }
 
+    // Total number of users in the system
+    async totalUsers() {
+        const couch = db.getCouch()
+        const usersDb = couch.db.use('_users')
+        const info = await usersDb.info()
+        return info.doc_count
+    }
+
 }
 
 const db = new Db()
