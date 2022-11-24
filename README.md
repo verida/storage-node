@@ -65,7 +65,6 @@ A `sample.env` is included. Copy this to `.env` and update the configuration:
 
 * On a powershell execute the following ( replica of `.env` )
 ```bash
-$env:HASH_KEY="this_is_not_prod_hash_key"
 $env:DID_SERVER_URL="https://dids.testnet.verida.io:5001"
 $env:DID_CACHE_DURATION=3600
 $env:DB_PROTOCOL="http"
@@ -141,11 +140,6 @@ Where:
 You can spin up storage node API on your machine with Docker:
 ```shell
 docker run --init --env-file=.env verida/storage-node:latest
-```
-
-Using the example [docker-compose.yml](./docker-compose.yml) you can run storage node together with CouchDB. 
-```shell
-docker compose up
 ```
 
 ### Deploying a new Docker Image to Docker Hub
