@@ -29,7 +29,7 @@ class Utils {
     }
 
     didsToUsernames(dids, contextName) {
-        return dids ? dids.map(did => this.generateUsername(did, contextName)) : []
+        return dids ? dids.map(did => this.generateUsername(did.toLowerCase(), contextName)) : []
     }
 
     signResponse(response, privateKey) {
