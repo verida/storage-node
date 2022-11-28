@@ -80,6 +80,7 @@ class DbManager {
                 did,
                 contextName,
                 databaseName,
+                permissions: doc.permissions,
                 info
             }
 
