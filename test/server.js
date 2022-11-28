@@ -15,6 +15,9 @@ const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 let authJwt, accountInfo, authRequestId
 let refreshToken, accessToken, newRefreshToken
 
+// NOTE: These tests fail if the CONFIG.PRIVATE_KEY hasn't been already setup with a valid Verida DID Document
+// Run `yarn run test test/vda-did` to generate a new private key with a valid DID in `verida-js/vda-did`
+
 describe("Server tests", function() {
     this.beforeAll(async () => {
         //await AuthManager.initDb() -- This is required if the server is running locally and has never been run before, run just once
