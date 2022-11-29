@@ -11,7 +11,7 @@ RUN corepack disable && corepack enable
 
 RUN apt-get update \
     && apt-get -qq install -y --no-install-recommends \
-    git ca-certificates \
+    git ca-certificates dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # new stage
@@ -30,4 +30,4 @@ RUN yarn build
 ### prod stage
 # Note: use --init option when running the container to have better signal forwarding
 FROM source as prod
-CMD ["docker_entry.sh"]
+CMD ["node", "--trace-warnings", "./dist/server.js"]
