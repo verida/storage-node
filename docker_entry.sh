@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # When running under docker-compose we want to make sure CouchDB has started
-#echo 'Delaying start 5 seconds'
-#sleep 5
+echo 'Delaying start 5 seconds'
+sleep 5
 # Now we want to make sure the DNS is resolving for the hostname
 counter=0
 
 
 # try this 30 times
-# 30 * 5 seconds is 5 minutes max tiome to wait
+# 30 * 5 seconds is 5 minutes max time to wait
 
 while true; do
   if [[ "$counter" -gt 30 ]]; then
