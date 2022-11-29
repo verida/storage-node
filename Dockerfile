@@ -30,4 +30,4 @@ RUN yarn build
 ### prod stage
 # Note: use --init option when running the container to have better signal forwarding
 FROM source as prod
-CMD ["node", "--trace-warnings", "./dist/server.js"]
+CMD ["docker_entry.sh"]
