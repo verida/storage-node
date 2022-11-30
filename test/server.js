@@ -192,7 +192,6 @@ describe("Server tests", function() {
                 }
             });
 
-            assert.ok(TestUtils.verifySignature(createResponse), 'Have a valid signature in create response')
 
             const response = await Axios.post(`${SERVER_URL}/user/databases`, {
                 databaseName,
@@ -206,7 +205,6 @@ describe("Server tests", function() {
 
             assert.equal(response.data.status, "success", "Successful databases response")
             assert.ok(response.data.result.length > 1, 'At least two database returned')
-            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in databases response')
             
             let found1 = false
             let found2 = false
@@ -222,6 +220,9 @@ describe("Server tests", function() {
 
             assert.ok(found1, `Database 1 ${databaseName} found`)
             assert.ok(found2, `Database 2 ${databaseName2} found`)
+
+            assert.ok(TestUtils.verifySignature(createResponse), 'Have a valid signature in create response')
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in databases response')
         })
 
         it("Gets database info for a user", async () => {
@@ -235,13 +236,13 @@ describe("Server tests", function() {
                 }
             });
 
-            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
             assert.equal(response.data.status, "success", "Successful database info response")
 
             const result = response.data.result
             assert.equal(result.did.toLowerCase(), accountInfo.did.toLowerCase(), 'Expected DID in response')
             assert.equal(result.contextName, CONTEXT_NAME, 'Expected context name in response')
             assert.ok(result.info, 'Have an info response')
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
         })
 
         it('Gets usage stats for user and context', async () => {
@@ -253,8 +254,6 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
-
-            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
             assert.equal(response.data.status, "success", "Successful usage response")
 
             const result = response.data.result
@@ -262,6 +261,7 @@ describe("Server tests", function() {
             assert.ok(result.bytes > 0, 'More than 0 bytes used')
             assert.ok(result.usagePercent > 0, 'More than 0 percentage usage')
             assert.equal(result.storageLimit, process.env.DEFAULT_USER_CONTEXT_LIMIT_MB*1048576, 'Storage limit is 100Mb')
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
         })
 
         // @todo: updates
@@ -277,8 +277,6 @@ describe("Server tests", function() {
                 }
             });
 
-            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
-
             assert.equal(response.data.status, "success", "Successful delete response")
 
             const response2 = await Axios.post(`${SERVER_URL}/user/deleteDatabase`, {
@@ -290,6 +288,8 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
+
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
         })
 
         it("Deletes all database", async () => {
