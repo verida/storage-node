@@ -68,7 +68,7 @@ class Utils {
     }
 
     getDb() {
-        return Db.getCouch()
+        return Db.getCouch('internal')
     }
 
     async createDb() {

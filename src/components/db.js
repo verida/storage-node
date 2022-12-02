@@ -5,10 +5,9 @@ dotenv.config();
 
 class Db {
 
-    getCouch() {
+    getCouch(type='external') {
         if (!this._couch) {
-            const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS);
-            console.log(`Storage node connecting to ${this.buildHost()} as user ${process.env.DB_USER}`)
+            const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, type);
 
             this._couch = new CouchDb({
                 url: dsn,
@@ -21,14 +20,16 @@ class Db {
         return this._couch;
     }
 
-    buildDsn(username, password) {
+    buildDsn(username, password, type='external') {
         let env = process.env;
-        return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + env.DB_HOST + ":" + env.DB_PORT;
+        const HOST = type == 'internal' ? env.DB_HOST_INTERNAL : env.DB_HOST_EXTERNAL
+        return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + HOST + ":" + env.DB_PORT;
     }
 
+    // Build external hostname that users will connect to
     buildHost() {
         let env = process.env;
-        return env.DB_PROTOCOL + "://" + env.DB_HOST + ":" + env.DB_PORT;
+        return env.DB_PROTOCOL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT;
     }
 
     // Total number of users in the system

@@ -73,7 +73,7 @@ class UserManager {
         let username = process.env.DB_PUBLIC_USER;
         let password = process.env.DB_PUBLIC_PASS;
 
-        let couch = Db.getCouch();
+        let couch = Db.getCouch('internal');
 
         // Create CouchDB database user matching username and password and save keyring
         let userData = {

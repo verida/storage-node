@@ -366,7 +366,7 @@ class AuthManager {
     }
 
     async initDb() {
-        const couch = Db.getCouch();
+        const couch = Db.getCouch('internal');
         try {
             await couch.db.create(process.env.DB_REFRESH_TOKENS)
         } catch (err) {
