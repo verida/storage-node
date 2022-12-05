@@ -31,7 +31,7 @@ class Db {
     // Build external hostname that users will connect to
     buildHost() {
         let env = process.env;
-        return env.DB_PROTOCOL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT_EXTERNAL;
+        return env.DB_PROTOCOL_EXTERNAL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT_EXTERNAL;
     }
 
     // Total number of users in the system
