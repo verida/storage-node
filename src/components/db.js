@@ -23,13 +23,15 @@ class Db {
     buildDsn(username, password, type='external') {
         let env = process.env;
         const HOST = type == 'internal' ? env.DB_HOST_INTERNAL : env.DB_HOST_EXTERNAL
-        return env.DB_PROTOCOL + "://" + username + ":" + password + "@" + HOST + ":" + env.DB_PORT;
+        const PORT = type == 'internal' ? env.DB_PORT_INTERNAL : env.DB_PORT_EXTERNAL
+        const PROTOCOL = type == 'internal' ? env.DB_PROTOCOL_INTERNAL : env.DB_PROTOCOL_EXTERNAL
+        return PROTOCOL + "://" + username + ":" + password + "@" + HOST + ":" + PORT;
     }
 
     // Build external hostname that users will connect to
     buildHost() {
         let env = process.env;
-        return env.DB_PROTOCOL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT;
+        return env.DB_PROTOCOL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT_EXTERNAL;
     }
 
     // Total number of users in the system

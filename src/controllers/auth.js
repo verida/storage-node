@@ -77,7 +77,7 @@ class AuthController {
             status: "success",
             refreshToken,
             accessToken,
-            host: process.env.NODE_URI
+            host: Db.buildHost()
         });
     }
 
