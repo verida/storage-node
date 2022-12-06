@@ -81,7 +81,7 @@ class AuthManager {
 
     async verifySignedConsentMessage(did, contextName, signature, consentMessage) {
         // Verify the signature signed the correct string
-        const cacheKey = `${did}/${contextName}`
+        const cacheKey = did
 
         try {
             let didDocument = mcache.get(cacheKey)
