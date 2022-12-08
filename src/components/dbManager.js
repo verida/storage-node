@@ -112,7 +112,7 @@ class DbManager {
         }
     }
 
-    async createDatabase(username, databaseName, applicationName, options) {
+    async createDatabase(username, databaseName, contextName, options) {
         let couch = Db.getCouch();
 
         // Create database
@@ -130,7 +130,7 @@ class DbManager {
         let db = couch.db.use(databaseName);
 
         try {
-            await this.configurePermissions(db, username, applicationName, options.permissions);
+            await this.configurePermissions(db, username, contextName, options.permissions);
         } catch (err) {
             //console.log("configure error");
             //console.log(err);
@@ -139,7 +139,7 @@ class DbManager {
         return true;
     }
 
-    async updateDatabase(username, databaseName, applicationName, options) {
+    async updateDatabase(username, databaseName, contextName, options) {
         const couch = Db.getCouch();
         const db = couch.db.use(databaseName);
 
@@ -152,7 +152,7 @@ class DbManager {
         }
 
         try {
-            await this.configurePermissions(db, username, applicationName, options.permissions);
+            await this.configurePermissions(db, username, contextName, options.permissions);
         } catch (err) {
             //console.log("update database error");
             //console.log(err);
@@ -183,7 +183,7 @@ class DbManager {
         }
     }
 
-    async configurePermissions(db, username, applicationName, permissions) {
+    async configurePermissions(db, username, contextName, permissions) {
         permissions = permissions ? permissions : {};
 
         let owner = username;
@@ -197,8 +197,8 @@ class DbManager {
 
         switch (permissions.write) {
             case "users":
-                writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, applicationName));
-                deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, applicationName));
+                writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, contextName));
+                deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, contextName));
                 break;
             case "public":
                 writeUsers = writeUsers.concat([process.env.DB_PUBLIC_USER]);
@@ -207,7 +207,7 @@ class DbManager {
 
         switch (permissions.read) {
             case "users":
-                readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, applicationName));
+                readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, contextName));
                 break;
             case "public":
                 readUsers = readUsers.concat([process.env.DB_PUBLIC_USER]);
@@ -215,6 +215,8 @@ class DbManager {
         }
 
         const dbMembers = _.union(readUsers, writeUsers);
+        const contextHash = Utils.generateHash(contextName)
+        const replicaterRole = `${contextHash}-replicater`
 
         let securityDoc = {
             admins: {
@@ -224,7 +226,7 @@ class DbManager {
             members: {
                 // this grants read access to all members
                 names: dbMembers,
-                roles: []
+                roles: [replicaterRole]
             }
         };
 
@@ -240,7 +242,7 @@ class DbManager {
         let deleteUsersJson = JSON.stringify(deleteUsers);
 
         try {
-            const writeFunction = "\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (" + writeUsersJson + ".indexOf(userCtx.name) == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}";
+            const writeFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${writeUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}`;
             const writeDoc = {
                 "validate_doc_update": writeFunction
             };
@@ -256,7 +258,7 @@ class DbManager {
         if (permissions.write === "public") {
             // If the public has write permissions, disable public from deleting records
             try {
-                const deleteFunction = "\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if ("+deleteUsersJson+".indexOf(userCtx.name) == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}";
+                const deleteFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${deleteUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}`;
                 const deleteDoc = {
                     "validate_doc_update": deleteFunction
                 };
