@@ -2,6 +2,10 @@ import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {
 
+    generateHash(value) {
+        return EncryptionUtils.hash(value).substring(2);
+    }
+
     generateUsername(did, contextName) {
         did = did.toLowerCase()
         const text = [
