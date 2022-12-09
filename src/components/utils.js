@@ -6,6 +6,10 @@ class Utils {
         return EncryptionUtils.hash(value).substring(2);
     }
 
+    generateReplicaterUsername(endpointUri) {
+        return `r${this.generateHash(endpointUri)}`
+    }
+
     generateDidContextHash(did, contextName) {
         let text = [
             did.toLowerCase(),
@@ -56,6 +60,20 @@ class Utils {
             ...data,
             signature
         });
+    }
+
+    async error(res, message, httpStatus=400) {
+        return res.status(httpStatus).send({
+            status: "fail",
+            message
+        })
+    }
+
+    async success(res, data) {
+        return res.status(200).send({
+            status: "success",
+            data
+        })
     }
 
 }

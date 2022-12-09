@@ -2,6 +2,8 @@ import UserManager from '../components/userManager.js';
 import Utils from '../components/utils.js';
 import AuthManager from '../components/authManager.js';
 import Db from '../components/db.js';
+import Axios from 'axios'
+import EncryptionUtils from '@verida/encryption-utils';
 
 class AuthController {
 
@@ -200,8 +202,75 @@ class AuthController {
         }
     }
 
+    // If password is not an empty string, it will update the password to match
+    // If no user exists, must specify a password
     async replicationCreds(req, res) {
+        const {
+            endpointUri,
+            //did,
+            //contextName,
+            timestampMinutes,
+            password,
+            signature
+        } = req.body
+        
+        // Verify params
+        if (!endpointUri) {
+            return Utils.error(res, 'Endpoint not specified')
+        }
 
+        if (!timestampMinutes) {
+            return Utils.error(res, 'Timestamp not specified')
+        }
+
+        if (!signature) {
+            return Utils.error(res, 'Signature not specified')
+        }
+
+        // Lookup DID document and confirm endpointUri is a valid endpoint
+        const didDocument = await AuthManager.getDidDocument(did)
+        const endpoints = didDocument.locateServiceEndpoint(contextName, 'database')
+        console.log(endpoints)
+        if (endpoints.indexOf(endpointUri) === -1) {
+            return Utils.error(res, 'Invalid endpoint 1')
+        }
+        
+        // Pull endpoint public key from /status and verify the signature
+        let endpointPublicKey
+        try {
+            const result = await Axios.get(`${endpointUri}/status`)
+            console.log(result.data)
+            endpointPublicKey = result.data.publicKey
+            const params = {
+                endpointUri,
+                timestampMinutes,
+                password
+            }
+
+            if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
+                return Utils.error(res, 'Invalid signature')
+            }
+        } catch (err) {
+            console.log(err)
+            return Utils.error(res, 'Invalid endpoint 2')
+        }
+
+        let decryptedPassword
+        if (password !== '') {
+            try {
+                const sharedKey = EncryptionUtils.sharedKey(endpointPublicKey, process.env.VDA_PRIVATE_KEY)
+                decryptedPassword = EncryptionUtils.asymDecrypt(password, sharedKey)
+            } catch (err) {
+                console.log(err)
+                return Utils.error(res, 'Invalid password encryption')
+            }
+        }
+
+        try {
+            await AuthManager.ensureReplicationCredentials(endpointUri, decryptedPassword)
+        } catch (err) {
+            return Utils.error(res, err.message)
+        }
     }
 
 }

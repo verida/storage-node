@@ -7,6 +7,7 @@ import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
+import dbManager from './dbManager.js';
 
 dotenv.config();
 
@@ -81,6 +82,27 @@ class AuthManager {
 
     async verifySignedConsentMessage(did, contextName, signature, consentMessage) {
         // Verify the signature signed the correct string
+        try {
+            const didDocument = await this.getDidDocument(did)
+            const result = didDocument.verifySig(consentMessage, signature)
+
+            if (!result) {
+                console.info('Invalid signature when verifying signed consent message')
+                // Invalid signature
+                return false
+            }
+
+            return true
+        } catch (err) {
+            // @todo: Log error
+            // Likely unable to resolve DID or invalid signature
+            console.info(`Unable to resolve DID or invalid signature: ${err.message}`)
+            return false
+        }
+    }
+
+    async getDidDocument(did) {
+        // Verify the signature signed the correct string
         const cacheKey = did
 
         try {
@@ -106,19 +128,11 @@ class AuthManager {
                 }
             }
 
-            const result = didDocument.verifySig(consentMessage, signature)
-
-            if (!result) {
-                console.info('Invalid signature when verifying signed consent message')
-                // Invalid signature
-                return false
-            }
-
-            return true
+            return didDocument
         } catch (err) {
             // @todo: Log error
             // Likely unable to resolve DID or invalid signature
-            console.info(`Unable to resolve DID or invalid signature: ${err.message}`)
+            console.info(`Unable to resolve DID`)
             return false
         }
     }
@@ -395,6 +409,36 @@ class AuthManager {
 
         await tokenDb.createIndex(deviceIndex);
         await tokenDb.createIndex(expiryIndex);
+    }
+
+    async ensureReplicationCredentials(endpointUri, password) {
+        const username = Utils.generateReplicaterUsername(endpointUri)
+
+        const couch = Db.getCouch('internal');
+        const usersDb = await couch.db.users('_users')
+        let user
+        try {
+            const id = `org.couchdb.user:${username}`
+            user = await usersDb.get(id)
+        } catch (err) {
+            console.log(err)
+            throw err
+        }
+
+        if (!user && !password) {
+            throw new Error(`Unable to create user: User doesn't exist and no password specified`)
+        }
+
+        if (user && password) {
+            // Update the password
+            user.password = password
+            try {
+                await dbManager._insertOrUpdate(usersDb, user, user.id)
+            } catch (err) {
+                console.log(err)
+                throw new Error(`Unable to update password: ${err.message}`)
+            }
+        }
     }
 
     // @todo: garbage collection
