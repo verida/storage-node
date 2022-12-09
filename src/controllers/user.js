@@ -16,7 +16,6 @@ class UserController {
                 }
             }, res);
         } catch (err) {
-            console.error(err);
             return res.status(500).send({
                 status: "fail",
                 message: err.message
@@ -58,9 +57,9 @@ class UserController {
 
         let success;
         try {
-            success = await DbManager.createDatabase(username, databaseHash, contextName, options);
+            success = await DbManager.createDatabase(did, username, databaseHash, contextName, options);
             if (success) {
-                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+                await DbManager.saveUserDatabase(did, username, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
                     status: "success"
@@ -173,9 +172,9 @@ class UserController {
                 });
             }
 
-            let success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
+            let success = await DbManager.updateDatabase(did, username, databaseHash, contextName, options);
             if (success) {
-                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+                await DbManager.saveUserDatabase(did, username, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
                     status: "success"
@@ -282,6 +281,9 @@ class UserController {
                 message: err.message
             });
         }
+    }
+
+    async checkReplication(req, res) {
     }
 
 }

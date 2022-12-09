@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/auth/public', UserController.getPublic);
 router.get('/status', SystemController.status);
 
+router.get('/auth/replicationCreds', AuthController.replicationCreds);
 router.post('/auth/generateAuthJwt', AuthController.generateAuthJwt);
 router.post('/auth/authenticate', AuthController.authenticate);
 router.post('/auth/connect', AuthController.connect);

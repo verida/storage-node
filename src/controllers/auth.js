@@ -200,6 +200,10 @@ class AuthController {
         }
     }
 
+    async replicationCreds(req, res) {
+
+    }
+
 }
 
 const authController = new AuthController();

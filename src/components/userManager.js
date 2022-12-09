@@ -94,23 +94,6 @@ class UserManager {
                 throw err;
             }
         }
-
-        try {
-            await couch.db.create(process.env.DB_DB_INFO)
-            const dbInfo = couch.db.use(process.env.DB_DB_INFO)
-            await dbInfo.createIndex({
-                index: {
-                    fields: ['did', 'contextName']
-                },
-                name: 'didContext'
-            })
-        } catch (err) {
-            if (err.message == "The database could not be created, the file already exists.") {
-                console.log("Info database not created -- already existed");
-            } else {
-                throw err;
-            }
-        }
     }
 
     async getUsage(did, contextName) {

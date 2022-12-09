@@ -6,6 +6,15 @@ class Utils {
         return EncryptionUtils.hash(value).substring(2);
     }
 
+    generateDidContextHash(did, contextName) {
+        let text = [
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+
+        return this.generateHash(text)
+    }
+
     generateUsername(did, contextName) {
         did = did.toLowerCase()
         const text = [

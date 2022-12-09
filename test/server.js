@@ -279,7 +279,24 @@ describe("Server tests", function() {
 
             assert.equal(response.data.status, "success", "Successful delete response")
 
-            const response2 = await Axios.post(`${SERVER_URL}/user/deleteDatabase`, {
+            // confirm the database doesn't exist
+            try {
+                const response2 = await Axios.post(`${SERVER_URL}/user/databaseInfo`, {
+                    databaseName,
+                    did: accountInfo.did,
+                    contextName: CONTEXT_NAME
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                });
+
+                assert.fail('Expected a 404 because the database shouldnt be found')
+            } catch (err) {
+                assert.equal(err.response.data.message, 'Database not found', 'Database not found')
+            }
+
+            const response3 = await Axios.post(`${SERVER_URL}/user/deleteDatabase`, {
                 databaseName: databaseName2,
                 did: accountInfo.did,
                 contextName: CONTEXT_NAME
@@ -288,6 +305,7 @@ describe("Server tests", function() {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
+            assert.equal(response3.data.status, 'success', 'Successful delete response')
 
             assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
         })

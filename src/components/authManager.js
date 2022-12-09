@@ -109,7 +109,7 @@ class AuthManager {
             const result = didDocument.verifySig(consentMessage, signature)
 
             if (!result) {
-                console.warning('Invalid signature when verifying signed consent message')
+                console.info('Invalid signature when verifying signed consent message')
                 // Invalid signature
                 return false
             }
@@ -118,7 +118,7 @@ class AuthManager {
         } catch (err) {
             // @todo: Log error
             // Likely unable to resolve DID or invalid signature
-            console.warning(`Unable to resolve DID or invalid signature: ${err.message}`)
+            console.info(`Unable to resolve DID or invalid signature: ${err.message}`)
             return false
         }
     }
