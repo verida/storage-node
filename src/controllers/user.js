@@ -284,6 +284,23 @@ class UserController {
     }
 
     async checkReplication(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName
+
+        try {
+            const result = await UserManager.checkReplication(did, contextName, databaseName)
+
+            return Utils.signedResponse({
+                status: "success",
+                result
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
+            });
+        }
     }
 
 }

@@ -8,6 +8,7 @@ import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
 import dbManager from './dbManager.js';
+import { ethers } from 'ethers'
 
 dotenv.config();
 
@@ -412,7 +413,9 @@ class AuthManager {
     }
 
     async ensureReplicationCredentials(endpointUri, password) {
+        console.log(`ensureReplicationCredentials(${endpointUri}, ${password})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
+        console.log(`- username: ${username}`)
 
         const couch = Db.getCouch('internal');
         const usersDb = await couch.db.users('_users')
@@ -432,12 +435,71 @@ class AuthManager {
         if (user && password) {
             // Update the password
             user.password = password
+            console.log(`- user: ${user}`)
             try {
                 await dbManager._insertOrUpdate(usersDb, user, user.id)
             } catch (err) {
                 console.log(err)
                 throw new Error(`Unable to update password: ${err.message}`)
             }
+        }
+    }
+
+    async fetchReplicaterCredentials(endpointUri, did, contextName) {
+        console.log(`fetchReplicaterCredentials(${endpointUri}, ${did}, ${contextName})`)
+        // Check process.env.DB_REPLICATER_CREDS for existing credentials
+        const couch = Db.getCouch('internal');
+        const replicaterCredsDb = await couch.db.users(process.env.DB_REPLICATER_CREDS)
+        const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
+        console.log(`- replicaterHash: ${replicaterHash}`)
+
+        let creds = replicaterCredsDb.get(replicaterHash)
+        
+        if (!creds) {
+            const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
+
+            // Generate a HD wallet to create a new private key to be used
+            // to generate a deterministic password for the endpoint
+            const wallet = new ethers.Wallet(process.env.VDA_PRIVATE_KEY)
+            const hdWallet = ethers.utils.HDNode.fromMnemonic(wallet.mnemonic)
+            const secondaryWallet = hdWallet.derivePath("1")
+            const password = EncryptionUtils.symEncrypt(replicaterHash, Buffer.from(secondaryWallet.privateKey, 'hex'))
+
+            const requestBody = {
+                endpointUri,
+                timestampMinutes,
+                password
+            }
+
+            const signature = ''
+            requestBody.signature = signature
+
+            console.log(`- requestBody: ${requestBody}`)
+
+            // Fetch credentials from the endpointUri
+            const result = Axios.get(`${endpointUri}'/auth/replicationCreds`, requestBody)
+            console.log(`- result: ${result.data}`)
+
+            // Save them
+            creds = {
+                _id: replicaterHash,
+                username: Utils.generateReplicaterUsername(endpointUri),
+                password
+            }
+
+            console.log(`- creds: ${creds}`)
+
+            try {
+                await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
+            } catch (err) {
+                console.log(err)
+                throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
+            }
+        }
+
+        return {
+            username: creds.username,
+            password: creds.password
         }
     }
 

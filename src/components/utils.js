@@ -45,6 +45,19 @@ class Utils {
         return "v" + hash
     }
 
+    generateReplicatorHash(endpointUri, did, contextName) {
+        let text = [
+            endpointUri,
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+        
+        const hash = EncryptionUtils.hash(text).substring(2);
+
+        // Database name must start with a letter
+        return "e" + hash
+    }
+
     didsToUsernames(dids, contextName) {
         return dids ? dids.map(did => this.generateUsername(did.toLowerCase(), contextName)) : []
     }

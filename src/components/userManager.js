@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Db from './db.js'
 import Utils from './utils.js'
 import DbManager from './dbManager.js';
+import AuthManager from './authManager';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -117,6 +118,76 @@ class UserManager {
         const usage = result.bytes / parseInt(result.storageLimit)
         result.usagePercent = Number(usage.toFixed(4))
         return result
+    }
+
+    async checkReplication(did, contextName, databaseName) {
+        console.log(`checkReplication(${did}, ${contextName}, ${databaseName})`)
+        // Lookup DID document and get list of endpoints for this context
+        const didDocument = await AuthManager.getDidDocument(did)
+        const endpoints = didDocument.locateServiceEndpoint(contextName, 'database')
+
+        console.log(`- endpoints: ${endpoints}`)
+
+        let databases = []
+        if (databaseName) {
+            // Only check a single database
+            databases.push(databaseName)
+        } else {
+            // Fetch all databases for this context
+            let userDatabases = await DbManager.getUserDatabases(did, contextName)
+            databases = userDatabases.map(item => item.databaseName)
+        }
+
+        console.log('- databases', databases)
+
+        // Ensure there is a replication entry for each
+        const couch = Db.getCouch('internal')
+        const replicationDb = couch.db.use('_replicator')
+
+        for (let d in databases) {
+            const dbName = databases[d]
+
+            for (let e in endpoints) {
+                const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+                const record = await replicationDb.get(replicatorId)
+
+                if (!record) {
+                    console.log(`- no record: ${endpointUri}`)
+                    // No record, so create it
+                    // Check if we have credentials
+                    // No credentials? Ask for them from the endpoint
+                    const { endpointUsername, endpointPassword } = AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+
+                    const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
+                    const replicationRecord = {
+                        _id: `${replicatorId}-${dbhash}`,
+                        source: `host: ${Db.buildHost()}/${dbHash}`,
+                        target: {
+                            url: `${endpointUri}/${dbHash}`,
+                            auth: {
+                                basic: {
+                                    username: endpointUsername,
+                                    password: endpointPassword
+                                }
+                            }
+                        },
+                        create_target: true,
+                        continous: true
+                    }
+
+                    console.log('- replicationRecord')
+                    console.log(replicationRecord)
+
+                    try {
+                        await dbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord.id)
+                    } catch (err) {
+                        console.log(err)
+                        throw new Error(`Unable to update password: ${err.message}`)
+                    }
+                }
+            }
+        }
+        
     }
 
 }
