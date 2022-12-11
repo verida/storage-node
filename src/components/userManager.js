@@ -187,6 +187,8 @@ class UserManager {
                 }
             }
         }
+
+        // @todo: Remove any replication entries for deleted databases
         
     }
 
