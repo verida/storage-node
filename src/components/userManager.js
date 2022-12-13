@@ -126,7 +126,8 @@ class UserManager {
         const didDocument = await AuthManager.getDidDocument(did)
         const endpoints = didDocument.locateServiceEndpoint(contextName, 'database')
 
-        console.log(`- endpoints: ${endpoints}`)
+        console.log(`- endpoints:`)
+        console.log(endpoints)
 
         let databases = []
         if (databaseName) {
@@ -148,6 +149,7 @@ class UserManager {
             const dbName = databases[d]
 
             for (let e in endpoints) {
+                const endpointUri = endpoints[e]
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 const record = await replicationDb.get(replicatorId)
 
