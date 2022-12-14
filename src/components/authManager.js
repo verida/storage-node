@@ -8,7 +8,7 @@ import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
 import dbManager from './dbManager.js';
-import { ethers } from 'ethers'
+import Axios from 'axios'
 
 dotenv.config();
 
@@ -396,6 +396,17 @@ class AuthManager {
             }
         }
 
+        try {
+            await couch.db.create(process.env.DB_REPLICATER_CREDS)
+        } catch (err) {
+            if (err.message.match(/already exists/)) {
+                // Database already exists
+            } else {
+                console.error(err)
+                throw err
+            }
+        }
+
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
@@ -415,82 +426,112 @@ class AuthManager {
     async ensureReplicationCredentials(endpointUri, password) {
         console.log(`ensureReplicationCredentials(${endpointUri}, ${password})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
+        const id = `org.couchdb.user:${username}`
         console.log(`- username: ${username}`)
 
         const couch = Db.getCouch('internal');
-        const usersDb = await couch.db.users('_users')
+        const usersDb = await couch.db.use('_users')
         let user
         try {
-            const id = `org.couchdb.user:${username}`
             user = await usersDb.get(id)
-        } catch (err) {
-            console.log(err)
-            throw err
-        }
 
-        if (!user && !password) {
-            throw new Error(`Unable to create user: User doesn't exist and no password specified`)
-        }
+            // User exists, check if we need to update the password
+            if (!password) {
+                console.log(`User exists, NOT updating password`)
+                // No password, so no need to update and just confirm the user exists
+                return "exists"
+            }
 
-        if (user && password) {
-            // Update the password
+            // User exists and we need to update the password
+            console.log(`User exists, updating password`)
             user.password = password
-            console.log(`- user: ${user}`)
             try {
-                await dbManager._insertOrUpdate(usersDb, user, user.id)
+                await dbManager._insertOrUpdate(usersDb, user, user._id)
+                return "updated"
             } catch (err) {
                 console.log(err)
                 throw new Error(`Unable to update password: ${err.message}`)
+            }
+        } catch (err) {
+            if (err.error !== 'not_found') {
+                throw err
+            }
+
+            // Need to create the user
+            try {
+                console.log('replication user didnt exist, so creating')
+                console.log(id)
+                await dbManager._insertOrUpdate(usersDb, {
+                    _id: id,
+                    name: username,
+                    password,
+                    type: "user",
+                    roles: []
+                }, id)
+
+                return "created"
+            } catch (err) {
+                console.log(err)
+                throw new Error(`Unable to create replication user: ${err.message}`)
             }
         }
     }
 
     async fetchReplicaterCredentials(endpointUri, did, contextName) {
-        console.log(`fetchReplicaterCredentials(${endpointUri}, ${did}, ${contextName})`)
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
-        const replicaterCredsDb = await couch.db.users(process.env.DB_REPLICATER_CREDS)
+        const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
         const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
-        console.log(`- replicaterHash: ${replicaterHash}`)
-
-        let creds = replicaterCredsDb.get(replicaterHash)
         
+        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+
+        let creds
+        try {
+            creds = await replicaterCredsDb.get(replicaterHash)
+            console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+        } catch (err) {
+            // If credentials aren't found, that's okay we will create them below
+            if (err.error != 'not_found') {
+                console.log('rethrowing')
+                throw err
+            }
+        }
+
         if (!creds) {
+            console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
             const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
 
-            // Generate a HD wallet to create a new private key to be used
-            // to generate a deterministic password for the endpoint
-            const wallet = new ethers.Wallet(process.env.VDA_PRIVATE_KEY)
-            const hdWallet = ethers.utils.HDNode.fromMnemonic(wallet.mnemonic)
-            const secondaryWallet = hdWallet.derivePath("1")
-            const password = EncryptionUtils.symEncrypt(replicaterHash, Buffer.from(secondaryWallet.privateKey, 'hex'))
+            // Generate a random password
+            const secretKeyBytes = EncryptionUtils.randomKey(32)
+            const password = Buffer.from(secretKeyBytes).toString('hex')
 
             const requestBody = {
+                did,
+                contextName,
                 endpointUri,
                 timestampMinutes,
                 password
             }
 
-            const signature = ''
+            const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
+            const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
             requestBody.signature = signature
 
-            console.log(`- requestBody: ${requestBody}`)
-
             // Fetch credentials from the endpointUri
-            const result = Axios.get(`${endpointUri}'/auth/replicationCreds`, requestBody)
-            console.log(`- result: ${result.data}`)
+            console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
+            const result = await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
+            console.log(`${Utils.serverUri()}: Credentials returned for ${endpointUri}`)
+            console.log(result.data)
 
-            // Save them
             creds = {
                 _id: replicaterHash,
                 username: Utils.generateReplicaterUsername(endpointUri),
                 password
             }
 
-            console.log(`- creds: ${creds}`)
-
             try {
                 await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
+                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
             } catch (err) {
                 console.log(err)
                 throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)

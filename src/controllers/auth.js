@@ -202,13 +202,27 @@ class AuthController {
         }
     }
 
-    // If password is not an empty string, it will update the password to match
-    // If no user exists, must specify a password
+    /**
+     * Ensure replication credentials exist on the server
+     * 
+     * If the password is an empty string, will just determine if the user exists or not
+     * If the password is not an empty string, it will update the password to match
+     * If no user exists, must specify a password
+     * 
+     * Return status is either:
+     * 1. `created` (user created)
+     * 2. `updated` (password updated)
+     * 3. `exists` (user existed, but password unchanged)
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async replicationCreds(req, res) {
         const {
             endpointUri,
-            //did,
-            //contextName,
+            did,
+            contextName,
             timestampMinutes,
             password,
             signature
@@ -223,51 +237,61 @@ class AuthController {
             return Utils.error(res, 'Timestamp not specified')
         }
 
+        // @todo: verify timestampMinutes is within range
+
+        if (!did) {
+            return Utils.error(res, 'DID not specified')
+        }
+
+        if (!contextName) {
+            return Utils.error(res, 'Context not specified')
+        }
+
         if (!signature) {
             return Utils.error(res, 'Signature not specified')
         }
 
         // Lookup DID document and confirm endpointUri is a valid endpoint
         const didDocument = await AuthManager.getDidDocument(did)
-        const endpoints = didDocument.locateServiceEndpoint(contextName, 'database')
-        console.log(endpoints)
+        const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+        const endpoints = endpointService.serviceEndpoint
         if (endpoints.indexOf(endpointUri) === -1) {
-            return Utils.error(res, 'Invalid endpoint 1')
+            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+        }
+
+        // Confirm this endpoint is linked to the DID and context
+        const thisEndpointUri = Utils.serverUri()
+        if (endpoints.indexOf(thisEndpointUri)) {
+            return Utils.error(res, `Invalid DID and context: Not associated with this endpoint`)
         }
         
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
         try {
-            const result = await Axios.get(`${endpointUri}/status`)
-            console.log(result.data)
-            endpointPublicKey = result.data.publicKey
+            const response = await Axios.get(`${endpointUri}/status`)
+            console.log(response.data)
+
+            endpointPublicKey = response.data.results.publicKey
             const params = {
+                did,
+                contextName,
                 endpointUri,
                 timestampMinutes,
                 password
             }
 
             if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
-                return Utils.error(res, 'Invalid signature')
+                return Utils.error(res, 'Invalid signature', 401)
             }
         } catch (err) {
-            console.log(err)
-            return Utils.error(res, 'Invalid endpoint 2')
-        }
-
-        let decryptedPassword
-        if (password !== '') {
-            try {
-                const sharedKey = EncryptionUtils.sharedKey(endpointPublicKey, process.env.VDA_PRIVATE_KEY)
-                decryptedPassword = EncryptionUtils.asymDecrypt(password, sharedKey)
-            } catch (err) {
-                console.log(err)
-                return Utils.error(res, 'Invalid password encryption')
-            }
+            return Utils.error(res, `Unknown error: ${err.message}`)
         }
 
         try {
-            await AuthManager.ensureReplicationCredentials(endpointUri, decryptedPassword)
+            const result = await AuthManager.ensureReplicationCredentials(endpointUri, password)
+            return Utils.signedResponse({
+                result
+            }, res)
         } catch (err) {
             return Utils.error(res, err.message)
         }

@@ -89,6 +89,10 @@ class Utils {
         })
     }
 
+    serverUri() {
+        return process.env.ENDPOINT_URI
+    }
+
 }
 
 let utils = new Utils();

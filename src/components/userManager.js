@@ -120,30 +120,63 @@ class UserManager {
         return result
     }
 
+    /**
+     * Confirm replication is correctly configured for a given DID and application context.
+     * 
+     * If a storage node is being added or removed to the application context, it must be the
+     * last node to have checkReplication called. This ensures the node has a list of all the
+     * active databases and can ensure it is replicating correctly to the other nodes.
+     * 
+     * The client SDK should call checkReplication() when opening a context to ensure the replication is working as expected.
+     * 
+     * @param {*} did 
+     * @param {*} contextName 
+     * @param {*} databaseName (optional) If not specified, checks all databases
+     */
     async checkReplication(did, contextName, databaseName) {
-        console.log(`checkReplication(${did}, ${contextName}, ${databaseName})`)
+        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         const didDocument = await AuthManager.getDidDocument(did)
-        const endpoints = didDocument.locateServiceEndpoint(contextName, 'database')
+        const didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let endpoints = didService.serviceEndpoint
+
+        // Confirm this endpoint is in the list of endpoints
+        const endpointIndex = allEndpoints.indexOf(Utils.serverUri())
+        if (endpointIndex === -1) {
+            throw new Error('Server not a valid endpoint for this DID and context')
+        }
+
+        // Remove this endpoint from the list of endpoints to check
+        endpoints.splice(endpointIndex, 1)
 
         console.log(`- endpoints:`)
         console.log(endpoints)
 
         let databases = []
         if (databaseName) {
+            console.log(`${Utils.serverUri()}: Only checking ${databaseName})`)
             // Only check a single database
             databases.push(databaseName)
         } else {
             // Fetch all databases for this context
             let userDatabases = await DbManager.getUserDatabases(did, contextName)
             databases = userDatabases.map(item => item.databaseName)
+            console.log(`${Utils.serverUri()}: Cecking ${databases.length}) databases`)
         }
 
-        console.log('- databases', databases)
+        //console.log('- databases', databases)
 
         // Ensure there is a replication entry for each
         const couch = Db.getCouch('internal')
-        const replicationDb = couch.db.use('_replicator')
+        let replicationDb
+        try {
+            replicationDb = couch.db.use('_replicator')
+            console.log('got db')
+        } catch (err) {
+            console.log('!')
+            console.log(err)
+            throw err
+        }
 
         for (let d in databases) {
             const dbName = databases[d]
@@ -151,47 +184,55 @@ class UserManager {
             for (let e in endpoints) {
                 const endpointUri = endpoints[e]
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-                const record = await replicationDb.get(replicatorId)
+                const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
+                let record
+                try {
+                    record = await replicationDb.get(`${replicatorId}-${dbHash}`)
+                    console.log(`${Utils.serverUri()}: Located replication record for ${endpointUri} (${replicatorId})`)
+                } catch (err) {
+                    if (err.message == 'missing' || err.reason == 'deleted') {
+                        console.log(`${Utils.serverUri()}: Located replication record for ${endpointUri}... creating.`)
+                        // No record, so create it
+                        // Check if we have credentials
+                        // No credentials? Ask for them from the endpoint
+                        const { endpointUsername, endpointPassword } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${endpointUsername}, ${endpointPassword})`)
 
-                if (!record) {
-                    console.log(`- no record: ${endpointUri}`)
-                    // No record, so create it
-                    // Check if we have credentials
-                    // No credentials? Ask for them from the endpoint
-                    const { endpointUsername, endpointPassword } = AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-
-                    const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
-                    const replicationRecord = {
-                        _id: `${replicatorId}-${dbhash}`,
-                        source: `host: ${Db.buildHost()}/${dbHash}`,
-                        target: {
-                            url: `${endpointUri}/${dbHash}`,
-                            auth: {
-                                basic: {
-                                    username: endpointUsername,
-                                    password: endpointPassword
+                        const replicationRecord = {
+                            _id: `${replicatorId}-${dbHash}`,
+                            source: `${Db.buildHost()}/${dbHash}`,
+                            target: {
+                                url: `${endpointUri}/${dbHash}`,
+                                auth: {
+                                    basic: {
+                                        username: endpointUsername,
+                                        password: endpointPassword
+                                    }
                                 }
-                            }
-                        },
-                        create_target: true,
-                        continous: true
+                            },
+                            create_target: true,
+                            continous: true
+                        }
+
+                        try {
+                            await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                            console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                        } catch (err) {
+                            console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId})`)
+                            console.log(err)
+                            throw new Error(`Unable to create replication entry: ${err.message}`)
+                        }
                     }
-
-                    console.log('- replicationRecord')
-                    console.log(replicationRecord)
-
-                    try {
-                        await dbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord.id)
-                    } catch (err) {
+                    else {
+                        console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId})`)
                         console.log(err)
-                        throw new Error(`Unable to update password: ${err.message}`)
+                        throw err
                     }
                 }
             }
         }
 
         // @todo: Remove any replication entries for deleted databases
-        
     }
 
 }

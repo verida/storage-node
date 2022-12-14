@@ -28,7 +28,7 @@ class Db {
         return PROTOCOL + "://" + username + ":" + password + "@" + HOST + ":" + PORT;
     }
 
-    // Build external hostname that users will connect to
+    // Build external hostname that users will connect to the storage node
     buildHost() {
         let env = process.env;
         return env.DB_PROTOCOL_EXTERNAL + "://" + env.DB_HOST_EXTERNAL + ":" + env.DB_PORT_EXTERNAL;

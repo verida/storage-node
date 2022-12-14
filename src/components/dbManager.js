@@ -1,7 +1,6 @@
 import Utils from './utils.js';
 import _ from 'lodash';
 import Db from "./db.js"
-import EncryptionUtils from "@verida/encryption-utils"
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -324,9 +323,9 @@ class DbManager {
         if (doc._rev) {
             newDoc._rev = doc._rev;
             newDoc._id = id;
-            return db.insert(newDoc);
+            return await db.insert(newDoc);
         } else {
-            return db.insert(newDoc, id);
+            return await db.insert(newDoc, id);
         }
     }
 
