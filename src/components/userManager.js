@@ -110,9 +110,20 @@ class UserManager {
 
         for (let d in databases) {
             const database = databases[d]
-            const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
-            result.databases++
-            result.bytes += dbInfo.info.sizes.file
+            try {
+                const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
+                result.databases++
+                result.bytes += dbInfo.info.sizes.file
+            } catch (err) {
+                if (err.error == 'not_found') {
+                    console.log('not found', database.databaseName)
+                    // Database doesn't exist, so remove from the list of databases
+                    await DbManager.deleteUserDatabase(did, contextName, database.databaseName)
+                    continue
+                }
+                
+                throw err
+            }
         }
 
         const usage = result.bytes / parseInt(result.storageLimit)

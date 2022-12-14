@@ -45,15 +45,23 @@ class UserController {
             });
         }
 
-        const userUsage = await UserManager.getUsage(did, contextName)
-        if (userUsage.usagePercent >= 100) {
-            return res.status(400).send({
+        try {
+            const userUsage = await UserManager.getUsage(did, contextName)
+            if (userUsage.usagePercent >= 100) {
+                return res.status(400).send({
+                    status: "fail",
+                    message: 'Storage limit reached'
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
                 status: "fail",
-                message: 'Storage limit reached'
-            });
+                message: err.message
+            })
         }
 
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
+        console.log(`creating ${databaseHash}`)
 
         let success;
         try {

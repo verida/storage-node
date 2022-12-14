@@ -438,7 +438,7 @@ class AuthManager {
         console.log(`ensureReplicationCredentials(${endpointUri}, ${password})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
-        console.log(`- username: ${username}`)
+        console.log(`- username: ${username} for ${endpointUri}`)
 
         const couch = Db.getCouch('internal');
         const usersDb = await couch.db.use('_users')
@@ -447,7 +447,7 @@ class AuthManager {
             user = await usersDb.get(id)
 
             let userRequiresUpdate = false
-            if (!user.roles.indexOf(replicaterRole)) {
+            if (user.roles.indexOf(replicaterRole) == -1) {
                 console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
                 user.roles.push(replicaterRole)
                 userRequiresUpdate = true
