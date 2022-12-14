@@ -5,130 +5,190 @@ import { DIDDocument } from '@verida/did-document'
 import { DIDClient } from '@verida/did-client';
 import { AutoAccount } from "@verida/account-node"
 import { Keyring } from '@verida/keyring';
+import ComponentUtils from '../src/components/utils'
+import CouchDb from 'nano'
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-import Utils from '../src/services/didStorage/utils'
-import TestUtils from './utils'
+import Utils from './utils'
 import CONFIG from './config'
 
 const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
 // @todo: use three endpoints
 const ENDPOINT_DSN = {
-    'http://192.168.1.117:5000': 'http://admin:admin@192.168.1.117:5984',
-    'http://192.168.1.118:5000': 'http://admin:admin@192.168.1.117:5984'
+    'http://192.168.68.117:5000': 'http://admin:admin@192.168.68.117:5984',
+    'http://192.168.68.118:5000': 'http://admin:admin@192.168.68.118:5984',
 }
-const ENDPOINTS = Object.keys(ENDPOINT_AUTH)
+const ENDPOINTS = Object.keys(ENDPOINT_DSN)
+const ENDPOINTS_DID = ENDPOINTS.map(item => `${item}/did/`)
+const ENDPOINTS_COUCH = {}
+ENDPOINTS.forEach(key => {
+    ENDPOINTS_COUCH[key] = key.replace('5000', '5984')
+})
 const TEST_DATABASES = ['db1', 'db2', 'db3']
 const TEST_DEVICE_ID = 'Device 1'
 
 const didClient = new DIDClient(CONFIG.DID_CLIENT_CONFIG)
 
 describe("Replication tests", function() {
-
-    this.beforeAll(async () => {
-        // Create a new VDA private key
-        const wallet = ethers.Wallet.createRandom()
-        const DID_ADDRESS = wallet.address
-        const DID = `did:vda:testnet:${DID_ADDRESS}`
-        const DID_PUBLIC_KEY = wallet.publicKey
-        const DID_PRIVATE_KEY = wallet.privateKey
-        const keyring = new Keyring(wallet.mnemonic.phrase)
-        await didClient.authenticate(DID_PRIVATE_KEY, 'web3', CONFIG.DID_CLIENT_CONFIG.web3Config, ENDPOINTS)
-
-        console.log(DID_ADDRESS, DID, DID_PRIVATE_KEY, DID_PUBLIC_KEY, wallet.mnemonic.phrase)
-
-        // Create a new VDA account using our test endpoints
-        const account = new AutoAccount({
-            defaultDatabaseServer: {
-                type: 'VeridaDatabase',
-                endpointUri: ENDPOINTS
-            },
-            defaultMessageServer: {
-                type: 'VeridaMessage',
-                endpointUri: ENDPOINTS
-            },
-        }, {
-            privateKey: wallet.privateKey,
-            didClientConfig: CONFIG.DID_CLIENT_CONFIG,
-            environment: CONFIG.ENVIRONMENT
-        })
-
-        // Create new DID document (using DIDClient) for the private key with two testing endpoints (local)
-        const doc = new DIDDocument(DID, DID_PUBLIC_KEY)
-        await doc.addContext(CONTEXT_NAME, keyring, DID_PRIVATE_KEY, {
-            database: {
-                type: 'VeridaDatabase',
-                endpointUri: ENDPOINTS
-            },
-            messaging: {
-                type: 'VeridaMessage',
-                endpointUri: ENDPOINTS
-            },
-        })
-        const endpointResponses = await didClient.save(doc)
-        console.log(endpointResponses)
-        console.log(doc.export())
-
-        // Fetch an auth token for each server
-        const AUTH_TOKENS = {}
-        const CONNECTIONS = {}
-        for (let i in ENDPOINTS) {
-            const endpoint = ENDPOINTS[i]
-            const authJwtResult = await Axios.post(`${SERVER_URL}/auth/generateAuthJwt`, {
-                did: DID,
-                contextName: CONTEXT_NAME
-            });
-    
-            authRequestId = authJwtResult.data.authJwt.authRequestId
-            authJwt = authJwtResult.data.authJwt.authJwt
-            const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${DID.toLowerCase()}\n${authRequestId}`
-            const signature = await accountInfo.account.sign(consentMessage)
-
-            const authenticateResponse = await Axios.post(`${endpoint}/auth/authenticate`, {
-                authJwt,
-                did: DID,
-                contextName: CONTEXT_NAME,
-                signature,
-                deviceId: TEST_DEVICE_ID
-            })
-            AUTH_TOKENS[endpoint] = authenticateResponse.data.accessToken
-        }
-
-        console.log(AUTH_TOKENS)
-    })
+    let DID, DID_ADDRESS, DID_PUBLIC_KEY, DID_PRIVATE_KEY, keyring, wallet, account, AUTH_TOKENS
 
     describe("Create test databases", async () => {
+        this.timeout(200 * 1000)
+
+        this.beforeAll(async () => {
+            // Create a new VDA private key
+            //wallet = ethers.Wallet.createRandom()
+            wallet = ethers.Wallet.fromMnemonic('pave online install gift glimpse purpose truth loan arm wing west option')
+            DID_ADDRESS = wallet.address
+            DID = `did:vda:testnet:${DID_ADDRESS}`
+            DID_PUBLIC_KEY = wallet.publicKey
+            DID_PRIVATE_KEY = wallet.privateKey
+            keyring = new Keyring(wallet.mnemonic.phrase)
+            await didClient.authenticate(DID_PRIVATE_KEY, 'web3', CONFIG.DID_CLIENT_CONFIG.web3Config, ENDPOINTS_DID)
+    
+            console.log(DID_ADDRESS, DID, DID_PRIVATE_KEY, DID_PUBLIC_KEY, wallet.mnemonic.phrase)
+    
+            // Create a new VDA account using our test endpoints
+            account = new AutoAccount({
+                defaultDatabaseServer: {
+                    type: 'VeridaDatabase',
+                    endpointUri: ENDPOINTS
+                },
+                defaultMessageServer: {
+                    type: 'VeridaMessage',
+                    endpointUri: ENDPOINTS
+                },
+            }, {
+                privateKey: wallet.privateKey,
+                didClientConfig: CONFIG.DID_CLIENT_CONFIG,
+                environment: CONFIG.ENVIRONMENT
+            })
+    
+            // Create new DID document (using DIDClient) for the private key with two testing endpoints (local)
+            let doc = await didClient.get(DID)
+            if (!doc) {
+                doc = new DIDDocument(DID, DID_PUBLIC_KEY)
+            }
+            await doc.addContext(CONTEXT_NAME, keyring, DID_PRIVATE_KEY, {
+                database: {
+                    type: 'VeridaDatabase',
+                    endpointUri: ENDPOINTS
+                },
+                messaging: {
+                    type: 'VeridaMessage',
+                    endpointUri: ENDPOINTS
+                },
+            })
+
+            try {
+                const endpointResponses = await didClient.save(doc)
+            } catch (err) {
+                console.log(err)
+                console.log(didClient.getLastEndpointErrors())
+            }
+    
+            // Fetch an auth token for each server
+            AUTH_TOKENS = {}
+            for (let i in ENDPOINTS) {
+                const endpoint = ENDPOINTS[i]
+                console.log(`Authenticating with ${endpoint}`)
+                const authJwtResult = await Axios.post(`${endpoint}/auth/generateAuthJwt`, {
+                    did: DID,
+                    contextName: CONTEXT_NAME
+                });
+        
+                const authRequestId = authJwtResult.data.authJwt.authRequestId
+                const authJwt = authJwtResult.data.authJwt.authJwt
+                const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${DID.toLowerCase()}\n${authRequestId}`
+                const signature = await account.sign(consentMessage)
+    
+                const authenticateResponse = await Axios.post(`${endpoint}/auth/authenticate`, {
+                    authJwt,
+                    did: DID,
+                    contextName: CONTEXT_NAME,
+                    signature,
+                    deviceId: TEST_DEVICE_ID
+                })
+                AUTH_TOKENS[endpoint] = authenticateResponse.data.accessToken
+            }
+    
+            console.log(`auth tokens for the endpoints:`)
+            console.log(AUTH_TOKENS)
+        })
+
         // Create the test databases on the first endpoint
-        let endpoint = ENDPOINTS[0]
-        for (let i in TEST_DATABASES) {
-            const dbName = TEST_DATABASES[i]
-            const response = await Utils.createDatabase(dbName, DID, CONTEXT_NAME, AUTH_TOKENS[endpoint], endpoint)
-            console.log(`createDatabase (${dbName}) on ${endpoint} response:`)
-            console.log(response)
-        }
+        it.only('can create the test databases on the first endpoint', async () => {
+            let endpoint = ENDPOINTS[0]
+            for (let i in TEST_DATABASES) {
+                const dbName = TEST_DATABASES[i]
+                console.log(`createDatabase (${dbName}) on ${endpoint}`)
+                const response = await Utils.createDatabase(dbName, DID, CONTEXT_NAME, AUTH_TOKENS[endpoint], endpoint)
+                assert.equal(response.data.status, 'success', 'database created')
+            }
+        })
 
         // Call `checkReplication(db1)` on all the endpoints (first database only)
         it.only('can initialise replication for one database via checkReplication()', async () => {
-            for (let i in ENDPOINTS) {
-                const endpoint = ENDPOINTS[i]
-                const result = await Utils.checkReplication(endpoint, AUTH_TOKENS[endpoint], TEST_DATABASES[0])
-                console.log(`checkReplication on ${endpoint} for ${TEST_DATABASES[0]}`)
-                console.log(result)
+            // @todo: fix code so endpoint doesn't create replication entries to itself
+            try {
+                for (let i in ENDPOINTS) {
+                    const endpoint = ENDPOINTS[i]
+                    const result = await Utils.checkReplication(endpoint, AUTH_TOKENS[endpoint], TEST_DATABASES[0])
+                    console.log(`${endpoint}: checkReplication on for ${TEST_DATABASES[0]}`)
+                    console.log(result.data)
 
-                const conn = Utils.buildPouchDsn(ENDPOINT_DSN[endpoint], '_replicator')
-                const replicationEntry = await conn.get(`${endpoint}/${TEST_DATABASE[0]}`)
-                console.log(`${endpoint} _replication entry for ${TEST_DATABASE[0]}`)
-                console.log(replicationEntry)
-                assert.ok(replicationEntry)
+                    assert.equal(result.data.status, 'success', 'Check replication completed successfully')
+
+                    const conn = Utils.buildPouchDsn(ENDPOINT_DSN[endpoint], '_replicator')
+                    console.log(`${endpoint}: Connecting to ${endpoint}/${TEST_DATABASES[0]}`)
+
+                    let replicationEntry
+                    // Check replications are occurring to all the other endpoints (but not this endpoint)
+                    for (let e in ENDPOINTS) {
+                        const endpointCheckUri = ENDPOINTS[e]
+                        if (endpointCheckUri == endpoint) {
+                            continue
+                        }
+
+                        const replicatorId = ComponentUtils.generateReplicatorHash(endpointCheckUri, DID, CONTEXT_NAME)
+                        const replicatorUsername = ComponentUtils.generateReplicaterUsername(endpoint)
+                        const dbHash = ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, TEST_DATABASES[0])
+                        console.log(`${endpoint}: (${endpointCheckUri}) Locating _replication entry for ${TEST_DATABASES[0]} (${replicatorId}-${dbHash})`)
+
+                        let replicationEntry
+                        try {
+                            replicationEntry = await conn.get(`${replicatorId}-${dbHash}`)
+                        } catch (err) {
+                            console.log('pouchdb connection error')
+                            console.log(err.message)
+                            assert.fail('Replication record not created')
+                        }
+
+                        assert.ok(replicationEntry)
+                        assert.ok(replicationEntry.source, `Have a source for ${endpointCheckUri}`)
+                        assert.ok(replicationEntry.target, `Have a target for ${endpointCheckUri}`)
+                        assert.equal(replicationEntry.source, `${ENDPOINTS_COUCH[endpoint]}/${dbHash}`, `Source URI is correct for ${endpointCheckUri}`)
+                        assert.equal(replicationEntry.target.url, `${ENDPOINTS_COUCH[endpointCheckUri]}/${dbHash}`, `Destination URI is correct for ${endpointCheckUri}`)
+
+                        assert.ok(replicationEntry.target.auth, `Have target.auth for ${endpointCheckUri}`)
+                        assert.ok(replicationEntry.target.auth.basic, `Have target.auth.basic for ${endpointCheckUri}`)
+                        assert.ok(replicationEntry.target.auth.basic.username, `Have target.auth.basic.username for ${endpointCheckUri}`)
+                        assert.ok(replicationEntry.target.auth.basic.password, `Have target.auth.basic.password for ${endpointCheckUri}`)
+                        assert.equal(replicationEntry.target.auth.basic.username, replicatorUsername, `Target username is correct for ${endpointCheckUri}`)
+                    }
+                }
+            } catch (err) {
+                console.log(err)
+                assert.fail('error')
             }
         })
 
         // Verify data saved to db1 is being replicated for all endpoints
         it('verify data is replicated for first database only', async () => {
             // Create three records
-            const endpoint0db1Connection = Utils.buildPouchDsn(ENDPOINT_DSN[endpoint], TEST_DATABASES[0])
+            const endpoint0db1Connection = Utils.buildPouchDsn(ENDPOINTS_COUCH[endpoint], TEST_DATABASES[0])
             await endpoint0db1Connection.put({db1endpoint1: 'world1'})
             await endpoint0db1Connection.put({db1endpoint1: 'world2'})
             await endpoint0db1Connection.put({db1endpoint1: 'world3'})
@@ -194,7 +254,21 @@ describe("Replication tests", function() {
     })
 
     this.afterAll(async () => {
-        // Delete all replication entries
+        // Clear replication related databases
+        for (let endpoint in ENDPOINT_DSN) {
+            const conn = new CouchDb({
+                url: ENDPOINT_DSN[endpoint],
+                requestDefaults: {
+                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
+                }
+            })
+            await conn.db.destroy('_replicator')
+            await conn.db.create('_replicator')
+            await conn.db.destroy('verida_replicater_creds')
+            await conn.db.create('verida_replicater_creds')
+        }
+
+        // Delete created replication users
         // Delete all databases
     })
 })

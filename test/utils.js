@@ -89,9 +89,7 @@ class Utils {
 
     async checkReplication(endpointUri, accessToken, databaseName) {
         const response = await Axios.post(`${endpointUri}/user/checkReplication`, {
-            databaseName,
-            did,
-            contextName
+            databaseName
         }, {
             headers: {
                 Authorization: `Bearer ${accessToken}`
