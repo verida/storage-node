@@ -191,7 +191,7 @@ class UserManager {
                     console.log(`${Utils.serverUri()}: Located replication record for ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
-                        console.log(`${Utils.serverUri()}: Located replication record for ${endpointUri}... creating.`)
+                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint

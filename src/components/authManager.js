@@ -407,6 +407,17 @@ class AuthManager {
             }
         }
 
+        try {
+            await couch.db.create('_replicator')
+        } catch (err) {
+            if (err.message.match(/already exists/)) {
+                // Database already exists
+            } else {
+                console.error(err)
+                throw err
+            }
+        }
+
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
@@ -508,7 +519,7 @@ class AuthManager {
             const requestBody = {
                 did,
                 contextName,
-                endpointUri,
+                endpointUri: Utils.serverUri(),
                 timestampMinutes,
                 password
             }
@@ -519,9 +530,16 @@ class AuthManager {
 
             // Fetch credentials from the endpointUri
             console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
-            const result = await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
-            console.log(`${Utils.serverUri()}: Credentials returned for ${endpointUri}`)
-            console.log(result.data)
+            try {
+                const result = await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
+                console.log(`${Utils.serverUri()}: Credentials returned for ${endpointUri}`)
+            } catch (err) {
+                if (err.response) {
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                }
+
+                throw err
+            }
 
             creds = {
                 _id: replicaterHash,
