@@ -220,7 +220,7 @@ class AuthController {
      */
     async replicationCreds(req, res) {
         const {
-            endpointUri,
+            endpointUri,        // endpoint making the request
             did,
             contextName,
             timestampMinutes,
@@ -261,7 +261,7 @@ class AuthController {
 
         // Confirm this endpoint is linked to the DID and context
         const thisEndpointUri = Utils.serverUri()
-        if (endpoints.indexOf(thisEndpointUri)) {
+        if (endpoints.indexOf(thisEndpointUri) === -1) {
             return Utils.error(res, `Invalid DID and context: Not associated with this endpoint`)
         }
         

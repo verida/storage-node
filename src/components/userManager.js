@@ -141,7 +141,7 @@ class UserManager {
         let endpoints = didService.serviceEndpoint
 
         // Confirm this endpoint is in the list of endpoints
-        const endpointIndex = allEndpoints.indexOf(Utils.serverUri())
+        const endpointIndex = endpoints.indexOf(Utils.serverUri())
         if (endpointIndex === -1) {
             throw new Error('Server not a valid endpoint for this DID and context')
         }
