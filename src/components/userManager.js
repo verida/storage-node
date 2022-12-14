@@ -201,17 +201,24 @@ class UserManager {
                         const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
                         console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
+                        const authBuffer = Buffer.from(`${REPLICATOR_CREDS[endpoint1].username}:${REPLICATOR_CREDS[endpoint1].password}`);
+                        const authBase64 = authBuffer.toString('base64')
+                        console.log(authBase64)
+
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
                             source: `${Db.buildHost()}/${dbHash}`,
                             target: {
                                 url: `${couchUri}/${dbHash}`,
-                                auth: {
+                                headers: {
+                                    Authorization: `Basic ${authBase64}`
+                                }
+                                /*auth: {
                                     basic: {
                                         username,
                                         password
                                     }
-                                }
+                                }*/
                             },
                             create_target: true,
                             continous: true
