@@ -214,6 +214,9 @@ class AuthController {
      * 2. `updated` (password updated)
      * 3. `exists` (user existed, but password unchanged)
      * 
+     * It's essential to ensure the user has the replication role that grants them
+     * access to all databases associated with a context
+     * 
      * @param {*} req 
      * @param {*} res 
      * @returns 
@@ -287,8 +290,11 @@ class AuthController {
             return Utils.error(res, `Unknown error: ${err.message}`)
         }
 
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const replicaterRole = `r${didContextHash}-replicater`
+
         try {
-            const result = await AuthManager.ensureReplicationCredentials(endpointUri, password)
+            const result = await AuthManager.ensureReplicationCredentials(endpointUri, password, replicaterRole)
             return Utils.signedResponse({
                 result
             }, res)

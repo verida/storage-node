@@ -434,7 +434,7 @@ class AuthManager {
         await tokenDb.createIndex(expiryIndex);
     }
 
-    async ensureReplicationCredentials(endpointUri, password) {
+    async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
         console.log(`ensureReplicationCredentials(${endpointUri}, ${password})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
@@ -446,22 +446,34 @@ class AuthManager {
         try {
             user = await usersDb.get(id)
 
-            // User exists, check if we need to update the password
-            if (!password) {
-                console.log(`User exists, NOT updating password`)
-                // No password, so no need to update and just confirm the user exists
-                return "exists"
+            let userRequiresUpdate = false
+            if (!user.roles.indexOf(replicaterRole)) {
+                console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                user.roles.push(replicaterRole)
+                userRequiresUpdate = true
             }
 
-            // User exists and we need to update the password
-            console.log(`User exists, updating password`)
-            user.password = password
-            try {
-                await dbManager._insertOrUpdate(usersDb, user, user._id)
-                return "updated"
-            } catch (err) {
-                console.log(err)
-                throw new Error(`Unable to update password: ${err.message}`)
+            // User exists, check if we need to update the password
+            if (password) {
+                user.password = password
+                userRequiresUpdate = true
+                console.log(`User exists and password needs updating`)
+            }
+
+            if (userRequiresUpdate) {
+                // User exists and we need to update the password or roles
+                console.log(`User exists, updating password and / or roles`)
+                
+                try {
+                    await dbManager._insertOrUpdate(usersDb, user, user._id)
+                    return "updated"
+                } catch (err) {
+                    console.log(err)
+                    throw new Error(`Unable to update password: ${err.message}`)
+                }
+            } else {
+                // Nothing needed to change, so respond indicating the user exists
+                return "exists"
             }
         } catch (err) {
             if (err.error !== 'not_found') {
@@ -477,7 +489,7 @@ class AuthManager {
                     name: username,
                     password,
                     type: "user",
-                    roles: []
+                    roles: [replicaterRole]
                 }, id)
 
                 return "created"

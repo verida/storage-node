@@ -161,7 +161,7 @@ class UserManager {
             // Fetch all databases for this context
             let userDatabases = await DbManager.getUserDatabases(did, contextName)
             databases = userDatabases.map(item => item.databaseName)
-            console.log(`${Utils.serverUri()}: Cecking ${databases.length}) databases`)
+            console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
 
         //console.log('- databases', databases)
