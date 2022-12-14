@@ -195,18 +195,18 @@ class UserManager {
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint
-                        const { endpointUsername, endpointPassword } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${endpointUsername}, ${endpointPassword})`)
+                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
                             source: `${Db.buildHost()}/${dbHash}`,
                             target: {
-                                url: `${endpointUri}/${dbHash}`,
+                                url: `${couchUri}/${dbHash}`,
                                 auth: {
                                     basic: {
-                                        username: endpointUsername,
-                                        password: endpointPassword
+                                        username,
+                                        password
                                     }
                                 }
                             },

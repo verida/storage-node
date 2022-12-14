@@ -17,7 +17,8 @@ class SystemController {
             maxUsers: parseInt(process.env.MAX_USERS),
             currentUsers,
             version: packageJson.version,
-            publicKey: wallet.publicKey
+            publicKey: wallet.publicKey,
+            couchUri: db.buildHost()
         }
 
         return Utils.signedResponse({

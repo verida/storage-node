@@ -531,8 +531,21 @@ class AuthManager {
             // Fetch credentials from the endpointUri
             console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
             try {
-                const result = await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
-                console.log(`${Utils.serverUri()}: Credentials returned for ${endpointUri}`)
+                await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
+                console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
+            } catch (err) {
+                if (err.response) {
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                }
+
+                throw err
+            }
+
+            let couchUri
+            try {
+                statusResponse = await Axios.get(`${endpointUri}/status`)
+                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri}`)
+                couchUri = statusResponse.data.results.couchUri
             } catch (err) {
                 if (err.response) {
                     throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
@@ -544,7 +557,8 @@ class AuthManager {
             creds = {
                 _id: replicaterHash,
                 username: Utils.generateReplicaterUsername(endpointUri),
-                password
+                password,
+                couchUri
             }
 
             try {
@@ -558,7 +572,8 @@ class AuthManager {
 
         return {
             username: creds.username,
-            password: creds.password
+            password: creds.password,
+            couchUri: creds.couchUri
         }
     }
 
