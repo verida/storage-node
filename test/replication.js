@@ -31,6 +31,15 @@ const TEST_DEVICE_ID = 'Device 1'
 
 const didClient = new DIDClient(CONFIG.DID_CLIENT_CONFIG)
 
+/**
+ * WARNING: ONLY RUN THIS TEST ON LOCALHOST
+ * 
+ * It deletes `_replicator` and `verida_replicator_creds` databases on all CouchDB
+ * endpoints upon completion of the tests.
+ * 
+ * This is necessary to reset the couch instnaces to a known state (empty)
+ */
+
 describe("Replication tests", function() {
     let DID, DID_ADDRESS, DID_PUBLIC_KEY, DID_PRIVATE_KEY, keyring, wallet, account, AUTH_TOKENS
 
@@ -253,8 +262,9 @@ describe("Replication tests", function() {
         it('verify database is deleted from all endpoints', () => {})
     })
 
+    // WARNING: This should never run on production!
     this.afterAll(async () => {
-        // Clear replication related databases
+        // Clear replication related databases to reset them for the next run
         for (let endpoint in ENDPOINT_DSN) {
             const conn = new CouchDb({
                 url: ENDPOINT_DSN[endpoint],
@@ -262,9 +272,14 @@ describe("Replication tests", function() {
                     rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
                 }
             })
-            await conn.db.destroy('_replicator')
+
+            try {
+                await conn.db.destroy('_replicator')
+            } catch (err) {}
+            try {
+                await conn.db.destroy('verida_replicater_creds')
+            } catch (err) {}
             await conn.db.create('_replicator')
-            await conn.db.destroy('verida_replicater_creds')
             await conn.db.create('verida_replicater_creds')
         }
 
