@@ -543,9 +543,9 @@ class AuthManager {
 
             let couchUri
             try {
-                statusResponse = await Axios.get(`${endpointUri}/status`)
-                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri}`)
+                const statusResponse = await Axios.get(`${endpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
+                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
                 if (err.response) {
                     throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
@@ -556,7 +556,8 @@ class AuthManager {
 
             creds = {
                 _id: replicaterHash,
-                username: Utils.generateReplicaterUsername(endpointUri),
+                // Use this server username
+                username: Utils.generateReplicaterUsername(Utils.serverUri()),
                 password,
                 couchUri
             }

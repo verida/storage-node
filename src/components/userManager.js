@@ -138,7 +138,7 @@ class UserManager {
         // Lookup DID document and get list of endpoints for this context
         const didDocument = await AuthManager.getDidDocument(did)
         const didService = didDocument.locateServiceEndpoint(contextName, 'database')
-        let endpoints = didService.serviceEndpoint
+        let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
 
         // Confirm this endpoint is in the list of endpoints
         const endpointIndex = endpoints.indexOf(Utils.serverUri())
@@ -168,15 +168,7 @@ class UserManager {
 
         // Ensure there is a replication entry for each
         const couch = Db.getCouch('internal')
-        let replicationDb
-        try {
-            replicationDb = couch.db.use('_replicator')
-            console.log('got db')
-        } catch (err) {
-            console.log('!')
-            console.log(err)
-            throw err
-        }
+        const replicationDb = couch.db.use('_replicator')\
 
         for (let d in databases) {
             const dbName = databases[d]
