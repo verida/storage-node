@@ -168,7 +168,7 @@ class UserManager {
 
         // Ensure there is a replication entry for each
         const couch = Db.getCouch('internal')
-        const replicationDb = couch.db.use('_replicator')\
+        const replicationDb = couch.db.use('_replicator')
 
         for (let d in databases) {
             const dbName = databases[d]
