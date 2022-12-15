@@ -165,7 +165,7 @@ class UserManager {
 
         let databases = []
         if (databaseName) {
-            console.log(`${Utils.serverUri()}: Only checking ${databaseName})`)
+            console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
             // Only check a single database
             databases.push(databaseName)
         } else {
@@ -175,13 +175,10 @@ class UserManager {
             console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
 
-        //console.log('- databases', databases)
-
         // Ensure there is a replication entry for each
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
-        const didContextHash = Utils.generateDidContextHash(did, contextName)
-        const replicaterRole = `r${didContextHash}-replicater`
+
         const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
         const localAuthBase64 = localAuthBuffer.toString('base64')
         console.log(process.env.DB_REPLICATION_USER, process.env.DB_REPLICATION_PASS, localAuthBase64)
@@ -196,7 +193,7 @@ class UserManager {
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
-                    console.log(`${Utils.serverUri()}: Located replication record for ${endpointUri} (${replicatorId})`)
+                    console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
                         console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
