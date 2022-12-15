@@ -201,27 +201,39 @@ class UserManager {
                         const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
                         console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
-                        const authBuffer = Buffer.from(`${REPLICATOR_CREDS[endpoint1].username}:${REPLICATOR_CREDS[endpoint1].password}`);
-                        const authBase64 = authBuffer.toString('base64')
-                        console.log(authBase64)
+                        const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+                        const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+                        console.log(username, password, remoteAuthBase64)
+
+                        const localAuthBuffer = Buffer.from(`${process.env.DB_USER}:${process.env.DB_PASS}`);
+                        const localAuthBase64 = localAuthBuffer.toString('base64')
+                        console.log(username, password, localAuthBase64)
 
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
-                            source: `${Db.buildHost()}/${dbHash}`,
+                            user_ctx: {
+                                name: process.env.DB_USER,
+                                roles: [
+                                    '_admin',
+                                    '_reader',
+                                    '_writer'
+                                ]
+                            },
+                            source: {
+                                url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
+                                headers: {
+                                    Authorization: `Basic ${localAuthBase64}`
+                                }
+                            },
                             target: {
                                 url: `${couchUri}/${dbHash}`,
                                 headers: {
-                                    Authorization: `Basic ${authBase64}`
+                                    Authorization: `Basic ${remoteAuthBase64}`
                                 }
-                                /*auth: {
-                                    basic: {
-                                        username,
-                                        password
-                                    }
-                                }*/
                             },
-                            create_target: true,
-                            continous: true
+                            create_target: false,
+                            continous: true,
+                            owner: 'admin'
                         }
 
                         try {
