@@ -180,6 +180,11 @@ class UserManager {
         // Ensure there is a replication entry for each
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const replicaterRole = `r${didContextHash}-replicater`
+        const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
+        const localAuthBase64 = localAuthBuffer.toString('base64')
+        console.log(username, password, localAuthBase64)
 
         for (let d in databases) {
             const dbName = databases[d]
@@ -205,18 +210,12 @@ class UserManager {
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
                         console.log(username, password, remoteAuthBase64)
 
-                        const localAuthBuffer = Buffer.from(`${process.env.DB_USER}:${process.env.DB_PASS}`);
-                        const localAuthBase64 = localAuthBuffer.toString('base64')
-                        console.log(username, password, localAuthBase64)
-
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
                             user_ctx: {
-                                name: process.env.DB_USER,
+                                name: process.env.DB_REPLICATION_USER,
                                 roles: [
-                                    '_admin',
-                                    '_reader',
-                                    '_writer'
+                                    replicaterRole
                                 ]
                             },
                             source: {
@@ -232,7 +231,7 @@ class UserManager {
                                 }
                             },
                             create_target: false,
-                            continous: true,
+                            continuous: true,
                             owner: 'admin'
                         }
 

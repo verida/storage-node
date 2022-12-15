@@ -407,6 +407,26 @@ class AuthManager {
             }
         }
 
+        // Create replication user with access to all databases
+        try {
+            const userDb = couch.db.user('_users')
+            const username = process.env.DB_REPLICATION_USER
+            const password = process.env.DB_REPLICATION_PASS
+            const id = `org.couchdb.user:${username}`
+            const userRow = {
+                _id: id,
+                name: username,
+                password,
+                type: "user",
+                roles: ['replicater-local']
+            }
+
+            await userDb.put(userRow, userRow._id)
+
+        } catch (err) {
+            console.log(err)
+        }
+
         try {
             await couch.db.create('_replicator')
         } catch (err) {
