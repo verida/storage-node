@@ -184,7 +184,7 @@ class UserManager {
         const replicaterRole = `r${didContextHash}-replicater`
         const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
         const localAuthBase64 = localAuthBuffer.toString('base64')
-        console.log(username, password, localAuthBase64)
+        console.log(process.env.DB_REPLICATION_USER, process.env.DB_REPLICATION_PASS, localAuthBase64)
 
         for (let d in databases) {
             const dbName = databases[d]
@@ -213,10 +213,7 @@ class UserManager {
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
                             user_ctx: {
-                                name: process.env.DB_REPLICATION_USER,
-                                roles: [
-                                    replicaterRole
-                                ]
+                                name: process.env.DB_REPLICATION_USER
                             },
                             source: {
                                 url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,

@@ -254,7 +254,7 @@ class DbManager {
             members: {
                 // this grants read access to all members
                 names: dbMembers,
-                roles: [replicaterRole]
+                roles: [replicaterRole, 'replicater-local']
             }
         };
 
