@@ -240,7 +240,12 @@ class AuthController {
             return Utils.error(res, 'Timestamp not specified')
         }
 
-        // @todo: verify timestampMinutes is within range
+        // Verify timestampMinutes is within two minutes of now
+        const currentTimestampMinutes = Math.floor(Date.now() / 1000 / 60)
+        const diff = currentTimestampMinutes - timestampMinutes
+        if (diff > 2 || diff < -2) {
+            return Utils.error(res, `Timestamp is out of range ${diff}`)
+        }
 
         if (!did) {
             return Utils.error(res, 'DID not specified')
@@ -272,7 +277,6 @@ class AuthController {
         let endpointPublicKey
         try {
             const response = await Axios.get(`${endpointUri}/status`)
-            console.log(response.data)
 
             endpointPublicKey = response.data.results.publicKey
             const params = {

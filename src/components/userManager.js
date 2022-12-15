@@ -116,7 +116,6 @@ class UserManager {
                 result.bytes += dbInfo.info.sizes.file
             } catch (err) {
                 if (err.error == 'not_found') {
-                    console.log('not found', database.databaseName)
                     // Database doesn't exist, so remove from the list of databases
                     await DbManager.deleteUserDatabase(did, contextName, database.databaseName)
                     continue
@@ -145,7 +144,7 @@ class UserManager {
      * @param {*} databaseName (optional) If not specified, checks all databases
      */
     async checkReplication(did, contextName, databaseName) {
-        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         const didDocument = await AuthManager.getDidDocument(did)
         const didService = didDocument.locateServiceEndpoint(contextName, 'database')
@@ -160,19 +159,16 @@ class UserManager {
         // Remove this endpoint from the list of endpoints to check
         endpoints.splice(endpointIndex, 1)
 
-        console.log(`- endpoints:`)
-        console.log(endpoints)
-
         let databases = []
         if (databaseName) {
-            console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
+            //console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
             // Only check a single database
             databases.push(databaseName)
         } else {
             // Fetch all databases for this context
             let userDatabases = await DbManager.getUserDatabases(did, contextName)
             databases = userDatabases.map(item => item.databaseName)
-            console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
+            //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
 
         // Ensure there is a replication entry for each
@@ -181,7 +177,6 @@ class UserManager {
 
         const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
         const localAuthBase64 = localAuthBuffer.toString('base64')
-        console.log(process.env.DB_REPLICATION_USER, process.env.DB_REPLICATION_PASS, localAuthBase64)
 
         for (let d in databases) {
             const dbName = databases[d]
@@ -193,19 +188,18 @@ class UserManager {
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
-                    console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
+                    //console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
-                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
+                        //console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint
                         const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
+                        //console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
                         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-                        console.log(username, password, remoteAuthBase64)
 
                         const replicationRecord = {
                             _id: `${replicatorId}-${dbHash}`,
@@ -231,22 +225,21 @@ class UserManager {
 
                         try {
                             await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
-                            console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                            //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
                         } catch (err) {
-                            console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId})`)
-                            console.log(err)
+                            //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                             throw new Error(`Unable to create replication entry: ${err.message}`)
                         }
                     }
                     else {
-                        console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId})`)
-                        console.log(err)
+                        //console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                         throw err
                     }
                 }
             }
         }
 
+        // @todo: Find any replication errors and handle them nicely
         // @todo: Remove any replication entries for deleted databases
     }
 

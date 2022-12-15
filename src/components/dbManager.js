@@ -221,8 +221,6 @@ class DbManager {
         let readUsers = [owner];
         let deleteUsers = [owner];
 
-        // @todo Support modifying user lists after db has been created
-
         switch (permissions.write) {
             case "users":
                 writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, contextName));

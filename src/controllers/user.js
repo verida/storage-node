@@ -61,7 +61,6 @@ class UserController {
         }
 
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
-        console.log(`creating ${databaseHash}`)
 
         let success;
         try {
@@ -161,7 +160,6 @@ class UserController {
     }
 
     // Update permissions on a user's database
-    // @todo: database name should be in plain text, then hashed
     async updateDatabase(req, res) {
         const username = req.tokenData.username
         const did = req.tokenData.did

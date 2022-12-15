@@ -95,7 +95,6 @@ class AuthManager {
 
             return true
         } catch (err) {
-            // @todo: Log error
             // Likely unable to resolve DID or invalid signature
             console.info(`Unable to resolve DID or invalid signature: ${err.message}`)
             return false
@@ -120,9 +119,6 @@ class AuthManager {
                 }
 
                 didDocument = await didClient.get(did)
-                
-                // @todo: check if the doc was auto-generated or actually
-                // stored on chain? if not on chain, don't cache
                 if (didDocument) {
                     const { DID_CACHE_DURATION }  = process.env
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
@@ -131,7 +127,6 @@ class AuthManager {
 
             return didDocument
         } catch (err) {
-            // @todo: Log error
             // Likely unable to resolve DID or invalid signature
             console.info(`Unable to resolve DID`)
             return false
@@ -457,10 +452,8 @@ class AuthManager {
     }
 
     async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
-        console.log(`ensureReplicationCredentials(${endpointUri}, ${password})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
-        console.log(`- username: ${username} for ${endpointUri}`)
 
         const couch = Db.getCouch('internal');
         const usersDb = await couch.db.use('_users')
@@ -470,7 +463,7 @@ class AuthManager {
 
             let userRequiresUpdate = false
             if (user.roles.indexOf(replicaterRole) == -1) {
-                console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                //console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
                 user.roles.push(replicaterRole)
                 userRequiresUpdate = true
             }
@@ -479,18 +472,17 @@ class AuthManager {
             if (password) {
                 user.password = password
                 userRequiresUpdate = true
-                console.log(`User exists and password needs updating`)
+                //console.log(`User exists and password needs updating`)
             }
 
             if (userRequiresUpdate) {
                 // User exists and we need to update the password or roles
-                console.log(`User exists, updating password and / or roles`)
+                //console.log(`User exists, updating password and / or roles`)
                 
                 try {
                     await dbManager._insertOrUpdate(usersDb, user, user._id)
                     return "updated"
                 } catch (err) {
-                    console.log(err)
                     throw new Error(`Unable to update password: ${err.message}`)
                 }
             } else {
@@ -504,8 +496,7 @@ class AuthManager {
 
             // Need to create the user
             try {
-                console.log('replication user didnt exist, so creating')
-                console.log(id)
+                //console.log('Replication user didnt exist, so creating')
                 await dbManager._insertOrUpdate(usersDb, {
                     _id: id,
                     name: username,
@@ -516,7 +507,6 @@ class AuthManager {
 
                 return "created"
             } catch (err) {
-                console.log(err)
                 throw new Error(`Unable to create replication user: ${err.message}`)
             }
         }
@@ -528,22 +518,21 @@ class AuthManager {
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
         const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
         
-        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+        //console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
 
         let creds
         try {
             creds = await replicaterCredsDb.get(replicaterHash)
-            console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+            //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
         } catch (err) {
             // If credentials aren't found, that's okay we will create them below
             if (err.error != 'not_found') {
-                console.log('rethrowing')
                 throw err
             }
         }
 
         if (!creds) {
-            console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
+            //console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
             const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
 
             // Generate a random password
@@ -563,10 +552,10 @@ class AuthManager {
             requestBody.signature = signature
 
             // Fetch credentials from the endpointUri
-            console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
+            //console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
             try {
                 await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
-                console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
+                //console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
             } catch (err) {
                 if (err.response) {
                     throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
@@ -579,7 +568,7 @@ class AuthManager {
             try {
                 const statusResponse = await Axios.get(`${endpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
-                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
+                //console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
                 if (err.response) {
                     throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
@@ -598,9 +587,8 @@ class AuthManager {
 
             try {
                 await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
+                //console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
             } catch (err) {
-                console.log(err)
                 throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
             }
         }
@@ -612,7 +600,7 @@ class AuthManager {
         }
     }
 
-    // @todo: garbage collection
+    // Garbage collection of refresh tokens
     async gc() {
         const GC_PERCENT = process.env.GC_PERCENT
         const random = Math.random()
