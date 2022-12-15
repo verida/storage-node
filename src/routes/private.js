@@ -10,5 +10,6 @@ router.post('/user/deleteDatabases', UserController.deleteDatabases);
 router.post('/user/databases', UserController.databases);
 router.post('/user/databaseInfo', UserController.databaseInfo);
 router.post('/user/usage', UserController.usage);
+router.post('/user/checkReplication', UserController.checkReplication);
 
 export default router;

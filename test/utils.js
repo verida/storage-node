@@ -61,11 +61,35 @@ class Utils {
         });
     }
 
-    async createDatabase(databaseName, did, contextName, accessToken) {
-        const response = await Axios.post(`${CONFIG.SERVER_URL}/user/createDatabase`, {
+    buildPouchDsn(dsn, dbName) {
+        return new PouchDb(`${dsn}/${dbName}`, {
+            requestDefaults: {
+                rejectUnauthorized: false
+            }
+        });
+    }
+
+    async createDatabase(databaseName, did, contextName, accessToken, serverUrl) {
+        if (!serverUrl) {
+            serverUrl = CONFIG.SERVER_URL
+        }
+
+        const response = await Axios.post(`${serverUrl}/user/createDatabase`, {
             databaseName,
             did,
             contextName
+        }, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        });
+        
+        return response
+    }
+
+    async checkReplication(endpointUri, accessToken, databaseName) {
+        const response = await Axios.post(`${endpointUri}/user/checkReplication`, {
+            databaseName
         }, {
             headers: {
                 Authorization: `Bearer ${accessToken}`

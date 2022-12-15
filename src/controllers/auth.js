@@ -2,6 +2,8 @@ import UserManager from '../components/userManager.js';
 import Utils from '../components/utils.js';
 import AuthManager from '../components/authManager.js';
 import Db from '../components/db.js';
+import Axios from 'axios'
+import EncryptionUtils from '@verida/encryption-utils';
 
 class AuthController {
 
@@ -197,6 +199,111 @@ class AuthController {
             return res.status(401).send({
                 status: "fail"
             });
+        }
+    }
+
+    /**
+     * Ensure replication credentials exist on the server
+     * 
+     * If the password is an empty string, will just determine if the user exists or not
+     * If the password is not an empty string, it will update the password to match
+     * If no user exists, must specify a password
+     * 
+     * Return status is either:
+     * 1. `created` (user created)
+     * 2. `updated` (password updated)
+     * 3. `exists` (user existed, but password unchanged)
+     * 
+     * It's essential to ensure the user has the replication role that grants them
+     * access to all databases associated with a context
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
+    async replicationCreds(req, res) {
+        const {
+            endpointUri,        // endpoint making the request
+            did,
+            contextName,
+            timestampMinutes,
+            password,
+            signature
+        } = req.body
+        
+        // Verify params
+        if (!endpointUri) {
+            return Utils.error(res, 'Endpoint not specified')
+        }
+
+        if (!timestampMinutes) {
+            return Utils.error(res, 'Timestamp not specified')
+        }
+
+        // Verify timestampMinutes is within two minutes of now
+        const currentTimestampMinutes = Math.floor(Date.now() / 1000 / 60)
+        const diff = currentTimestampMinutes - timestampMinutes
+        if (diff > 2 || diff < -2) {
+            return Utils.error(res, `Timestamp is out of range ${diff}`)
+        }
+
+        if (!did) {
+            return Utils.error(res, 'DID not specified')
+        }
+
+        if (!contextName) {
+            return Utils.error(res, 'Context not specified')
+        }
+
+        if (!signature) {
+            return Utils.error(res, 'Signature not specified')
+        }
+
+        // Lookup DID document and confirm endpointUri is a valid endpoint
+        const didDocument = await AuthManager.getDidDocument(did)
+        const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+        const endpoints = endpointService.serviceEndpoint
+        if (endpoints.indexOf(endpointUri) === -1) {
+            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+        }
+
+        // Confirm this endpoint is linked to the DID and context
+        const thisEndpointUri = Utils.serverUri()
+        if (endpoints.indexOf(thisEndpointUri) === -1) {
+            return Utils.error(res, `Invalid DID and context: Not associated with this endpoint`)
+        }
+        
+        // Pull endpoint public key from /status and verify the signature
+        let endpointPublicKey
+        try {
+            const response = await Axios.get(`${endpointUri}/status`)
+
+            endpointPublicKey = response.data.results.publicKey
+            const params = {
+                did,
+                contextName,
+                endpointUri,
+                timestampMinutes,
+                password
+            }
+
+            if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
+                return Utils.error(res, 'Invalid signature', 401)
+            }
+        } catch (err) {
+            return Utils.error(res, `Unknown error: ${err.message}`)
+        }
+
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const replicaterRole = `r${didContextHash}-replicater`
+
+        try {
+            const result = await AuthManager.ensureReplicationCredentials(endpointUri, password, replicaterRole)
+            return Utils.signedResponse({
+                result
+            }, res)
+        } catch (err) {
+            return Utils.error(res, err.message)
         }
     }
 

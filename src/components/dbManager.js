@@ -1,7 +1,6 @@
 import Utils from './utils.js';
 import _ from 'lodash';
 import Db from "./db.js"
-import EncryptionUtils from "@verida/encryption-utils"
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,13 +10,47 @@ class DbManager {
         this.error = null;
     }
 
-    async saveUserDatabase(did, contextName, databaseName, databaseHash, permissions) {
+    async saveUserDatabase(did, owner, contextName, databaseName, databaseHash, permissions) {
         const couch = Db.getCouch()
-        const userDatabaseName = process.env.DB_DB_INFO
-        const db = couch.db.use(userDatabaseName)
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const didContextDbName = `c${didContextHash}`
 
-        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
-        const id = EncryptionUtils.hash(text).substring(2)
+        // Create database for storing all the databases for this user context
+        let db
+        try {
+            await couch.db.create(didContextDbName);
+            db = couch.db.use(didContextDbName);
+
+            const replicaterRole = `r${didContextHash}-replicater`
+
+            let securityDoc = {
+                admins: {
+                    names: [owner],
+                    roles: []
+                },
+                members: {
+                    names: [owner],
+                    roles: [replicaterRole]
+                }
+            };
+
+            // Insert security document to ensure owner is the admin and any other read / write users can access the database
+            try {
+                await this._insertOrUpdate(db, securityDoc, '_security');
+            } catch (err) {
+                return false;
+            }
+        } catch (err) {
+            // The didContext database may already exist, or may have been deleted so a file
+            // already exists.
+            // In that case, ignore the error and continue
+            if (err.error != "file_exists") {
+                throw err;
+            }
+        }
+        
+        db = couch.db.use(didContextDbName);
+        const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
         try {
             const result = await this._insertOrUpdate(db, {
@@ -26,7 +59,7 @@ class DbManager {
                 contextName,
                 databaseName,
                 databaseHash,
-                permissions
+                permissions: permissions ? permissions : {}
             }, id)
         } catch (err) {
             throw err
@@ -35,41 +68,36 @@ class DbManager {
 
     async getUserDatabases(did, contextName) {
         const couch = Db.getCouch()
-        const userDatabaseName = process.env.DB_DB_INFO
-        const db = couch.db.use(userDatabaseName)
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const didContextDbName = `c${didContextHash}`
 
         try {
-            const query = {
-                selector: {
-                    did,
-                    contextName
-                },
-                limit: 1000
-            }
+            const db = couch.db.use(didContextDbName)
+            const result = await db.list({include_docs: true, limit: 1000})
+            const finalResult = result.rows.map((item) => {
+                delete item.doc['_id']
+                delete item.doc['_rev']
 
-            const results = await db.find(query)
-            const finalResult = results.docs.map((item) => {
-                delete item['_id']
-                delete item['_rev']
-
-                return item
+                return item.doc
             })
 
             return finalResult
         } catch (err) {
-            if (err.reason != "missing") {
+            if (err.reason != 'missing' && err.error != 'not_found') {
                 throw err;
             }
+
+            return []
         }
     }
 
     async getUserDatabase(did, contextName, databaseName) {
         const couch = Db.getCouch()
-        const userDatabaseName = process.env.DB_DB_INFO
-        const db = couch.db.use(userDatabaseName)
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const didContextDbName = `c${didContextHash}`
+        const db = couch.db.use(didContextDbName)
 
-        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
-        const id = EncryptionUtils.hash(text).substring(2)
+        const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
         try {
             const doc = await db.get(id)
@@ -86,7 +114,7 @@ class DbManager {
 
             return result
         } catch (err) {
-            if (err.reason == "missing") {
+            if (err.reason == 'missing' || err.reason == 'deleted') {
                 return false
             }
 
@@ -94,13 +122,13 @@ class DbManager {
         }
     }
 
-    async deleteUserDatabase(did, contextName, databaseName, databaseHash) {
+    async deleteUserDatabase(did, contextName, databaseName) {
         const couch = Db.getCouch()
-        const userDatabaseName = process.env.DB_DB_INFO
-        const db = couch.db.use(userDatabaseName)
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const didContextDbName = `c${didContextHash}`
+        const db = couch.db.use(didContextDbName)
 
-        const text = `${did.toLowerCase()}/${contextName}/${databaseName}`
-        const id = EncryptionUtils.hash(text).substring(2)
+        const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
         try {
             await this._insertOrUpdate(db, {
@@ -112,12 +140,12 @@ class DbManager {
         }
     }
 
-    async createDatabase(username, databaseName, applicationName, options) {
+    async createDatabase(did, username, databaseHash, contextName, options) {
         let couch = Db.getCouch();
 
         // Create database
         try {
-            await couch.db.create(databaseName);
+            await couch.db.create(databaseHash);
         } catch (err) {
             // The database may already exist, or may have been deleted so a file
             // already exists.
@@ -127,10 +155,10 @@ class DbManager {
             }
         }
 
-        let db = couch.db.use(databaseName);
+        let db = couch.db.use(databaseHash);
 
         try {
-            await this.configurePermissions(db, username, applicationName, options.permissions);
+            await this.configurePermissions(did, db, username, contextName, options.permissions);
         } catch (err) {
             //console.log("configure error");
             //console.log(err);
@@ -139,12 +167,12 @@ class DbManager {
         return true;
     }
 
-    async updateDatabase(username, databaseName, applicationName, options) {
+    async updateDatabase(did, username, databaseHash, contextName, options) {
         const couch = Db.getCouch();
-        const db = couch.db.use(databaseName);
+        const db = couch.db.use(databaseHash);
 
         // Do a sanity check to confirm the username is an admin of the database
-        const perms = await couch.request({db: databaseName, method: 'get', path: '/_security'})
+        const perms = await couch.request({db: databaseHash, method: 'get', path: '/_security'})
         const usernameIsAdmin = perms.admins.names.includes(username)
 
         if (!usernameIsAdmin) {
@@ -152,7 +180,7 @@ class DbManager {
         }
 
         try {
-            await this.configurePermissions(db, username, applicationName, options.permissions);
+            await this.configurePermissions(did, db, username, contextName, options.permissions);
         } catch (err) {
             //console.log("update database error");
             //console.log(err);
@@ -161,11 +189,11 @@ class DbManager {
         return true;
     }
 
-    async deleteDatabase(databaseName, username) {
+    async deleteDatabase(databaseHash, username) {
         const couch = Db.getCouch();
 
         // Do a sanity check to confirm the username is an admin of the database
-        const perms = await couch.request({db: databaseName, method: 'get', path: '/_security'})
+        const perms = await couch.request({db: databaseHash, method: 'get', path: '/_security'})
         const usernameIsAdmin = perms.admins.names.includes(username)
 
         if (!usernameIsAdmin) {
@@ -174,7 +202,7 @@ class DbManager {
 
         // Create database
         try {
-            return await couch.db.destroy(databaseName);
+            return await couch.db.destroy(databaseHash);
         } catch (err) {
             // The database may already exist, or may have been deleted so a file
             // already exists.
@@ -183,7 +211,7 @@ class DbManager {
         }
     }
 
-    async configurePermissions(db, username, applicationName, permissions) {
+    async configurePermissions(did, db, username, contextName, permissions) {
         permissions = permissions ? permissions : {};
 
         let owner = username;
@@ -193,12 +221,10 @@ class DbManager {
         let readUsers = [owner];
         let deleteUsers = [owner];
 
-        // @todo Support modifying user lists after db has been created
-
         switch (permissions.write) {
             case "users":
-                writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, applicationName));
-                deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, applicationName));
+                writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, contextName));
+                deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, contextName));
                 break;
             case "public":
                 writeUsers = writeUsers.concat([process.env.DB_PUBLIC_USER]);
@@ -207,7 +233,7 @@ class DbManager {
 
         switch (permissions.read) {
             case "users":
-                readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, applicationName));
+                readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, contextName));
                 break;
             case "public":
                 readUsers = readUsers.concat([process.env.DB_PUBLIC_USER]);
@@ -215,6 +241,8 @@ class DbManager {
         }
 
         const dbMembers = _.union(readUsers, writeUsers);
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const replicaterRole = `r${didContextHash}-replicater`
 
         let securityDoc = {
             admins: {
@@ -224,7 +252,7 @@ class DbManager {
             members: {
                 // this grants read access to all members
                 names: dbMembers,
-                roles: []
+                roles: [replicaterRole, 'replicater-local']
             }
         };
 
@@ -240,7 +268,7 @@ class DbManager {
         let deleteUsersJson = JSON.stringify(deleteUsers);
 
         try {
-            const writeFunction = "\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (" + writeUsersJson + ".indexOf(userCtx.name) == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}";
+            const writeFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${writeUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}`;
             const writeDoc = {
                 "validate_doc_update": writeFunction
             };
@@ -256,7 +284,7 @@ class DbManager {
         if (permissions.write === "public") {
             // If the public has write permissions, disable public from deleting records
             try {
-                const deleteFunction = "\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if ("+deleteUsersJson+".indexOf(userCtx.name) == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}";
+                const deleteFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${deleteUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}`;
                 const deleteDoc = {
                     "validate_doc_update": deleteFunction
                 };
@@ -293,9 +321,9 @@ class DbManager {
         if (doc._rev) {
             newDoc._rev = doc._rev;
             newDoc._id = id;
-            return db.insert(newDoc);
+            return await db.insert(newDoc);
         } else {
-            return db.insert(newDoc, id);
+            return await db.insert(newDoc, id);
         }
     }
 

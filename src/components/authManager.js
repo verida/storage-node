@@ -7,6 +7,8 @@ import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
+import dbManager from './dbManager.js';
+import Axios from 'axios'
 
 dotenv.config();
 
@@ -81,6 +83,26 @@ class AuthManager {
 
     async verifySignedConsentMessage(did, contextName, signature, consentMessage) {
         // Verify the signature signed the correct string
+        try {
+            const didDocument = await this.getDidDocument(did)
+            const result = didDocument.verifySig(consentMessage, signature)
+
+            if (!result) {
+                console.info('Invalid signature when verifying signed consent message')
+                // Invalid signature
+                return false
+            }
+
+            return true
+        } catch (err) {
+            // Likely unable to resolve DID or invalid signature
+            console.info(`Unable to resolve DID or invalid signature: ${err.message}`)
+            return false
+        }
+    }
+
+    async getDidDocument(did) {
+        // Verify the signature signed the correct string
         const cacheKey = did
 
         try {
@@ -97,28 +119,16 @@ class AuthManager {
                 }
 
                 didDocument = await didClient.get(did)
-                
-                // @todo: check if the doc was auto-generated or actually
-                // stored on chain? if not on chain, don't cache
                 if (didDocument) {
                     const { DID_CACHE_DURATION }  = process.env
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
                 }
             }
 
-            const result = didDocument.verifySig(consentMessage, signature)
-
-            if (!result) {
-                console.warning('Invalid signature when verifying signed consent message')
-                // Invalid signature
-                return false
-            }
-
-            return true
+            return didDocument
         } catch (err) {
-            // @todo: Log error
             // Likely unable to resolve DID or invalid signature
-            console.warning(`Unable to resolve DID or invalid signature: ${err.message}`)
+            console.info(`Unable to resolve DID`)
             return false
         }
     }
@@ -381,6 +391,50 @@ class AuthManager {
             }
         }
 
+        try {
+            await couch.db.create(process.env.DB_REPLICATER_CREDS)
+        } catch (err) {
+            if (err.message.match(/already exists/)) {
+                // Database already exists
+            } else {
+                console.error(err)
+                throw err
+            }
+        }
+
+        // Create replication user with access to all databases
+        try {
+            const userDb = couch.db.use('_users')
+            const username = process.env.DB_REPLICATION_USER
+            const password = process.env.DB_REPLICATION_PASS
+            const id = `org.couchdb.user:${username}`
+            const userRow = {
+                _id: id,
+                name: username,
+                password,
+                type: "user",
+                roles: ['replicater-local']
+            }
+
+            await userDb.insert(userRow, userRow._id)
+
+        } catch (err) {
+            if (err.error != 'conflict') {
+                throw err
+            }
+        }
+
+        try {
+            await couch.db.create('_replicator')
+        } catch (err) {
+            if (err.message.match(/already exists/)) {
+                // Database already exists
+            } else {
+                console.error(err)
+                throw err
+            }
+        }
+
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
@@ -397,7 +451,156 @@ class AuthManager {
         await tokenDb.createIndex(expiryIndex);
     }
 
-    // @todo: garbage collection
+    async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
+        const username = Utils.generateReplicaterUsername(endpointUri)
+        const id = `org.couchdb.user:${username}`
+
+        const couch = Db.getCouch('internal');
+        const usersDb = await couch.db.use('_users')
+        let user
+        try {
+            user = await usersDb.get(id)
+
+            let userRequiresUpdate = false
+            if (user.roles.indexOf(replicaterRole) == -1) {
+                //console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                user.roles.push(replicaterRole)
+                userRequiresUpdate = true
+            }
+
+            // User exists, check if we need to update the password
+            if (password) {
+                user.password = password
+                userRequiresUpdate = true
+                //console.log(`User exists and password needs updating`)
+            }
+
+            if (userRequiresUpdate) {
+                // User exists and we need to update the password or roles
+                //console.log(`User exists, updating password and / or roles`)
+                
+                try {
+                    await dbManager._insertOrUpdate(usersDb, user, user._id)
+                    return "updated"
+                } catch (err) {
+                    throw new Error(`Unable to update password: ${err.message}`)
+                }
+            } else {
+                // Nothing needed to change, so respond indicating the user exists
+                return "exists"
+            }
+        } catch (err) {
+            if (err.error !== 'not_found') {
+                throw err
+            }
+
+            // Need to create the user
+            try {
+                //console.log('Replication user didnt exist, so creating')
+                await dbManager._insertOrUpdate(usersDb, {
+                    _id: id,
+                    name: username,
+                    password,
+                    type: "user",
+                    roles: [replicaterRole]
+                }, id)
+
+                return "created"
+            } catch (err) {
+                throw new Error(`Unable to create replication user: ${err.message}`)
+            }
+        }
+    }
+
+    async fetchReplicaterCredentials(endpointUri, did, contextName) {
+        // Check process.env.DB_REPLICATER_CREDS for existing credentials
+        const couch = Db.getCouch('internal');
+        const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
+        const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
+        
+        //console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+
+        let creds
+        try {
+            creds = await replicaterCredsDb.get(replicaterHash)
+            //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+        } catch (err) {
+            // If credentials aren't found, that's okay we will create them below
+            if (err.error != 'not_found') {
+                throw err
+            }
+        }
+
+        if (!creds) {
+            //console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
+            const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
+
+            // Generate a random password
+            const secretKeyBytes = EncryptionUtils.randomKey(32)
+            const password = Buffer.from(secretKeyBytes).toString('hex')
+
+            const requestBody = {
+                did,
+                contextName,
+                endpointUri: Utils.serverUri(),
+                timestampMinutes,
+                password
+            }
+
+            const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
+            const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
+            requestBody.signature = signature
+
+            // Fetch credentials from the endpointUri
+            //console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
+            try {
+                await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
+                //console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
+            } catch (err) {
+                if (err.response) {
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                }
+
+                throw err
+            }
+
+            let couchUri
+            try {
+                const statusResponse = await Axios.get(`${endpointUri}/status`)
+                couchUri = statusResponse.data.results.couchUri
+                //console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
+            } catch (err) {
+                if (err.response) {
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                }
+
+                throw err
+            }
+
+            creds = {
+                _id: replicaterHash,
+                // Use this server username
+                username: Utils.generateReplicaterUsername(Utils.serverUri()),
+                password,
+                couchUri
+            }
+
+            try {
+                await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
+                //console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
+            } catch (err) {
+                throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
+            }
+        }
+
+        return {
+            username: creds.username,
+            password: creds.password,
+            couchUri: creds.couchUri
+        }
+    }
+
+    // Garbage collection of refresh tokens
     async gc() {
         const GC_PERCENT = process.env.GC_PERCENT
         const random = Math.random()

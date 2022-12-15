@@ -2,6 +2,23 @@ import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {
 
+    generateHash(value) {
+        return EncryptionUtils.hash(value).substring(2);
+    }
+
+    generateReplicaterUsername(endpointUri) {
+        return `r${this.generateHash(endpointUri)}`
+    }
+
+    generateDidContextHash(did, contextName) {
+        let text = [
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+
+        return this.generateHash(text)
+    }
+
     generateUsername(did, contextName) {
         did = did.toLowerCase()
         const text = [
@@ -28,6 +45,19 @@ class Utils {
         return "v" + hash
     }
 
+    generateReplicatorHash(endpointUri, did, contextName) {
+        let text = [
+            endpointUri,
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+        
+        const hash = EncryptionUtils.hash(text).substring(2);
+
+        // Database name must start with a letter
+        return "e" + hash
+    }
+
     didsToUsernames(dids, contextName) {
         return dids ? dids.map(did => this.generateUsername(did.toLowerCase(), contextName)) : []
     }
@@ -43,6 +73,24 @@ class Utils {
             ...data,
             signature
         });
+    }
+
+    async error(res, message, httpStatus=400) {
+        return res.status(httpStatus).send({
+            status: "fail",
+            message
+        })
+    }
+
+    async success(res, data) {
+        return res.status(200).send({
+            status: "success",
+            data
+        })
+    }
+
+    serverUri() {
+        return process.env.ENDPOINT_URI
     }
 
 }

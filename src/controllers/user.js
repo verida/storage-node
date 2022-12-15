@@ -16,7 +16,6 @@ class UserController {
                 }
             }, res);
         } catch (err) {
-            console.error(err);
             return res.status(500).send({
                 status: "fail",
                 message: err.message
@@ -46,21 +45,28 @@ class UserController {
             });
         }
 
-        const userUsage = await UserManager.getUsage(did, contextName)
-        if (userUsage.usagePercent >= 100) {
-            return res.status(400).send({
+        try {
+            const userUsage = await UserManager.getUsage(did, contextName)
+            if (userUsage.usagePercent >= 100) {
+                return res.status(400).send({
+                    status: "fail",
+                    message: 'Storage limit reached'
+                });
+            }
+        } catch (err) {
+            return res.status(500).send({
                 status: "fail",
-                message: 'Storage limit reached'
-            });
+                message: err.message
+            })
         }
 
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
         let success;
         try {
-            success = await DbManager.createDatabase(username, databaseHash, contextName, options);
+            success = await DbManager.createDatabase(did, username, databaseHash, contextName, options);
             if (success) {
-                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+                await DbManager.saveUserDatabase(did, username, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
                     status: "success"
@@ -154,7 +160,6 @@ class UserController {
     }
 
     // Update permissions on a user's database
-    // @todo: database name should be in plain text, then hashed
     async updateDatabase(req, res) {
         const username = req.tokenData.username
         const did = req.tokenData.did
@@ -173,9 +178,9 @@ class UserController {
                 });
             }
 
-            let success = await DbManager.updateDatabase(username, databaseHash, contextName, options);
+            let success = await DbManager.updateDatabase(did, username, databaseHash, contextName, options);
             if (success) {
-                await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
+                await DbManager.saveUserDatabase(did, username, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
                     status: "success"
@@ -271,6 +276,26 @@ class UserController {
 
         try {
             const result = await UserManager.getUsage(did, contextName)
+
+            return Utils.signedResponse({
+                status: "success",
+                result
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
+            });
+        }
+    }
+
+    async checkReplication(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const databaseName = req.body.databaseName
+
+        try {
+            const result = await UserManager.checkReplication(did, contextName, databaseName)
 
             return Utils.signedResponse({
                 status: "success",

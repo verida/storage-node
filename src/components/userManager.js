@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Db from './db.js'
 import Utils from './utils.js'
 import DbManager from './dbManager.js';
+import AuthManager from './authManager';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -94,23 +95,6 @@ class UserManager {
                 throw err;
             }
         }
-
-        try {
-            await couch.db.create(process.env.DB_DB_INFO)
-            const dbInfo = couch.db.use(process.env.DB_DB_INFO)
-            await dbInfo.createIndex({
-                index: {
-                    fields: ['did', 'contextName']
-                },
-                name: 'didContext'
-            })
-        } catch (err) {
-            if (err.message == "The database could not be created, the file already exists.") {
-                console.log("Info database not created -- already existed");
-            } else {
-                throw err;
-            }
-        }
     }
 
     async getUsage(did, contextName) {
@@ -126,14 +110,137 @@ class UserManager {
 
         for (let d in databases) {
             const database = databases[d]
-            const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
-            result.databases++
-            result.bytes += dbInfo.info.sizes.file
+            try {
+                const dbInfo = await DbManager.getUserDatabase(did, contextName, database.databaseName)
+                result.databases++
+                result.bytes += dbInfo.info.sizes.file
+            } catch (err) {
+                if (err.error == 'not_found') {
+                    // Database doesn't exist, so remove from the list of databases
+                    await DbManager.deleteUserDatabase(did, contextName, database.databaseName)
+                    continue
+                }
+                
+                throw err
+            }
         }
 
         const usage = result.bytes / parseInt(result.storageLimit)
         result.usagePercent = Number(usage.toFixed(4))
         return result
+    }
+
+    /**
+     * Confirm replication is correctly configured for a given DID and application context.
+     * 
+     * If a storage node is being added or removed to the application context, it must be the
+     * last node to have checkReplication called. This ensures the node has a list of all the
+     * active databases and can ensure it is replicating correctly to the other nodes.
+     * 
+     * The client SDK should call checkReplication() when opening a context to ensure the replication is working as expected.
+     * 
+     * @param {*} did 
+     * @param {*} contextName 
+     * @param {*} databaseName (optional) If not specified, checks all databases
+     */
+    async checkReplication(did, contextName, databaseName) {
+        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        // Lookup DID document and get list of endpoints for this context
+        const didDocument = await AuthManager.getDidDocument(did)
+        const didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
+
+        // Confirm this endpoint is in the list of endpoints
+        const endpointIndex = endpoints.indexOf(Utils.serverUri())
+        if (endpointIndex === -1) {
+            throw new Error('Server not a valid endpoint for this DID and context')
+        }
+
+        // Remove this endpoint from the list of endpoints to check
+        endpoints.splice(endpointIndex, 1)
+
+        let databases = []
+        if (databaseName) {
+            //console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
+            // Only check a single database
+            databases.push(databaseName)
+        } else {
+            // Fetch all databases for this context
+            let userDatabases = await DbManager.getUserDatabases(did, contextName)
+            databases = userDatabases.map(item => item.databaseName)
+            //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
+        }
+
+        // Ensure there is a replication entry for each
+        const couch = Db.getCouch('internal')
+        const replicationDb = couch.db.use('_replicator')
+
+        const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
+        const localAuthBase64 = localAuthBuffer.toString('base64')
+
+        for (let d in databases) {
+            const dbName = databases[d]
+
+            for (let e in endpoints) {
+                const endpointUri = endpoints[e]
+                const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+                const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
+                let record
+                try {
+                    record = await replicationDb.get(`${replicatorId}-${dbHash}`)
+                    //console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
+                } catch (err) {
+                    if (err.message == 'missing' || err.reason == 'deleted') {
+                        //console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
+                        // No record, so create it
+                        // Check if we have credentials
+                        // No credentials? Ask for them from the endpoint
+                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                        //console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
+
+                        const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+                        const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+
+                        const replicationRecord = {
+                            _id: `${replicatorId}-${dbHash}`,
+                            user_ctx: {
+                                name: process.env.DB_REPLICATION_USER
+                            },
+                            source: {
+                                url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
+                                headers: {
+                                    Authorization: `Basic ${localAuthBase64}`
+                                }
+                            },
+                            target: {
+                                url: `${couchUri}/${dbHash}`,
+                                headers: {
+                                    Authorization: `Basic ${remoteAuthBase64}`
+                                }
+                            },
+                            create_target: false,
+                            continuous: true,
+                            owner: 'admin'
+                        }
+
+                        try {
+                            await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                            //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                        } catch (err) {
+                            //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                            throw new Error(`Unable to create replication entry: ${err.message}`)
+                        }
+                    }
+                    else {
+                        //console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                        throw err
+                    }
+                }
+            }
+        }
+
+        // @todo: Find any replication errors and handle them nicely
+        // @todo: Remove any replication entries for deleted databases
     }
 
 }
