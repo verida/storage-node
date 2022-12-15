@@ -257,10 +257,16 @@ describe("Replication tests", function() {
                 }
 
                 const externalEndpoint = ENDPOINTS[i]
+
+                console.log(ENDPOINTS_COUCH[externalEndpoint])
+                console.log(REPLICATOR_CREDS[ENDPOINTS[0]])
+
+                // Connect to the external endpoint, using the credentials from the
+                // first endpoint to confirm it has access (plus admin user doesnt have access)
                 const couch = new CouchDb({
-                    url: ENDPOINT_DSN[externalEndpoint],
+                    url: ENDPOINTS_COUCH[externalEndpoint],
                     requestDefaults: {
-                        headers: REPLICATOR_CREDS[externalEndpoint],
+                        headers: REPLICATOR_CREDS[ENDPOINTS[0]],
                         rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
                     }
                 })
@@ -268,9 +274,8 @@ describe("Replication tests", function() {
 
                 console.log(`${externalEndpoint}: Verifying endpoint has docs`)
                 const docs = await conn.list({include_docs: true})
-                console.log(`Endpoint ${externalEndpoint} has docs:`)
-                console.log(docs)
-                assert.equal(docs.rows.length, 3, `Three rows returned from ${externalEndpoint}/${TEST_DATABASES[0]} (${TEST_DATABASE_HASH[0]})`)
+                // Note: There is a design document, which is why the number is actually 4
+                assert.equal(docs.rows.length, 4, `Three rows returned from ${externalEndpoint}/${TEST_DATABASES[0]} (${TEST_DATABASE_HASH[0]})`)
             }
         })
 
@@ -374,3 +379,80 @@ describe("Replication tests", function() {
     })
 })
 
+
+/**
+ * 
+ * 
+ *
+{
+  "_id": "e9bf718dc5221dfac6fad45b1e5ef604b68ea80eaf1b92ca96c4ffa6753ab2eef-vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+  "_rev": "2-389b0a07c2e17bb81a7a3b57a8bac939",
+  "source": {
+    "url": "http://192.168.68.117:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+    "headers": {
+      "Authorization": "Basic cjNlNzBkZmI1YTFiYzNiMzk2NGVjMjQ3MTJjNzc1NGQwYTNjMDlmOWM1MzZjOTU3MjlmMjE5ODI4ZmU5ZjA2MTc6ZTY4ODU4ZWNkZDBlZmFkMjhlMGVjM2FhY2Q4M2IwNDBjYzg0ZDUxYWZkNGQ0OWNkYjgxNDVkYjQyZTA5NDNjZA=="
+    }
+  },
+  "target": {
+    "url": "http://192.168.68.118:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+    "headers": {
+      "Authorization": "Basic cmYwODA0MjRmOTlmYjA3MjNmYzQzM2QxZWFjZDc1YTY0YWVkNzY2MDBlOWM5NWZlNjA5ZDQ2ZGNjZDkyZmM4M2U6NWE1MWUwN2I2Yjk0YWI2YWE2YjA4YzMzYmJlY2E0YzQwMTMxYzYxY2YyOGZhM2FhNTg2ZTdiNmIxZjE5ODRkMw=="
+    }
+  },
+  "create_target": true,
+  "continous": true,
+  "owner": "admin"
+}
+
+
+curl http://192.168.68.117:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181 \
+ -H "Authorization: Basic cjNlNzBkZmI1YTFiYzNiMzk2NGVjMjQ3MTJjNzc1NGQwYTNjMDlmOWM1MzZjOTU3MjlmMjE5ODI4ZmU5ZjA2MTc6ZTY4ODU4ZWNkZDBlZmFkMjhlMGVjM2FhY2Q4M2IwNDBjYzg0ZDUxYWZkNGQ0OWNkYjgxNDVkYjQyZTA5NDNjZA=="
+
+ curl http://192.168.68.118:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181 \
+ -H "Authorization: Basic cmYwODA0MjRmOTlmYjA3MjNmYzQzM2QxZWFjZDc1YTY0YWVkNzY2MDBlOWM5NWZlNjA5ZDQ2ZGNjZDkyZmM4M2U6NWE1MWUwN2I2Yjk0YWI2YWE2YjA4YzMzYmJlY2E0YzQwMTMxYzYxY2YyOGZhM2FhNTg2ZTdiNmIxZjE5ODRkMw=="
+
+curl http://localhost:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181 \
+ -H "Authorization: Basic cjNlNzBkZmI1YTFiYzNiMzk2NGVjMjQ3MTJjNzc1NGQwYTNjMDlmOWM1MzZjOTU3MjlmMjE5ODI4ZmU5ZjA2MTc6NTBiNjI3ZGRkZTIxYTI2NDU0OTQ3NjUzMTI5ZmJkNDRhZDU1M2I5YmFhODZhODRkMTRhYWY0ZWQ1YjdkMjAzOQ=="
+
+curl http://localhost:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181 \
+ -H "Authorization: Basic OThudzc4bjc5Y3c0Y3dxODkwOmNuNzA4OTRjNzQ4OTBjNDg5MDB3MXg5NDA4OQ=="
+
+{
+  "_id": "e9bf718dc5221dfac6fad45b1e5ef604b68ea80eaf1b92ca96c4ffa6753ab2eef-vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+  "_rev": "3-a32a18ab1e5627a223718875a157caab",
+  "user_ctx": {
+    "name": "admin",
+    "roles": [
+      "_admin",
+      "_reader",
+      "_writer"
+    ]
+  },
+  "source": {
+    "url": "http://localhost:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+    "headers": {
+      "Authorization": "Basic cjNlNzBkZmI1YTFiYzNiMzk2NGVjMjQ3MTJjNzc1NGQwYTNjMDlmOWM1MzZjOTU3MjlmMjE5ODI4ZmU5ZjA2MTc6ZTY4ODU4ZWNkZDBlZmFkMjhlMGVjM2FhY2Q4M2IwNDBjYzg0ZDUxYWZkNGQ0OWNkYjgxNDVkYjQyZTA5NDNjZA=="
+    }
+  },
+  "target": {
+    "url": "http://192.168.68.118:5984/vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181",
+    "headers": {
+      "Authorization": "Basic cmYwODA0MjRmOTlmYjA3MjNmYzQzM2QxZWFjZDc1YTY0YWVkNzY2MDBlOWM5NWZlNjA5ZDQ2ZGNjZDkyZmM4M2U6NWE1MWUwN2I2Yjk0YWI2YWE2YjA4YzMzYmJlY2E0YzQwMTMxYzYxY2YyOGZhM2FhNTg2ZTdiNmIxZjE5ODRkMw=="
+    }
+  },
+  "create_target": false,
+  "continuous": true,
+  "owner": "admin"
+}
+
+
+
+vf19e24d684fb546dd9c9015336ce4005c12522f2cdedc066b2baf26b04351181
+
+ "username": "rf080424f99fb0723fc433d1eacd75a64aed76600e9c95fe609d46dccd92fc83e",
+  "password": "3f43e35bfdbf094461e415a956658825cc9e7d47e8bd4a7e6e746afee3064961",
+
+rf080424f99fb0723fc433d1eacd75a64aed76600e9c95fe609d46dccd92fc83e:3f43e35bfdbf094461e415a956658825cc9e7d47e8bd4a7e6e746afee3064961
+
+ * 
+ */
