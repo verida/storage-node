@@ -118,6 +118,7 @@ describe("Replication tests", function() {
             if (!doc) {
                 doc = new DIDDocument(DID, DID_PUBLIC_KEY)
             }
+
             await doc.addContext(CONTEXT_NAME, keyring, DID_PRIVATE_KEY, {
                 database: {
                     type: 'VeridaDatabase',
@@ -163,7 +164,7 @@ describe("Replication tests", function() {
         })
 
         // Create the test databases on the first endpoint
-        it.only('can create the test databases on the endpoints', async () => {
+        it('can create the test databases on the endpoints', async () => {
             for (let i in ENDPOINTS) {
                 let endpoint = ENDPOINTS[i]
                 for (let i in TEST_DATABASES) {
@@ -175,7 +176,7 @@ describe("Replication tests", function() {
         })
 
         // Call `checkReplication(db1)` on all the endpoints (first database only)
-        it.only('can initialise replication for one database via checkReplication()', async () => {
+        it('can initialise replication for one database via checkReplication()', async () => {
             // @todo: fix code so endpoint doesn't create replication entries to itself
             try {
                 for (let i in ENDPOINTS) {
@@ -226,7 +227,12 @@ describe("Replication tests", function() {
                         assert.equal(replicationEntry.source.url, `http://localhost:5984/${dbHash}`, `Source URI is correct for ${endpointCheckUri}`)
                         assert.equal(replicationEntry.target.url, `${ENDPOINTS_COUCH[endpointCheckUri]}/${dbHash}`, `Destination URI is correct for ${endpointCheckUri}`)
 
-                        REPLICATOR_CREDS[endpoint] = replicationEntry.target.headers
+                        console.log(replicationEntry.target.headers)
+                        if (!REPLICATOR_CREDS[endpointCheckUri]) {
+                            REPLICATOR_CREDS[endpointCheckUri] = replicationEntry.target.headers
+                        }
+
+                        //REPLICATOR_CREDS[endpoint][endpointCheckUri] = replicationEntry.target.headers
 
                         const replicationResponse = await Axios.get(`${ENDPOINT_DSN[endpoint]}/_scheduler/docs/_replicator/${replicatorId}-${dbHash}`)
                         assert.ok(replicationResponse, 'Have a replication job')
@@ -241,11 +247,12 @@ describe("Replication tests", function() {
             }
         })
 
-        it.only('verify replication user can write to first database', async () => {
+        it('verify replication user can write to first database', async () => {
             const endpoint0 = ENDPOINTS[0]
             const endpoint1 = ENDPOINTS[1]
 
-            const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint0], REPLICATOR_CREDS[endpoint1])
+            const creds = REPLICATOR_CREDS[endpoint0]
+            const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint0], creds)
 
             log(`${endpoint0}: Creating three test records on ${TEST_DATABASES[0]} (${TEST_DATABASE_HASH[0]}) using credentials from ${endpoint1}`)
             const endpoint0db1Connection = couch.db.use(TEST_DATABASE_HASH[0])
@@ -258,7 +265,7 @@ describe("Replication tests", function() {
         })
 
         // Verify data saved to db1 is being replicated for all endpoints
-        it.only('verify data is replicated on all endpoints for first database', async () => {
+        it('verify data is replicated on all endpoints for first database', async () => {
             // Sleep 5ms to have replication time to do its thing
             log('Sleeping so replication has time to do its thing...')
             await Utils.sleep(5000)
@@ -272,9 +279,8 @@ describe("Replication tests", function() {
 
                 const externalEndpoint = ENDPOINTS[i]
 
-                // Connect to the external endpoint, using the credentials from the
-                // first endpoint to confirm it has access (plus admin user doesnt have access)
-                const couch = buildEndpointConnection(ENDPOINTS_COUCH[externalEndpoint], REPLICATOR_CREDS[ENDPOINTS[0]])
+                const creds = REPLICATOR_CREDS[externalEndpoint]
+                const couch = buildEndpointConnection(ENDPOINTS_COUCH[externalEndpoint], creds)
                 const conn = couch.db.use(TEST_DATABASE_HASH[0])
 
                 log(`${externalEndpoint}: Verifying endpoint has docs`)
@@ -285,7 +291,7 @@ describe("Replication tests", function() {
             }
         })
 
-        it.only('can initialise replication for all database via checkReplication()', async () => {
+        it('can initialise replication for all database via checkReplication()', async () => {
             for (let i in ENDPOINTS) {
                 const endpoint = ENDPOINTS[i]
                 log(`${endpoint}: Calling checkReplication() on all databases for ${endpoint}`)
@@ -294,10 +300,10 @@ describe("Replication tests", function() {
             }
         })
 
-        it.only('verify data is being replicated for all databases and endpoints', async () => {
-            // Sleep 5ms to have replication time to initialise
+        it('verify data is being replicated for all databases and endpoints', async () => {
+            // Sleep 1s to have replication time to initialise
             log('Sleeping so replication has time to do its thing...')
-            await Utils.sleep(5000)
+            await Utils.sleep(1000)
 
             let recordCount = 0
             // Create data on every database, on every endpoint, and verify on every other endpoint
@@ -314,15 +320,7 @@ describe("Replication tests", function() {
                 log(`${dbName} (${dbHash}): Creating a record on every endpoint`)
                 for (let e in ENDPOINTS) {
                     const endpoint = ENDPOINTS[e]
-
-                    // Use the credentials of a different server as the local server doesn't have permissions
-                    // to write (even as admin)
-                    let creds
-                    if (e == 0) {
-                        creds = REPLICATOR_CREDS[ENDPOINTS[1]]
-                    } else {
-                        creds = REPLICATOR_CREDS[ENDPOINTS[0]]
-                    }
+                    const creds = REPLICATOR_CREDS[endpoint]
 
                     // create a record on this endpoint
                     const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint], creds)
@@ -333,19 +331,12 @@ describe("Replication tests", function() {
                 }
 
                 log(`${dbName} (${dbHash}): Done (${createdDatabaseIds.length}). Sleeping for replication to do its thing...`)
-                await Utils.sleep(5000)
+                await Utils.sleep(1000)
 
                 for (let e in ENDPOINTS) {
                     const endpoint = ENDPOINTS[e]
 
-                    // Use the credentials of a different server as the local server doesn't have permissions
-                    // to write (even as admin)
-                    let creds
-                    if (e == 0) {
-                        creds = REPLICATOR_CREDS[ENDPOINTS[1]]
-                    } else {
-                        creds = REPLICATOR_CREDS[ENDPOINTS[0]]
-                    }
+                    const creds = REPLICATOR_CREDS[endpoint]
 
                     // create a record on this endpoint
                     const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint], creds)
@@ -361,7 +352,7 @@ describe("Replication tests", function() {
             }
         })
 
-        it.only('can delete a database', async () => {
+        it('can delete a database', async () => {
             // delete a database from all endpoints
             for (let e in ENDPOINTS) {
                 const endpoint = ENDPOINTS[e]
@@ -370,7 +361,7 @@ describe("Replication tests", function() {
             }
         })
 
-        it.only('verify database is completely deleted from all endpoints', async () => {
+        it('verify database is completely deleted from all endpoints', async () => {
             const dbHash = TEST_DATABASE_HASH[0]
 
             for (let e in ENDPOINTS) {
@@ -378,12 +369,7 @@ describe("Replication tests", function() {
 
                 // Use the credentials of a different server as the local server doesn't have permissions
                 // to write (even as admin)
-                let creds
-                if (e == 0) {
-                    creds = REPLICATOR_CREDS[ENDPOINTS[1]]
-                } else {
-                    creds = REPLICATOR_CREDS[ENDPOINTS[0]]
-                }
+                const creds = REPLICATOR_CREDS[endpoint]
 
                 const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint], creds)
 
