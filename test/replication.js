@@ -227,7 +227,6 @@ describe("Replication tests", function() {
                         assert.equal(replicationEntry.source.url, `http://localhost:5984/${dbHash}`, `Source URI is correct for ${endpointCheckUri}`)
                         assert.equal(replicationEntry.target.url, `${ENDPOINTS_COUCH[endpointCheckUri]}/${dbHash}`, `Destination URI is correct for ${endpointCheckUri}`)
 
-                        console.log(replicationEntry.target.headers)
                         if (!REPLICATOR_CREDS[endpointCheckUri]) {
                             REPLICATOR_CREDS[endpointCheckUri] = replicationEntry.target.headers
                         }
