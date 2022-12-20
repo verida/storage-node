@@ -87,6 +87,24 @@ class Utils {
         return response
     }
 
+    async deleteDatabase(databaseName, did, contextName, accessToken, serverUrl) {
+        if (!serverUrl) {
+            serverUrl = CONFIG.SERVER_URL
+        }
+
+        const response = await Axios.post(`${serverUrl}/user/deleteDatabase`, {
+            databaseName,
+            did,
+            contextName
+        }, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        });
+        
+        return response
+    }
+
     async checkReplication(endpointUri, accessToken, databaseName) {
         const response = await Axios.post(`${endpointUri}/user/checkReplication`, {
             databaseName
@@ -116,6 +134,12 @@ class Utils {
         delete response.data['signature']
         return EncryptionUtils.verifySig(response.data, signature, VDA_PUBLIC_KEY)
     }
+
+    async sleep(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
+      }
 }
 
 const utils = new Utils()
