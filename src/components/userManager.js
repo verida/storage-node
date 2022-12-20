@@ -144,11 +144,14 @@ class UserManager {
      * @param {*} databaseName (optional) If not specified, checks all databases
      */
     async checkReplication(did, contextName, databaseName) {
-        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         const didDocument = await AuthManager.getDidDocument(did)
         const didService = didDocument.locateServiceEndpoint(contextName, 'database')
         let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
+
+        console.log(endpoints)
+        console.log('serverUrl', Utils.serverUri())
 
         // Confirm this endpoint is in the list of endpoints
         const endpointIndex = endpoints.indexOf(Utils.serverUri())
@@ -159,19 +162,28 @@ class UserManager {
         // Remove this endpoint from the list of endpoints to check
         endpoints.splice(endpointIndex, 1)
 
+        const userDatabases = await DbManager.getUserDatabases(did, contextName)
+
         let databases = {}
         if (databaseName) {
             //console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
+            for (let i in userDatabases) {
+                const item = userDatabases[i]
+                if (item.databaseName == databaseName) {
+                    databases[item.databaseName] = item
+                }
+            }
+            console.log(databases)
+            
             // Only check a single database
-            if (!userDatabases[databaseName]) {
+            if (!Object.keys(databases).length === 0) {
+                console.log(userDatabases)
+                console.log(databaseName)
                 console.log('User database not found!')
                 return
             }
-            
-            databases[databaseName] = userDatabases[databaseName]
         } else {
             // Fetch all databases for this context
-            let userDatabases = await DbManager.getUserDatabases(did, contextName)
             for (let i in userDatabases) {
                 const item = userDatabases[i]
                 databases[item.databaseName] = item

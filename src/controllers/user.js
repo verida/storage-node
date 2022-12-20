@@ -290,6 +290,7 @@ class UserController {
     }
 
     async checkReplication(req, res) {
+        console.log(`checkReplication()`)
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
         const databaseName = req.body.databaseName
