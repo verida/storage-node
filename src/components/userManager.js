@@ -174,7 +174,7 @@ class UserManager {
                 }
             }
             console.log(databases)
-            
+
             // Only check a single database
             if (!Object.keys(databases).length === 0) {
                 console.log(userDatabases)
@@ -297,8 +297,7 @@ class UserManager {
                     options.permissions = database.permissions
                 }
 
-                const username = Utils.generateUsername(did, contextName)
-                console.log(`Database didn't exist, so creating`)
+                const username = Utils.generateUsername(database.did, database.contextName)
                 await DbManager.createDatabase(database.did, username, database.databaseHash, database.contextName, options)
 
             } catch (err) {
