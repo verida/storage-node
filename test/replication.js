@@ -349,6 +349,63 @@ describe("Replication tests", function() {
             }
         })
 
+        it('verify non-replicated database is fixed with checkReplication()', async () => {
+            // manually delete the database replication entry from endpoint 1
+            // call checkReplication() on endpoint 1
+            // verify the replication entry exists and is valid
+        })
+
+        it('verify missing database is correctly created with checkReplication(databaseName)', async () => {
+            // manually delete the database from endpoint 1
+            console.log(`Destroying ${TEST_DATABASE_HASH[0]}`)
+            const endpoint1 = ENDPOINTS[0]
+            const creds = REPLICATOR_CREDS[endpoint1]
+            const couch = buildEndpointConnection(ENDPOINTS_DSN[endpoint1], creds)
+            await couch.db.destroy(TEST_DATABASE_HASH[0])
+            console.log(`Destroyed`)
+
+            // call checkReplication() on endpoint 1
+            console.log(`Calling checkReplication(${TEST_DATABASE_HASH[0]})`)
+            const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1], TEST_DATABASES[0])
+            console.log(result)
+
+            // verify the database has been re-created
+            const conn = couch.db.use(TEST_DATABASE_HASH[0])
+            try {
+                const results = await conn.list()
+                console.log(results)
+                assert.ok(true, 'Database exists')
+            } catch (err) {
+                assert.fail(`Database doesn't exist`)
+            }  
+        })
+
+        // Do it again, but without specifying the database
+        it('verify missing database is correctly created with checkReplication()', async () => {
+            // manually delete the database from endpoint 1
+            console.log(`Destroying ${TEST_DATABASE_HASH[0]}`)
+            const endpoint1 = ENDPOINTS[0]
+            const creds = REPLICATOR_CREDS[endpoint1]
+            const couch = buildEndpointConnection(ENDPOINTS_DSN[endpoint1], creds)
+            await couch.db.destroy(TEST_DATABASE_HASH[0])
+            console.log(`Destroyed`)
+
+            // call checkReplication() on endpoint 1
+            console.log(`Calling checkReplication(${TEST_DATABASE_HASH[0]})`)
+            const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1])
+            console.log(result)
+
+            // verify the database has been re-created
+            const conn = couch.db.use(TEST_DATABASE_HASH[0])
+            try {
+                const results = await conn.list()
+                console.log(results)
+                assert.ok(true, 'Database exists')
+            } catch (err) {
+                assert.fail(`Database doesn't exist`)
+            }
+        })
+
         it('can delete a database', async () => {
             // delete a database from all endpoints
             for (let e in ENDPOINTS) {
