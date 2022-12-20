@@ -231,8 +231,6 @@ describe("Replication tests", function() {
                             REPLICATOR_CREDS[endpointCheckUri] = replicationEntry.target.headers
                         }
 
-                        //REPLICATOR_CREDS[endpoint][endpointCheckUri] = replicationEntry.target.headers
-
                         const replicationResponse = await Axios.get(`${ENDPOINT_DSN[endpoint]}/_scheduler/docs/_replicator/${replicatorId}-${dbHash}`)
                         assert.ok(replicationResponse, 'Have a replication job')
 
