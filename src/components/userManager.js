@@ -168,6 +168,13 @@ class UserManager {
             // Fetch all databases for this context
             let userDatabases = await DbManager.getUserDatabases(did, contextName)
             databases = userDatabases.map(item => item.databaseName)
+
+            // Ensure the user database list database is included in the list of databases
+            const didContextHash = Utils.generateDidContextHash(did, contextName)
+            const didContextDbName = `c${didContextHash}`
+
+            // prefix with `hashed::` to indicate this database name is already hash
+            databases.push(`hashed::${didContextDbName}`)
             //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
 
@@ -178,13 +185,19 @@ class UserManager {
         const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
         const localAuthBase64 = localAuthBuffer.toString('base64')
 
+        // Ensure all databases have replication entries
         for (let d in databases) {
             const dbName = databases[d]
+            let dbHash
+            if (dbName.substring(0,8) == 'hashed::') {
+                dbHash = Utils.generateDatabaseName(did, contextName, dbName)
+            } else {
+                dbHash = dbname.substring(8)
+            }
 
             for (let e in endpoints) {
                 const endpointUri = endpoints[e]
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-                const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
