@@ -18,6 +18,7 @@ import CONFIG from './config'
 const LOGGING_ENABLED = false
 
 // Use a pre-built mnemonic where the first private key is a Verida DID private key
+// mnemonic with a Verida DID that points to 2x local endpoints
 const MNEMONIC = 'pave online install gift glimpse purpose truth loan arm wing west option'
 
 // Context name to use for the tests
@@ -217,7 +218,7 @@ describe("Replication tests", function() {
                         } catch (err) {
                             log('pouchdb connection error')
                             log(err.message)
-                            assert.fail('Replication record not created')
+                            assert.fail(`Replication record not created (${replicatorId}-${dbHash})`)
                         }
 
                         // Check info is accurate
@@ -300,7 +301,7 @@ describe("Replication tests", function() {
         it('verify data is being replicated for all databases and endpoints', async () => {
             // Sleep 1s to have replication time to initialise
             log('Sleeping so replication has time to do its thing...')
-            await Utils.sleep(1000)
+            await Utils.sleep(5000)
 
             let recordCount = 0
             // Create data on every database, on every endpoint, and verify on every other endpoint
@@ -328,82 +329,117 @@ describe("Replication tests", function() {
                 }
 
                 log(`${dbName} (${dbHash}): Done (${createdDatabaseIds.length}). Sleeping for replication to do its thing...`)
-                await Utils.sleep(1000)
+                await Utils.sleep(5000)
 
-                for (let e in ENDPOINTS) {
-                    const endpoint = ENDPOINTS[e]
+                try {
+                    for (let e in ENDPOINTS) {
+                        const endpoint = ENDPOINTS[e]
 
-                    const creds = REPLICATOR_CREDS[endpoint]
+                        const creds = REPLICATOR_CREDS[endpoint]
 
-                    // create a record on this endpoint
-                    const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint], creds)
-                    const conn = couch.db.use(dbHash)
-                    
-                    // confirm all the records exist
-                    for (let j in createdDatabaseIds) {
-                        const createdId = createdDatabaseIds[j]
-                        const result = await conn.get(createdId)
-                        assert.equal(result._id, createdId, 'Record deleted')
+                        // create a record on this endpoint
+                        const couch = buildEndpointConnection(ENDPOINTS_COUCH[endpoint], creds)
+                        const conn = couch.db.use(dbHash)
+                        
+                        // confirm all the records exist
+                        for (let j in createdDatabaseIds) {
+                            const createdId = createdDatabaseIds[j]
+                            const result = await conn.get(createdId)
+                            assert.equal(result._id, createdId, 'Record deleted')
+                        }
                     }
+                } catch (err) {
+                    console.log(err)
+                    throw err
                 }
             }
         })
 
         it('verify non-replicated database is fixed with checkReplication()', async () => {
-            // manually delete the database replication entry from endpoint 1
+            // manually delete the database replication entry from endpoint 1 to endpoint 2
+            const endpoint1 = ENDPOINTS[0]
+            const endpoint2 = ENDPOINTS[1]
+            const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
+            const replicatorId = ComponentUtils.generateReplicatorHash(endpoint2, DID, CONTEXT_NAME)
+            const dbHash = ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, TEST_DATABASES[0])
+            const conn = couch.db.use(`_replicator`)
+
+            log(`${endpoint1}: (${endpoint2}) Locating _replication entry for ${TEST_DATABASES[0]} (${replicatorId}-${dbHash})`)
+            let replicationEntry
+            try {
+                replicationEntry = await conn.get(`${replicatorId}-${dbHash}`)
+                const destroyResult = await conn.destroy(replicationEntry._id, replicationEntry._rev)
+            } catch (err) {
+                log(err)
+                assert.fail(`Replication record not found (${replicatorId}-${dbHash})`)
+            }
+
             // call checkReplication() on endpoint 1
+            const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1], TEST_DATABASES[0])
+            assert.equal(result.data.status, 'success', 'checkReplication() success')
+
             // verify the replication entry exists and is valid
+            try {
+                const newReplicationEntry = await conn.get(`${replicatorId}-${dbHash}`)
+                assert.equal(newReplicationEntry._id, replicationEntry._id, 'Replication entry found with correct _id')
+                assert.ok(newReplicationEntry._rev != replicationEntry._rev, 'Replication entry found with different revision')
+            } catch (err) {
+                log(err.message)
+                assert.fail(`Replication record not found (${replicatorId}-${dbHash})`)
+            }
         })
 
         it('verify missing database is correctly created with checkReplication(databaseName)', async () => {
             // manually delete the database from endpoint 1
-            console.log(`Destroying ${TEST_DATABASE_HASH[0]}`)
             const endpoint1 = ENDPOINTS[0]
-            const creds = REPLICATOR_CREDS[endpoint1]
-            const couch = buildEndpointConnection(ENDPOINTS_DSN[endpoint1], creds)
+            const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
             await couch.db.destroy(TEST_DATABASE_HASH[0])
-            console.log(`Destroyed`)
 
             // call checkReplication() on endpoint 1
-            console.log(`Calling checkReplication(${TEST_DATABASE_HASH[0]})`)
             const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1], TEST_DATABASES[0])
-            console.log(result)
+            assert.equal(result.data.status, 'success', 'checkReplication() success')
 
             // verify the database has been re-created
             const conn = couch.db.use(TEST_DATABASE_HASH[0])
             try {
                 const results = await conn.list()
-                console.log(results)
-                assert.ok(true, 'Database exists')
+                assert.ok(results, 'Database exists')
             } catch (err) {
+                console.log(err)
                 assert.fail(`Database doesn't exist`)
-            }  
+            }
         })
 
         // Do it again, but without specifying the database
         it('verify missing database is correctly created with checkReplication()', async () => {
             // manually delete the database from endpoint 1
-            console.log(`Destroying ${TEST_DATABASE_HASH[0]}`)
             const endpoint1 = ENDPOINTS[0]
-            const creds = REPLICATOR_CREDS[endpoint1]
-            const couch = buildEndpointConnection(ENDPOINTS_DSN[endpoint1], creds)
+            const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
             await couch.db.destroy(TEST_DATABASE_HASH[0])
-            console.log(`Destroyed`)
 
             // call checkReplication() on endpoint 1
-            console.log(`Calling checkReplication(${TEST_DATABASE_HASH[0]})`)
             const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1])
-            console.log(result)
+            assert.equal(result.data.status, 'success', 'checkReplication() success')
 
             // verify the database has been re-created
             const conn = couch.db.use(TEST_DATABASE_HASH[0])
             try {
                 const results = await conn.list()
-                console.log(results)
-                assert.ok(true, 'Database exists')
+                assert.ok(results, 'Database exists')
             } catch (err) {
+                console.log(err)
                 assert.fail(`Database doesn't exist`)
             }
+        })
+
+        // @todo make sure database permissions are correct when the database is re-created
+
+        // @todo detects the storage node is no longer included in the DID document and deletes everything
+
+        // @todo inject a fake database into storage node 1, call checkReplication() on storage node 2, make sure it's not created
+
+        it('verify deleted database is correctly removed with checkReplication()', async () => {
+            // @todo
         })
 
         it('can delete a database', async () => {

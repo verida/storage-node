@@ -299,7 +299,6 @@ class UserManager {
 
                 const username = Utils.generateUsername(database.did, database.contextName)
                 await DbManager.createDatabase(database.did, username, database.databaseHash, database.contextName, options)
-
             } catch (err) {
                 // The database may already exist, or may have been deleted so a file already exists.
                 // In that case, ignore the error and continue
