@@ -159,15 +159,37 @@ class UserManager {
         // Remove this endpoint from the list of endpoints to check
         endpoints.splice(endpointIndex, 1)
 
-        let databases = []
+        const userDatabases = await DbManager.getUserDatabases(did, contextName)
+
+        let databases = {}
         if (databaseName) {
             //console.log(`${Utils.serverUri()}: Only checking ${databaseName}`)
+            for (let i in userDatabases) {
+                const item = userDatabases[i]
+                if (item.databaseName == databaseName) {
+                    databases[item.databaseName] = item
+                }
+            }
+
             // Only check a single database
-            databases.push(databaseName)
+            if (!Object.keys(databases).length === 0) {
+                return
+            }
         } else {
             // Fetch all databases for this context
-            let userDatabases = await DbManager.getUserDatabases(did, contextName)
-            databases = userDatabases.map(item => item.databaseName)
+            for (let i in userDatabases) {
+                const item = userDatabases[i]
+                databases[item.databaseName] = item
+            }
+
+            // Ensure the user database list database is included in the list of databases
+            const didContextHash = Utils.generateDidContextHash(did, contextName)
+            const didContextDbName = `c${didContextHash}`
+
+            databases[didContextDbName] = {
+                databaseName: didContextDbName,
+                databasehash: didContextDbName
+            }
             //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
 
@@ -178,13 +200,13 @@ class UserManager {
         const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
         const localAuthBase64 = localAuthBuffer.toString('base64')
 
+        // Ensure all databases have replication entries
         for (let d in databases) {
-            const dbName = databases[d]
+            const dbHash = databases[d].databaseHash
 
             for (let e in endpoints) {
                 const endpointUri = endpoints[e]
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-                const dbHash = Utils.generateDatabaseName(did, contextName, dbName)
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
@@ -241,6 +263,40 @@ class UserManager {
 
         // @todo: Find any replication errors and handle them nicely
         // @todo: Remove any replication entries for deleted databases
+
+        // Check user databases are configured correctly
+        await this.checkDatabases(userDatabases)
+    }
+
+    /**
+     * Check all the databases in the user database list exist
+     * 
+     * @todo: How to check they have the correct permissions?
+     */
+    async checkDatabases(userDatabases) {
+        const couch = Db.getCouch('internal')
+
+        for (let d in userDatabases) {
+            const database = userDatabases[d]
+            
+            // Try to create database
+            try {
+                //console.log(`Checking ${database.databaseHash} (${database.databaseName}) exists`)
+                await couch.db.create(database.databaseHash);
+
+                // Database didn't exist, so create it properly
+                const options = {}
+                if (database.permissions) {
+                    options.permissions = database.permissions
+                }
+
+                const username = Utils.generateUsername(database.did, database.contextName)
+                await DbManager.createDatabase(database.did, username, database.databaseHash, database.contextName, options)
+            } catch (err) {
+                // The database may already exist, or may have been deleted so a file already exists.
+                // In that case, ignore the error and continue
+            }
+        }
     }
 
 }
