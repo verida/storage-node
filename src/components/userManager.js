@@ -144,14 +144,11 @@ class UserManager {
      * @param {*} databaseName (optional) If not specified, checks all databases
      */
     async checkReplication(did, contextName, databaseName) {
-        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         const didDocument = await AuthManager.getDidDocument(did)
         const didService = didDocument.locateServiceEndpoint(contextName, 'database')
         let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
-
-        console.log(endpoints)
-        console.log('serverUrl', Utils.serverUri())
 
         // Confirm this endpoint is in the list of endpoints
         const endpointIndex = endpoints.indexOf(Utils.serverUri())
@@ -173,13 +170,9 @@ class UserManager {
                     databases[item.databaseName] = item
                 }
             }
-            console.log(databases)
 
             // Only check a single database
             if (!Object.keys(databases).length === 0) {
-                console.log(userDatabases)
-                console.log(databaseName)
-                console.log('User database not found!')
                 return
             }
         } else {
@@ -288,7 +281,7 @@ class UserManager {
             
             // Try to create database
             try {
-                console.log(`Checking ${database.databaseHash} (${database.databaseName}) exists`)
+                //console.log(`Checking ${database.databaseHash} (${database.databaseName}) exists`)
                 await couch.db.create(database.databaseHash);
 
                 // Database didn't exist, so create it properly
