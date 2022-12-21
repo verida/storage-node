@@ -263,13 +263,12 @@ class AuthController {
         const didDocument = await AuthManager.getDidDocument(did)
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
         const endpoints = endpointService.serviceEndpoint
-        if (endpoints.indexOf(endpointUri) === -1) {
+        if (endpoints.indexOf(`${endpointUri}/`) === -1) {
             return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
         }
 
         // Confirm this endpoint is linked to the DID and context
-        const thisEndpointUri = Utils.serverUri()
-        if (endpoints.indexOf(thisEndpointUri) === -1) {
+        if (endpoints.indexOf(`${Utils.serverUri()}/`) === -1) {
             return Utils.error(res, `Invalid DID and context: Not associated with this endpoint`)
         }
         

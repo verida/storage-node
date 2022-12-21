@@ -557,8 +557,9 @@ class AuthManager {
                 await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
                 //console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
             } catch (err) {
+                const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
-                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${message}})`)
                 }
 
                 throw err
@@ -570,8 +571,9 @@ class AuthManager {
                 couchUri = statusResponse.data.results.couchUri
                 //console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
+                const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
-                    throw Error(`Unable to obtain credentials from ${endpointUri} (${err.response.data.message})`)
+                    throw Error(`Unable to obtain credentials from ${endpointUri} (${message})`)
                 }
 
                 throw err

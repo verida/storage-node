@@ -206,7 +206,8 @@ class UserManager {
             const dbHash = databases[d].databaseHash
 
             for (let e in endpoints) {
-                const endpointUri = endpoints[e]
+                // strip trailing /
+                const endpointUri = endpoints[e].slice(0,-1)
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 let record
                 try {
