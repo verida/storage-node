@@ -146,8 +146,20 @@ class UserManager {
     async checkReplication(did, contextName, databaseName) {
         //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
-        const didDocument = await AuthManager.getDidDocument(did)
-        const didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let didDocument = await AuthManager.getDidDocument(did)
+        console.log(didDocument)
+        let didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        console.log(didService)
+
+        if (!didService) {
+            console.log('not found!!')
+            // Service not found, try to fetch the DID document without caching (as it may have been udpated)
+            didDocument = await AuthManager.getDidDocument(did, true)
+            console.log(didDocument)
+            didService = didDocument.locateServiceEndpoint(contextName, 'database')
+            console.log(didService)
+        }
+
         let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
 
         // Confirm this endpoint is in the list of endpoints

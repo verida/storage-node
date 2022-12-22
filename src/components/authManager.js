@@ -101,12 +101,15 @@ class AuthManager {
         }
     }
 
-    async getDidDocument(did) {
+    async getDidDocument(did, ignoreCache=false) {
         // Verify the signature signed the correct string
         const cacheKey = did
 
         try {
-            let didDocument = mcache.get(cacheKey)
+            let didDocument
+            if (!ignoreCache) {
+                didDocument = mcache.get(cacheKey)
+            }
 
             if (!didDocument) {
                 if (!didClient) {
