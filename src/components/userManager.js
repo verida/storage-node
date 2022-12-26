@@ -311,6 +311,9 @@ class UserManager {
             } catch (err) {
                 // The database may already exist, or may have been deleted so a file already exists.
                 // In that case, ignore the error and continue
+                if (err.error != 'file_exists') {
+                    throw err
+                }
             }
         }
     }
