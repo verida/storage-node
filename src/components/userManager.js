@@ -200,8 +200,10 @@ class UserManager {
             const didContextDbName = `c${didContextHash}`
 
             databases[didContextDbName] = {
+                did,
+                contextName,
                 databaseName: didContextDbName,
-                databasehash: didContextDbName
+                databaseHash: didContextDbName
             }
             //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
         }
