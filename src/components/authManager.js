@@ -78,13 +78,18 @@ class AuthManager {
         }
 
         const consentMessage = `Authenticate this application context: "${contextName}"?\n\n${did}\n${decodedJwt.authRequestId}`
-        return this.verifySignedConsentMessage(did, contextName, signature, consentMessage)
+        return this.verifySignedConsentMessage(did, signature, consentMessage)
     }
 
-    async verifySignedConsentMessage(did, contextName, signature, consentMessage) {
+    async verifySignedConsentMessage(did, signature, consentMessage) {
         // Verify the signature signed the correct string
         try {
             const didDocument = await this.getDidDocument(did)
+            if (!didDocument) {
+                console.log(`DID not found: ${did}`)
+                return false
+            }
+
             const result = didDocument.verifySig(consentMessage, signature)
 
             if (!result) {
@@ -122,6 +127,7 @@ class AuthManager {
                 }
 
                 didDocument = await didClient.get(did)
+
                 if (didDocument) {
                     const { DID_CACHE_DURATION }  = process.env
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
@@ -291,7 +297,7 @@ class AuthManager {
     async invalidateDeviceId(did, contextName, deviceId, signature) {
         did = did.toLowerCase()
         const consentMessage = `Invalidate device for this application context: "${contextName}"?\n\n${did}\n${deviceId}`
-        const validSignature = await this.verifySignedConsentMessage(did, contextName, signature, consentMessage)
+        const validSignature = await this.verifySignedConsentMessage(did, signature, consentMessage)
 
         if (!validSignature) {
             return false
