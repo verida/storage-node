@@ -638,10 +638,15 @@ class AuthManager {
         if (tokenRows && tokenRows.docs && tokenRows.docs.length) {
             for (let i in tokenRows.docs) {
                 const doc = tokenRows.docs[i]
-                const res = await tokenDb.destroy(doc._id, doc._rev)
+                try {
+                    await tokenDb.destroy(doc._id, doc._rev)
+                } catch (err) {
+                    if (err.error != 'not_found' && err.error != 'conflict') {
+                        console.log(`Unknown error in garbage collection: ${err.message}`)
+                    }
+                }
             }
         }
-
     }
 
 }
