@@ -262,6 +262,11 @@ class AuthController {
         // Lookup DID document and confirm endpointUri is a valid endpoint
         const didDocument = await AuthManager.getDidDocument(did)
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+
+        if (!endpointService || !endpointService.serviceEndpoint) {
+            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+        }
+
         const endpoints = endpointService.serviceEndpoint
         if (endpoints.indexOf(`${endpointUri}/`) === -1) {
             return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
