@@ -67,7 +67,12 @@ class DbManager {
                 permissions: permissions ? permissions : {}
             }, id)
         } catch (err) {
-            throw err
+            // It's possible the replication of the database list has already
+            // replicated this database entry causing a document update conflict
+            if (err.error != 'conflict') {
+                // If not a conflict, raise the error
+                throw err
+            }
         }
     }
 

@@ -25,7 +25,6 @@ class UserController {
 
     // Grant a user access to a user's database
     async createDatabase(req, res) {
-        const username = req.tokenData.username
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
         const databaseName = req.body.databaseName;
