@@ -10,10 +10,11 @@ class DbManager {
         this.error = null;
     }
 
-    async saveUserDatabase(did, owner, contextName, databaseName, databaseHash, permissions) {
+    async getUserDatabaseCouch(did, contextName) {
         const couch = Db.getCouch()
         const didContextHash = Utils.generateDidContextHash(did, contextName)
         const didContextDbName = `c${didContextHash}`
+        const username = Utils.generateUsername(did, contextName)
 
         // Create database for storing all the databases for this user context
         let db
@@ -25,11 +26,11 @@ class DbManager {
 
             let securityDoc = {
                 admins: {
-                    names: [owner],
+                    names: [username],
                     roles: []
                 },
                 members: {
-                    names: [owner],
+                    names: [username],
                     roles: [replicaterRole, 'replicater-local']
                 }
             };
@@ -38,7 +39,7 @@ class DbManager {
             try {
                 await this._insertOrUpdate(db, securityDoc, '_security');
             } catch (err) {
-                return false;
+                throw new Error('Unable to create user database list database')
             }
         } catch (err) {
             // The didContext database may already exist, or may have been deleted so a file
@@ -49,7 +50,11 @@ class DbManager {
             }
         }
         
-        db = couch.db.use(didContextDbName);
+        return couch.db.use(didContextDbName);
+    }
+
+    async saveUserDatabase(did, contextName, databaseName, databaseHash, permissions) {
+        const db = await this.getUserDatabaseCouch(did, contextName)
         const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
         try {
@@ -67,12 +72,8 @@ class DbManager {
     }
 
     async getUserDatabases(did, contextName) {
-        const couch = Db.getCouch()
-        const didContextHash = Utils.generateDidContextHash(did, contextName)
-        const didContextDbName = `c${didContextHash}`
-
         try {
-            const db = couch.db.use(didContextDbName)
+            const db = await this.getUserDatabaseCouch(did, contextName)
             const result = await db.list({include_docs: true, limit: 1000})
             const finalResult = result.rows.map((item) => {
                 delete item.doc['_id']
@@ -140,8 +141,9 @@ class DbManager {
         }
     }
 
-    async createDatabase(did, username, databaseHash, contextName, options) {
+    async createDatabase(did, databaseHash, contextName, options) {
         let couch = Db.getCouch();
+        const username = Utils.generateUsername(did, contextName)
 
         // Create database
         try {

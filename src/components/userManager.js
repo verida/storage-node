@@ -147,17 +147,12 @@ class UserManager {
         //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
-        console.log(didDocument)
         let didService = didDocument.locateServiceEndpoint(contextName, 'database')
-        console.log(didService)
 
         if (!didService) {
-            console.log('not found!!')
             // Service not found, try to fetch the DID document without caching (as it may have been udpated)
             didDocument = await AuthManager.getDidDocument(did, true)
-            console.log(didDocument)
             didService = didDocument.locateServiceEndpoint(contextName, 'database')
-            console.log(didService)
         }
 
         let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
@@ -294,7 +289,7 @@ class UserManager {
 
         for (let d in userDatabases) {
             const database = userDatabases[d]
-            
+
             // Try to create database
             try {
                 //console.log(`Checking ${database.databaseHash} (${database.databaseName}) exists`)
@@ -306,8 +301,7 @@ class UserManager {
                     options.permissions = database.permissions
                 }
 
-                const username = Utils.generateUsername(database.did, database.contextName)
-                await DbManager.createDatabase(database.did, username, database.databaseHash, database.contextName, options)
+                await DbManager.createDatabase(database.did, database.databaseHash, database.contextName, options)
             } catch (err) {
                 // The database may already exist, or may have been deleted so a file already exists.
                 // In that case, ignore the error and continue
