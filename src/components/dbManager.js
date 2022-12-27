@@ -30,7 +30,7 @@ class DbManager {
                 },
                 members: {
                     names: [owner],
-                    roles: [replicaterRole]
+                    roles: [replicaterRole, 'replicater-local']
                 }
             };
 
