@@ -1,23 +1,32 @@
 import dotenv from 'dotenv';
 import CouchDb from 'nano';
+import Axios from 'axios';
 
 dotenv.config();
 
 class Db {
 
     getCouch(type='external') {
-        if (!this._couch) {
-            const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, type);
+        const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, type);
 
-            this._couch = new CouchDb({
-                url: dsn,
-                requestDefaults: {
-                    rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
-                }
-            });
+        return new CouchDb({
+            url: dsn,
+            requestDefaults: {
+                rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
+            }
+        });
+    }
+
+    async getReplicationStatus(replicationId) {
+        const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, 'internal');
+
+        try {
+            const replicationStatus = await Axios.get(`${dsn}/_scheduler/docs/_replicator/${replicationId}`)
+            return replicationStatus.data
+        } catch (err) {
+            console.log(err)
+            return undefined
         }
-
-        return this._couch;
     }
 
     buildDsn(username, password, type='external') {
