@@ -117,7 +117,9 @@ class AuthManager {
             }
 
             if (!didDocument) {
+                console.info(`DID document not in cache: ${did}`)
                 if (!didClient) {
+                    console.info(`DID client didn;t exist, creating`)
                     const didClientConfig = {
                         network: process.env.DID_NETWORK ? process.env.DID_NETWORK : 'testnet',
                         rpcUrl: process.env.DID_RPC_URL
@@ -129,9 +131,12 @@ class AuthManager {
                 didDocument = await didClient.get(did)
 
                 if (didDocument) {
+                    console.info(`Adding DID document to cache: ${did}`)
                     const { DID_CACHE_DURATION }  = process.env
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
                 }
+            } else {
+                console.info(`DID document IN cache: ${did}`)
             }
 
             return didDocument
@@ -460,6 +465,14 @@ class AuthManager {
         await tokenDb.createIndex(expiryIndex);
     }
 
+    /**
+     * Ensure a replication user exists for a given endpoint
+     * 
+     * @param {*} endpointUri 
+     * @param {*} password 
+     * @param {*} replicaterRole 
+     * @returns 
+     */
     async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
@@ -521,6 +534,14 @@ class AuthManager {
         }
     }
 
+    /**
+     * Fetch the credentials for this endpoint to replicate to another endpoint
+     * 
+     * @param {*} endpointUri 
+     * @param {*} did 
+     * @param {*} contextName 
+     * @returns 
+     */
     async fetchReplicaterCredentials(endpointUri, did, contextName) {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
@@ -541,7 +562,7 @@ class AuthManager {
         }
 
         if (!creds) {
-            //console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
+            console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
             const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
 
             // Generate a random password
@@ -561,10 +582,10 @@ class AuthManager {
             requestBody.signature = signature
 
             // Fetch credentials from the endpointUri
-            //console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
+            console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
             try {
                 await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
-                //console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
+                console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
@@ -578,7 +599,7 @@ class AuthManager {
             try {
                 const statusResponse = await Axios.get(`${endpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
-                //console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
+                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
@@ -598,7 +619,7 @@ class AuthManager {
 
             try {
                 await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                //console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
+                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
             } catch (err) {
                 throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
             }
