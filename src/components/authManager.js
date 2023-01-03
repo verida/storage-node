@@ -94,7 +94,6 @@ class AuthManager {
 
             if (!result) {
                 console.info('Invalid signature when verifying signed consent message')
-                // Invalid signature
                 return false
             }
 
@@ -141,6 +140,7 @@ class AuthManager {
 
             return didDocument
         } catch (err) {
+            console.info(err)
             // Likely unable to resolve DID or invalid signature
             console.info(`Unable to resolve DID`)
             return false
