@@ -158,13 +158,17 @@ class UserManager {
         // create a copy as this is cached and we will modify later
         // ensure it's hostname only
         let endpoints = []
+        const serverHostname = (new URL(Utils.serverUri())).hostname
+        let endpointIndex = -1
         for (let e in didService.serviceEndpoint) {
-            endpoints.push((new URL(didService.serviceEndpoint[e])).hostname)
+            const url = new URL(didService.serviceEndpoint[e])
+            endpoints.push(url)
+            if (url.hostname == serverHostname) {
+                endpointIndex = e
+            }
         }
 
         // Confirm this endpoint is in the list of endpoints
-        const serverHostname = (new URL(Utils.serverUri())).hostname
-        const endpointIndex = endpoints.indexOf(serverHostname)
         if (endpointIndex === -1) {
             console.log(`${Utils.serverUri()}: Error: Server not a valid endpoint for this DID and context:`)
             console.log(endpoints, endpointIndex)
@@ -224,7 +228,7 @@ class UserManager {
             for (let e in endpoints) {
                 // create a fake endpoint to have a valid URL
                 // generateReplicatorHash() will strip back to hostname
-                const endpointUri = `http://${endpoints[e]}`
+                const endpointUri = endpoints[e].origin
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 let record
                 try {
