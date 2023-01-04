@@ -1794,6 +1794,16 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
+"@verida/encryption-utils@^2.0.0-rc5":
+  version "2.0.0-rc5"
+  resolved "https://registry.yarnpkg.com/@verida/encryption-utils/-/encryption-utils-2.0.0-rc5.tgz#00d387e17fcdabfed937e8949d83fe3497c42b10"
+  integrity sha512-YGOdkBxJ6FBdsdLpzYXRstUVqNZ1Rwb5Jzc18+Zyw6bOYM4AYtN5l+MNiMR4lUuoiQT7uU5Gmq/Btjb6HyrzDQ==
+  dependencies:
+    ethers "^5.5.1"
+    json.sortify "^2.2.2"
+    tweetnacl "^1.0.3"
+    tweetnacl-util "^0.15.1"
+
 "@verida/keyring@^2.0.0-rc1":
   version "2.0.0-rc1"
   resolved "https://registry.yarnpkg.com/@verida/keyring/-/keyring-2.0.0-rc1.tgz#300b382c01034ce6e22458778ae0d7e8d0b426e5"
@@ -3805,6 +3815,11 @@ json-stringify-safe@~5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/json-stringify-safe/-/json-stringify-safe-5.0.1.tgz#1296a2d58fd45f19a0f6ce01d65701e2c735b6eb"
   integrity sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==
+
+json.sortify@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/json.sortify/-/json.sortify-2.2.2.tgz#1ade7704581c469aaf3f021350d174d1c5617276"
+  integrity sha512-wwFLdDffs747s5cqLA3htIKp9wdID2rWNofJKxwDjFo+rqqt5Vg7SnYOh7mc7MW6Iw43rrOFhr6MKytOtNceSA==
 
 json5@^2.2.1:
   version "2.2.1"
