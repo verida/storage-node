@@ -3,6 +3,7 @@ import Db from './db.js'
 import Utils from './utils.js'
 import DbManager from './dbManager.js';
 import AuthManager from './authManager';
+import Axios from 'axios'
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -283,7 +284,6 @@ class UserManager {
                 }
 
                 // @todo Find any replication errors and handle them nicely
-                /*
                 try {
                     console.log('getting replication status!')
                     const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
@@ -296,19 +296,24 @@ class UserManager {
                         continue
                     }
 
-                    if (replicationStatus.state == 'crashing') {
-                        console.log('crashing: ', dbHash, databases[d].databaseName)
+                    if (replicationStatus.state != 'crashing') {
+                        console.log('NOT crashing: ', dbHash, databases[d].databaseName)
+                        continue
                     }
 
-                    const isValid = await verifyReplicationCredentials(replicatorId)
-                    console.log('isValid', isValid)
+                    console.log('crashing: ', dbHash, databases[d].databaseName)
 
-                    if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match('replication_auth_error')) {
+                    const validCredentials = await this.verifyReplicationCredentials(replicatorId)
+                    console.log('validCredentials', validCredentials)
+                    
+
+                    if (!validCredentials) {
                         // Replication not working due to auth, fetch new replication credentials and update all replications
                         // Verify replication credentials are valid
+                        console.log('replication has invalid credentials, fetching new ones')
 
-
-                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                        // true = force fetching new credentials
+                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName, true)
 
                         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
@@ -325,8 +330,11 @@ class UserManager {
 
                         const replicationEntries = await replicationDb.find(query)
 
-                        for (let r in replicationEntries) {
-                            const replicationEntry = replicationEntries[r]
+                        for (let r in replicationEntries.docs) {
+                            const replicationEntry = replicationEntries.docs[r]
+                            console.log(`updating replication credentials for `)
+                            console.log(replicationEntry)
+                            //continue
                             replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
                             try {
                                 await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
@@ -335,12 +343,13 @@ class UserManager {
                                 console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${replicatorId}): ${err.message}`)
                             }
                         }
+                    } else {
+                        console.error(`Unknown replication error for ${replicatorId}: ${replicationStatus.state}, ${replicationStatus.info.error}`)
                     }
                 } catch (err) {
                     console.log('new code error!')
                     console.log(err)
                 }
-                */
             }
         }
 
@@ -351,7 +360,6 @@ class UserManager {
         await this.checkDatabases(userDatabases)
     }
 
-    /*
     async verifyReplicationCredentials(replicatorId) {
         const couch = Db.getCouch('internal')
         const credsDb = couch.db.use(process.env.DB_REPLICATER_CREDS)
@@ -369,19 +377,26 @@ class UserManager {
                     }
                 })
                 
+                console.log('endpoint session')
+                console.log(endpointSession.data)
 
                 return true
             } catch (err) {
-                console.log(`Endpoint (${endpointUri} error: ${err.message})`)
-                return true
+                if (err.response.data.error == 'unauthorized') {
+                    return false
+                }
+
+                console.info(`userManager:verifyReplicationCredentials(): Unknown error attempting to reach ${endpointUri} (${err.message})`)
+                return false
             }
         } catch (err) {
             if (err.error == 'not_found') {
                 return false
             }
+
+            console.error(`userManager:verifyReplicationCredentials(): Unable to locate replicationCreds for ${endpointUri} (${err.message})`)
         }
     }
-    */
 
     /**
      * Check all the databases in the user database list exist

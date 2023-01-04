@@ -542,24 +542,28 @@ class AuthManager {
      * @param {*} contextName 
      * @returns 
      */
-    async fetchReplicaterCredentials(endpointUri, did, contextName) {
+    async fetchReplicaterCredentials(endpointUri, did, contextName, force=false) {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
         const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
         
-        //console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
 
         let creds
-        try {
-            creds = await replicaterCredsDb.get(replicaterHash)
-            //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
-        } catch (err) {
-            // If credentials aren't found, that's okay we will create them below
-            if (err.error != 'not_found') {
-                throw err
+        if (!force) {
+            try {
+                creds = await replicaterCredsDb.get(replicaterHash)
+                //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+            } catch (err) {
+                // If credentials aren't found, that's okay we will create them below
+                if (err.error != 'not_found') {
+                    throw err
+                }
             }
         }
+
+        console.log(creds)
 
         if (!creds) {
             console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
@@ -579,6 +583,7 @@ class AuthManager {
 
             const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
             const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
+
             requestBody.signature = signature
 
             // Fetch credentials from the endpointUri
