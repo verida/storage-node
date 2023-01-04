@@ -46,8 +46,9 @@ class Utils {
     }
 
     generateReplicatorHash(endpointUri, did, contextName) {
+        const hostname = (new URL(endpointUri)).hostname
         let text = [
-            endpointUri,
+            hostname,
             did.toLowerCase(),
             contextName
         ].join("/");

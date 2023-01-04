@@ -155,15 +155,20 @@ class UserManager {
             didService = didDocument.locateServiceEndpoint(contextName, 'database')
         }
 
-        let endpoints = [...didService.serviceEndpoint] // create a copy as this is cached and we will modify later
+        // create a copy as this is cached and we will modify later
+        // ensure it's hostname only
+        let endpoints = []
+        for (let e in didService.serviceEndpoint) {
+            endpoints.push((new URL(didService.serviceEndpoint[e])).hostname)
+        }
 
         // Confirm this endpoint is in the list of endpoints
-        // Note: serverUri doesn't have a trailing slash, but all DID document endpoints do
-        const endpointIndex = endpoints.indexOf(`${Utils.serverUri()}/`)
+        const serverHostname = (new URL(Utils.serverUri())).hostname
+        const endpointIndex = endpoints.indexOf(serverHostname)
         if (endpointIndex === -1) {
             console.log(`${Utils.serverUri()}: Error: Server not a valid endpoint for this DID and context:`)
             console.log(endpoints, endpointIndex)
-            throw new Error('Server not a valid endpoint for this DID and context')
+            throw new Error(`Server not a valid endpoint (${serverHostname}) for this DID and context`)
         }
 
         // Remove this endpoint from the list of endpoints to check
@@ -217,8 +222,9 @@ class UserManager {
             const dbHash = databases[d].databaseHash
 
             for (let e in endpoints) {
-                // strip trailing /
-                const endpointUri = endpoints[e].slice(0,-1)
+                // create a fake endpoint to have a valid URL
+                // generateReplicatorHash() will strip back to hostname
+                const endpointUri = `http://${endpoints[e]}`
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 let record
                 try {
