@@ -553,7 +553,7 @@ class AuthManager {
         let creds
         if (!force) {
             try {
-                creds = await replicaterCredsDb.get(replicaterHash)
+                creds = await replicaterCredsDb.get(replicaterUsername)
                 //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
             } catch (err) {
                 // If credentials aren't found, that's okay we will create them below
