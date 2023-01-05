@@ -546,9 +546,9 @@ class AuthManager {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
-        const replicaterHash = Utils.generateReplicatorHash(endpointUri, did, contextName)
+        const replicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
         
-        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+        console.log(`!!!!!! ${(new Date()).toString()} : ${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
 
         let creds
         if (!force) {
@@ -565,8 +565,29 @@ class AuthManager {
 
         console.log(creds)
 
+        // temporarily return existing creds
+
         if (!creds) {
-            console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
+            if (force) {
+                console.log(`${Utils.serverUri()}: Forcing credential creation for ${endpointUri}`)
+            } else {
+                console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
+            }
+
+            ///
+            /*
+            try {
+                creds = await replicaterCredsDb.get(replicaterHash)
+                console.log('returning existing...')
+                return creds
+            } catch (err) {
+                // If credentials aren't found, that's okay we will create them below
+                if (err.error != 'not_found') {
+                    throw err
+                }
+            }*/
+            ///
+
             const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
 
             // Generate a random password
@@ -589,6 +610,7 @@ class AuthManager {
             // Fetch credentials from the endpointUri
             console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
             try {
+                console.log(requestBody)
                 await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
                     // 5 second timeout
                     timeout: 5000
@@ -618,26 +640,31 @@ class AuthManager {
             }
 
             creds = {
-                _id: replicaterHash,
+                _id: replicaterUsername,
                 // Use this server username
-                username: Utils.generateReplicaterUsername(Utils.serverUri()),
+                username: replicaterUsername,
                 password,
                 couchUri
             }
 
             try {
-                await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri}`)
+                const result = await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
+                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri} ${result.id}`)
             } catch (err) {
                 throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
             }
         }
 
-        return {
+        const result = {
             username: creds.username,
             password: creds.password,
             couchUri: creds.couchUri
         }
+
+        console.log('fetchedcreds:')
+        console.log(result)
+
+        return result
     }
 
     // Garbage collection of refresh tokens
