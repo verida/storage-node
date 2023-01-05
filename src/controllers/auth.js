@@ -264,11 +264,17 @@ class AuthController {
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
 
         if (!endpointService || !endpointService.serviceEndpoint) {
-            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+            console.log(`Invalid endpoint (${endpointUri}): DID not linked (${did}) to endpoint`)
+            console.log(endpointService)
+            console.log(endpointService.serviceEndpoint)
+            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did}) to endpoint`)
         }
 
         const endpoints = endpointService.serviceEndpoint
         if (endpoints.indexOf(`${endpointUri}/`) === -1) {
+            console.log(`Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+            console.log(endpointService)
+            console.log(endpointService.serviceEndpoint)
             return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
         }
 
