@@ -651,6 +651,8 @@ class AuthManager {
         const result = {
             username: creds.username,
             password: creds.password,
+            // did the credentials exit already?
+            credsUpdated: updatePassword ? false : true,
             couchUri: creds.couchUri
         }
 
