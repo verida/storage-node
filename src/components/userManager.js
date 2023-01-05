@@ -241,7 +241,7 @@ class UserManager {
                     console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
-                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} is missing... creating.`)
+                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint
@@ -316,7 +316,7 @@ class UserManager {
                         console.log('replication has invalid credentials, fetching new ones')
 
                         // true = force fetching new credentials
-                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName, true)
+                        const { username, password, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
 
                         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')

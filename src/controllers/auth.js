@@ -296,6 +296,11 @@ class AuthController {
                 timestampMinutes,
                 password
             }
+            console.log(params)
+            if (!password) {
+                console.log('no password, so deleteing from params sig verification')
+                delete params['password']
+            }
 
             if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
                 return Utils.error(res, 'Invalid signature', 401)

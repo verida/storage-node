@@ -474,7 +474,9 @@ class AuthManager {
      * @returns 
      */
     async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
+        console.log(`ensureReplicationCredentials(${endpointUri}, ${password}, ${replicaterRole})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
+        console.log(username)
         const id = `org.couchdb.user:${username}`
 
         const couch = Db.getCouch('internal');
@@ -485,7 +487,7 @@ class AuthManager {
 
             let userRequiresUpdate = false
             if (user.roles.indexOf(replicaterRole) == -1) {
-                //console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
                 user.roles.push(replicaterRole)
                 userRequiresUpdate = true
             }
@@ -494,12 +496,12 @@ class AuthManager {
             if (password) {
                 user.password = password
                 userRequiresUpdate = true
-                //console.log(`User exists and password needs updating`)
+                console.log(`User exists and password needs updating`)
             }
 
             if (userRequiresUpdate) {
                 // User exists and we need to update the password or roles
-                //console.log(`User exists, updating password and / or roles`)
+                console.log(`User exists, updating password and / or roles`)
                 
                 try {
                     await dbManager._insertOrUpdate(usersDb, user, user._id)
@@ -518,7 +520,7 @@ class AuthManager {
 
             // Need to create the user
             try {
-                //console.log('Replication user didnt exist, so creating')
+                console.log('Replication user didnt exist, so creating')
                 await dbManager._insertOrUpdate(usersDb, {
                     _id: id,
                     name: username,
@@ -542,7 +544,7 @@ class AuthManager {
      * @param {*} contextName 
      * @returns 
      */
-    async fetchReplicaterCredentials(endpointUri, did, contextName, force=false) {
+    async fetchReplicaterCredentials(endpointUri, did, contextName) {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
@@ -550,82 +552,70 @@ class AuthManager {
         
         console.log(`!!!!!! ${(new Date()).toString()} : ${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
 
-        let creds
-        if (!force) {
-            try {
-                creds = await replicaterCredsDb.get(replicaterUsername)
-                //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
-            } catch (err) {
-                // If credentials aren't found, that's okay we will create them below
-                if (err.error != 'not_found') {
-                    throw err
-                }
+        let creds, password
+        try {
+            creds = await replicaterCredsDb.get(replicaterUsername)
+            password = creds.password
+            console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+        } catch (err) {
+            // If credentials aren't found, that's okay we will create them below
+            if (err.error != 'not_found') {
+                throw err
             }
         }
 
-        console.log(creds)
-
-        // temporarily return existing creds
-
-        if (!creds) {
-            if (force) {
-                console.log(`${Utils.serverUri()}: Forcing credential creation for ${endpointUri}`)
-            } else {
-                console.log(`${Utils.serverUri()}: No credentials found for ${endpointUri}... creating.`)
-            }
-
-            ///
-            /*
-            try {
-                creds = await replicaterCredsDb.get(replicaterHash)
-                console.log('returning existing...')
-                return creds
-            } catch (err) {
-                // If credentials aren't found, that's okay we will create them below
-                if (err.error != 'not_found') {
-                    throw err
-                }
-            }*/
-            ///
-
-            const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
-
+        let updatePassword = false
+        if (!password) {
+            console.log('generating random password')
             // Generate a random password
             const secretKeyBytes = EncryptionUtils.randomKey(32)
-            const password = Buffer.from(secretKeyBytes).toString('hex')
+            password = Buffer.from(secretKeyBytes).toString('hex')
+            updatePassword = true
+        }
 
-            const requestBody = {
-                did,
-                contextName,
-                endpointUri: Utils.serverUri(),
-                timestampMinutes,
-                password
+        const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
+
+        const requestBody = {
+            did,
+            contextName,
+            endpointUri: Utils.serverUri(),
+            timestampMinutes,
+            password
+        }
+
+        // Only include the password if it is changing
+        if (!updatePassword) {
+            console.log('not including password in requestBody')
+            delete requestBody['password']
+        }
+
+        const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
+        const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
+
+        requestBody.signature = signature
+
+        // Fetch credentials from the endpointUri
+        console.log(`${Utils.serverUri()}: Verifying replication creds for endpoint: ${endpointUri}`)
+        try {
+            console.log(requestBody)
+            await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
+                // 5 second timeout
+                timeout: 5000
+            })
+            console.log(`${Utils.serverUri()}: Credentials verified for ${endpointUri}`)
+        } catch (err) {
+            const message = err.response ? err.response.data.message : err.message
+            if (err.response) {
+                throw Error(`Unable to verify credentials from ${endpointUri} (${message}})`)
             }
 
-            const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
-            const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
+            throw err
+        }
 
-            requestBody.signature = signature
-
-            // Fetch credentials from the endpointUri
-            console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
-            try {
-                console.log(requestBody)
-                await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
-                    // 5 second timeout
-                    timeout: 5000
-                })
-                console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
-            } catch (err) {
-                const message = err.response ? err.response.data.message : err.message
-                if (err.response) {
-                    throw Error(`Unable to obtain credentials from ${endpointUri} (${message}})`)
-                }
-
-                throw err
-            }
-
-            let couchUri
+        let couchUri
+        if (creds) {
+            couchUri = creds.couchUri
+        } else {
             try {
                 const statusResponse = await Axios.get(`${endpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
@@ -633,12 +623,15 @@ class AuthManager {
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
-                    throw Error(`Unable to obtain credentials from ${endpointUri} (${message})`)
+                    throw Error(`Unable to obtain couchUri from ${endpointUri} (${message})`)
                 }
 
                 throw err
             }
+        }
 
+        // Update the password (or create new replication entry if it doesn't exist)
+        if (updatePassword) {
             creds = {
                 _id: replicaterUsername,
                 // Use this server username
