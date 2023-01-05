@@ -139,6 +139,8 @@ class UserManager {
      * active databases and can ensure it is replicating correctly to the other nodes.
      * 
      * The client SDK should call checkReplication() when opening a context to ensure the replication is working as expected.
+     *
+     * This is called very often, so needs to be efficient
      * 
      * @param {*} did 
      * @param {*} contextName 
@@ -156,7 +158,7 @@ class UserManager {
             didService = didDocument.locateServiceEndpoint(contextName, 'database')
         }
 
-        // create a copy as this is cached and we will modify later
+        // create a copy of the endpoints as this is cached and we will modify later
         // ensure it's hostname only
         let endpoints = []
         const serverHostname = (new URL(Utils.serverUri())).hostname
@@ -287,8 +289,7 @@ class UserManager {
                 try {
                     console.log('getting replication status!')
                     const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
-                    console.log('got replicationStatus')
-                    console.log(replicationStatus)
+                    //console.log('got replicationStatus', replicationStatus.state)
 
                     if (!replicationStatus) {
                         // Replication entry not found... shouldn't really happen but it's not possible recover from it here
@@ -332,9 +333,7 @@ class UserManager {
 
                         for (let r in replicationEntries.docs) {
                             const replicationEntry = replicationEntries.docs[r]
-                            console.log(`updating replication credentials for `)
-                            console.log(replicationEntry)
-                            //continue
+                            console.log(`updating replication credentials`)
                             replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
                             try {
                                 await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
@@ -361,6 +360,7 @@ class UserManager {
     }
 
     async verifyReplicationCredentials(replicatorId) {
+        console.log(`verifyReplicationCredentials(${replicatorId})`)
         const couch = Db.getCouch('internal')
         const credsDb = couch.db.use(process.env.DB_REPLICATER_CREDS)
 
@@ -369,20 +369,27 @@ class UserManager {
             const endpointUri = replicationCreds.couchUri
             const remoteAuthBuffer = Buffer.from(`${replicationCreds.username}:${replicationCreds.password}`);
             const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+            console.log(`remoteAuthBase64: ${remoteAuthBase64} for ${endpointUri}`)
 
             try {
                 const endpointSession = await Axios.get(`${endpointUri}/_session`, {
                     headers: {
                         Authorization: `Basic ${remoteAuthBase64}`
                     }
+                }, {
+                    // 5 second timeout
+                    timeout: 5000
                 })
                 
-                console.log('endpoint session')
+                console.log(`endpoint session for: ${endpointUri}`)
                 console.log(endpointSession.data)
 
                 return true
             } catch (err) {
-                if (err.response.data.error == 'unauthorized') {
+                if (err.response && err.response.data && err.response.data.error && err.response.data.error == 'unauthorized') {
+                    console.log(`${endpointUri} UNAUTHORIZED!`)
+                    console.log(err.response.data)
+                    console.log(replicationCreds)
                     return false
                 }
 
@@ -394,7 +401,7 @@ class UserManager {
                 return false
             }
 
-            console.error(`userManager:verifyReplicationCredentials(): Unable to locate replicationCreds for ${endpointUri} (${err.message})`)
+            console.error(`userManager:verifyReplicationCredentials(): Unable to locate replicationCreds for ${replicatorId} (${err.message})`)
         }
     }
 

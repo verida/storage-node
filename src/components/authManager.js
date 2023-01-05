@@ -589,7 +589,10 @@ class AuthManager {
             // Fetch credentials from the endpointUri
             console.log(`${Utils.serverUri()}: Requesting the creation of credentials for ${endpointUri}`)
             try {
-                await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody)
+                await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
+                    // 5 second timeout
+                    timeout: 5000
+                })
                 console.log(`${Utils.serverUri()}: Credentials generated for ${endpointUri}`)
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
