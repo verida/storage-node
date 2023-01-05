@@ -233,6 +233,8 @@ class UserManager {
                 // generateReplicatorHash() will strip back to hostname
                 const endpointUri = endpoints[e].origin
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+                const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
+                console.log(replicatorUsername, endpointUri)
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
@@ -304,7 +306,7 @@ class UserManager {
 
                     console.log('crashing: ', dbHash, databases[d].databaseName)
 
-                    const validCredentials = await this.verifyReplicationCredentials(replicatorId)
+                    const validCredentials = await this.verifyReplicationCredentials(replicatorUsername)
                     console.log('validCredentials', validCredentials)
                     
 

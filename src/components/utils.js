@@ -7,7 +7,9 @@ class Utils {
     }
 
     generateReplicaterUsername(endpointUri) {
-        return `r${this.generateHash(endpointUri)}`
+        const hostname = (new URL(endpointUri)).hostname
+
+        return `r${this.generateHash(hostname)}`
     }
 
     generateDidContextHash(did, contextName) {
@@ -47,6 +49,7 @@ class Utils {
 
     generateReplicatorHash(endpointUri, did, contextName) {
         const hostname = (new URL(endpointUri)).hostname
+
         let text = [
             hostname,
             did.toLowerCase(),
