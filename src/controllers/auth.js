@@ -264,24 +264,44 @@ class AuthController {
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
 
         if (!endpointService || !endpointService.serviceEndpoint) {
-            console.log(`Invalid endpoint (${endpointUri}): DID not linked (${did}) to endpoint`)
-            console.log(endpointService)
-            console.log(endpointService.serviceEndpoint)
-            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did}) to endpoint`)
+            console.log(`Invalid context: DID not linked (${did}) to context ${contextName}`)
+            return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
         }
 
-        const endpoints = endpointService.serviceEndpoint
-        if (endpoints.indexOf(`${endpointUri}/`) === -1) {
-            console.log(`Invalid endpoint (${endpointUri}): DID not linked (${did})`)
-            console.log(endpointService)
-            console.log(endpointService.serviceEndpoint)
-            return Utils.error(res, `Invalid endpoint (${endpointUri}): DID not linked (${did})`)
+        const thisHostname = (new URL(Utils.serverUri())).hostname
+        const remoteHostname = (new URL(endpointUri)).hostname
+        let thisEndpointFound = false
+        let remoteEndpointFound = false
+
+        console.log(`thisHostname: ${thisHostname}, remoteHostname: ${remoteHostname}`)
+
+        for (let i in endpointService.serviceEndpoint) {
+            const endpoint = endpointService.serviceEndpoint[i]
+            const hostname = (new URL(endpoint)).hostname
+            console.log(`checking: ${hostname}`)
+
+            if (thisHostname == hostname) {
+                thisEndpointFound = true
+            }
+
+            if (remoteHostname == hostname) {
+                remoteEndpointFound = true
+            }
         }
 
-        // Confirm this endpoint is linked to the DID and context
-        if (endpoints.indexOf(`${Utils.serverUri()}/`) === -1) {
-            return Utils.error(res, `Invalid DID and context: Not associated with this endpoint`)
+        console.log(`result: thisEndpointFound (${thisEndpointFound}, remoteEndpointFound (${remoteEndpointFound}))`)
+
+        if (!thisEndpointFound) {
+            console.log(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
+            return Utils.error(res, `Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
         }
+
+        if (!remoteEndpointFound) {
+            console.log(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
+            return Utils.error(res, `Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
+        }
+
+        console.log(`endpoints are all good!`)
         
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
@@ -296,9 +316,8 @@ class AuthController {
                 timestampMinutes,
                 password
             }
-            console.log(params)
+
             if (!password) {
-                console.log('no password, so deleteing from params sig verification')
                 delete params['password']
             }
 

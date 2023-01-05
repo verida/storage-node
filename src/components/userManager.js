@@ -147,7 +147,7 @@ class UserManager {
      * @param {*} databaseName (optional) If not specified, checks all databases
      */
     async checkReplication(did, contextName, databaseName) {
-        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
         let didService = didDocument.locateServiceEndpoint(contextName, 'database')
@@ -173,8 +173,8 @@ class UserManager {
 
         // Confirm this endpoint is in the list of endpoints
         if (endpointIndex === -1) {
-            console.log(`${Utils.serverUri()}: Error: Server not a valid endpoint for this DID and context:`)
-            console.log(endpoints, endpointIndex)
+            //console.log(`${Utils.serverUri()}: Error: Server not a valid endpoint for this DID and context:`)
+            //console.log(endpoints, endpointIndex)
             throw new Error(`Server not a valid endpoint (${serverHostname}) for this DID and context`)
         }
 
@@ -237,19 +237,19 @@ class UserManager {
                 const endpointUri = endpoints[e].origin
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
-                console.log(replicatorUsername, endpointUri)
+
                 let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
-                    console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
+                    //console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
-                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
+                        //console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint
                         const { username, password, credsExisted, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
+                        //console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
                         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
@@ -278,9 +278,9 @@ class UserManager {
 
                         try {
                             await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
-                            console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                            //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
                         } catch (err) {
-                            console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                            //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                             throw new Error(`Unable to create replication entry: ${err.message}`)
                         }
                     }
@@ -292,22 +292,19 @@ class UserManager {
 
                 // @todo Find any replication errors and handle them nicely
                 try {
-                    console.log('getting replication status!')
                     const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
                     //console.log('got replicationStatus', replicationStatus.state)
 
                     if (!replicationStatus) {
                         // Replication entry not found... shouldn't really happen but it's not possible recover from it here
-                        console.log('- replication status not found!')
                         continue
                     }
 
                     if (replicationStatus.state != 'crashing') {
-                        console.log('NOT crashing: ', dbHash, databases[d].databaseName)
                         continue
                     }
 
-                    console.log('crashing: ', dbHash, databases[d].databaseName)
+                    //console.log(`${Utils.serverUri()}: Replication failure found in ${dbHash} (${databases[d].databaseName})`)
                     replicationFailureFound = true
                 } catch (err) {
                     console.log('new code error!')
@@ -320,12 +317,11 @@ class UserManager {
             if (replicationFailureFound) {
                 // Found a replication failure, need to ensure the replication credentials are valid
                 const validCredentials = await this.verifyReplicationCredentials(replicatorUsername)
-                console.log('validCredentials', validCredentials)                
 
                 if (!validCredentials) {
                     // Replication not working due to auth, fetch new replication credentials and update all replications
                     // Verify replication credentials are valid
-                    console.log('replication has invalid credentials, fetching new ones')
+                    console.log(`${Utils.serverUri()}: Replication has invalid credentials, fetching new ones`)
 
                     // Fetch the replication credentials for this endpoint
                     // This will also ensure the endpoint creates the appropriate role so this context can replicate
@@ -350,7 +346,7 @@ class UserManager {
 
                         for (let r in replicationEntries.docs) {
                             const replicationEntry = replicationEntries.docs[r]
-                            console.log(`updating replication credentials`)
+                            console.log(`${Utils.serverUri()}: Updating replication credentials`)
                             replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
                             try {
                                 await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
@@ -375,7 +371,6 @@ class UserManager {
     }
 
     async verifyReplicationCredentials(replicatorId) {
-        console.log(`verifyReplicationCredentials(${replicatorId})`)
         const couch = Db.getCouch('internal')
         const credsDb = couch.db.use(process.env.DB_REPLICATER_CREDS)
 
@@ -384,7 +379,6 @@ class UserManager {
             const endpointUri = replicationCreds.couchUri
             const remoteAuthBuffer = Buffer.from(`${replicationCreds.username}:${replicationCreds.password}`);
             const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-            console.log(`remoteAuthBase64: ${remoteAuthBase64} for ${endpointUri}`)
 
             try {
                 const endpointSession = await Axios.get(`${endpointUri}/_session`, {
@@ -395,16 +389,10 @@ class UserManager {
                     // 5 second timeout
                     timeout: 5000
                 })
-                
-                console.log(`endpoint session for: ${endpointUri}`)
-                console.log(endpointSession.data)
 
                 return true
             } catch (err) {
                 if (err.response && err.response.data && err.response.data.error && err.response.data.error == 'unauthorized') {
-                    console.log(`${endpointUri} UNAUTHORIZED!`)
-                    console.log(err.response.data)
-                    console.log(replicationCreds)
                     return false
                 }
 
