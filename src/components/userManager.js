@@ -236,20 +236,19 @@ class UserManager {
                 // generateReplicatorHash() will strip back to hostname
                 const endpointUri = endpoints[e].origin
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-                const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
+                const replicatorUsername = Utils.generateReplicaterUsername(endpointUri) // --- remove
 
-                let record
                 try {
                     record = await replicationDb.get(`${replicatorId}-${dbHash}`)
-                    //console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
+                    console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
-                        //console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
+                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
                         // No record, so create it
                         // Check if we have credentials
                         // No credentials? Ask for them from the endpoint
                         const { username, password, credsExisted, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-                        //console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
+                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
 
                         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
                         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
@@ -300,11 +299,19 @@ class UserManager {
                         continue
                     }
 
+                    if (replicationStatus.state == 'failed') {
+                        console.log(`Replication has failed, deleting entry: ${replicatorId}-${dbHash}`)
+                        // replication has failed, so delete entry
+                        const deleteInfo = await Db.deleteFailedReplication(`${replicatorId}-${dbHash}`)
+                        console.log(deleteInfo)
+                        continue
+                    }
+
                     if (replicationStatus.state != 'crashing') {
                         continue
                     }
 
-                    //console.log(`${Utils.serverUri()}: Replication failure found in ${dbHash} (${databases[d].databaseName})`)
+                    console.log(`${Utils.serverUri()}: Replication error found in ${dbHash} (${databases[d].databaseName})`)
                     replicationFailureFound = true
                 } catch (err) {
                     console.log('new code error!')

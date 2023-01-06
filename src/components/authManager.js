@@ -549,13 +549,13 @@ class AuthManager {
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
         const replicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
         
-        //console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
 
         let creds, password
         try {
             creds = await replicaterCredsDb.get(replicaterUsername)
             password = creds.password
-            //console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+            console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
         } catch (err) {
             // If credentials aren't found, that's okay we will create them below
             if (err.error != 'not_found') {
@@ -592,13 +592,13 @@ class AuthManager {
         requestBody.signature = signature
 
         // Fetch credentials from the endpointUri
-        //console.log(`${Utils.serverUri()}: Verifying replication creds for endpoint: ${endpointUri}`)
+        console.log(`${Utils.serverUri()}: Verifying replication creds for endpoint: ${endpointUri}`)
         try {
             await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
                 // 5 second timeout
                 timeout: 5000
             })
-            //console.log(`${Utils.serverUri()}: Credentials verified for ${endpointUri}`)
+            console.log(`${Utils.serverUri()}: Credentials verified for ${endpointUri}`)
         } catch (err) {
             const message = err.response ? err.response.data.message : err.message
             if (err.response) {
@@ -615,7 +615,7 @@ class AuthManager {
             try {
                 const statusResponse = await Axios.get(`${endpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
-                //console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
+                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
@@ -638,7 +638,7 @@ class AuthManager {
 
             try {
                 const result = await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                //console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri} ${result.id}`)
+                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri} ${result.id}`)
             } catch (err) {
                 throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
             }

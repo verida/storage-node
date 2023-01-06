@@ -273,12 +273,9 @@ class AuthController {
         let thisEndpointFound = false
         let remoteEndpointFound = false
 
-        console.log(`thisHostname: ${thisHostname}, remoteHostname: ${remoteHostname}`)
-
         for (let i in endpointService.serviceEndpoint) {
             const endpoint = endpointService.serviceEndpoint[i]
             const hostname = (new URL(endpoint)).hostname
-            console.log(`checking: ${hostname}`)
 
             if (thisHostname == hostname) {
                 thisEndpointFound = true
@@ -289,19 +286,15 @@ class AuthController {
             }
         }
 
-        console.log(`result: thisEndpointFound (${thisEndpointFound}), remoteEndpointFound (${remoteEndpointFound})`)
-
         if (!thisEndpointFound) {
-            console.log(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
+            console.info(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
             return Utils.error(res, `Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
         }
 
         if (!remoteEndpointFound) {
-            console.log(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
+            console.info(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
             return Utils.error(res, `Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
         }
-
-        console.log(`endpoints are all good!`)
         
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
