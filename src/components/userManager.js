@@ -239,7 +239,7 @@ class UserManager {
                 const replicatorUsername = Utils.generateReplicaterUsername(endpointUri) // --- remove
 
                 try {
-                    record = await replicationDb.get(`${replicatorId}-${dbHash}`)
+                    await replicationDb.get(`${replicatorId}-${dbHash}`)
                     console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
