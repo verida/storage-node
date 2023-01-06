@@ -235,84 +235,25 @@ class UserManager {
             const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
 
             // Ensure all databases have replication entries
+            let insertReplicationRecord = false
             for (let d in databases) {
                 const dbHash = databases[d].databaseHash
 
-                let replicationRecord
-                try {
-                    replicationRecord = await replicationDb.get(`${replicatorId}-${dbHash}`)
-                    console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
-                } catch (err) {
-                    if (err.message == 'missing' || err.reason == 'deleted') {
-                        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
-                        // No record, so create it
-                        // Check if we have credentials
-                        // No credentials? Ask for them from the endpoint
-                        const { username, password, credsExisted, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-                        console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
-
-                        const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
-                        const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-
-                        const replicationRecord = {
-                            _id: `${replicatorId}-${dbHash}`,
-                            user_ctx: {
-                                name: process.env.DB_REPLICATION_USER
-                            },
-                            source: {
-                                url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
-                                headers: {
-                                    Authorization: `Basic ${localAuthBase64}`
-                                }
-                            },
-                            target: {
-                                url: `${couchUri}/${dbHash}`,
-                                headers: {
-                                    Authorization: `Basic ${remoteAuthBase64}`
-                                }
-                            },
-                            create_target: false,
-                            continuous: true,
-                            owner: 'admin'
-                        }
-
-                        try {
-                            const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
-                            console.log('result of inserting replication record')
-                            console.log(result)
-                            replicationRecord._rev = result.rev
-                            //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
-                        } catch (err) {
-                            //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
-                            throw new Error(`Unable to create replication entry: ${err.message}`)
-                        }
-                    }
-                    else {
-                        console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
-                        throw err
-                    }
-                }
-
-                // @todo Find any replication errors and handle them nicely
+                // Find any replication errors and handle them nicely
                 try {
                     const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
-                    //console.log('got replicationStatus', replicationStatus.state)
+                    console.log(`${Utils.serverUri()}: Got replication status for ${dbHash} (${replicationStatus.state})`)
 
                     if (!replicationStatus) {
-                        // Replication entry not found... shouldn't really happen but it's not possible recover from it here
-                        continue
-                    }
-
-                    if (replicationStatus.state == 'failed') {
+                        // Replication entry not found... need to create it
+                        insertReplicationRecord = true
+                    } else if (replicationStatus.state == 'failed') {
                         console.log(`Replication has failed, deleting entry: ${replicatorId}-${dbHash}`)
                         // replication has failed, so delete entry
                         const deleteInfo = await replicationDb.destroy(`${replicatorId}-${dbHash}`, replicationRecord._rev)
-                        console.log('deleted!')
-                        console.log(deleteInfo)
-                        continue
-                    }
-
-                    if (replicationStatus.state != 'crashing') {
+                        insertReplicationRecord = true
+                    } else if (replicationStatus.state != 'crashing') {
+                        // Replication is all good, so no further action required
                         continue
                     }
 
@@ -321,6 +262,64 @@ class UserManager {
                 } catch (err) {
                     console.log('new code error!')
                     console.log(err)
+                }
+
+                if (insertReplicationRecord) {
+                    try {
+                        // From the above, this record should never exist, but we try anyway
+                        const replicationRecord = await replicationDb.get(`${replicatorId}-${dbHash}`)
+                        // Record exists, this shouldn't happen, but do nothing.
+                        console.log(`${Utils.serverUri()}: Replication record for ${dbHash} on ${endpointUri} (${replicatorId}) (but it shouldnt)`)
+                    } catch (err) {
+                        if (err.message == 'missing' || err.reason == 'deleted') {
+                            console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${databases[d].databaseName} / ${dbHash} is missing... creating.`)
+                            // No record, so create it
+                            // Check if we have credentials
+                            // No credentials? Ask for them from the endpoint
+                            const { username, password, credsExisted, couchUri } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                            console.log(`${Utils.serverUri()}: Located replication credentials for ${endpointUri} (${username}, ${password}, ${couchUri})`)
+
+                            const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+                            const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+
+                            const replicationRecord = {
+                                _id: `${replicatorId}-${dbHash}`,
+                                user_ctx: {
+                                    name: process.env.DB_REPLICATION_USER
+                                },
+                                source: {
+                                    url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
+                                    headers: {
+                                        Authorization: `Basic ${localAuthBase64}`
+                                    }
+                                },
+                                target: {
+                                    url: `${couchUri}/${dbHash}`,
+                                    headers: {
+                                        Authorization: `Basic ${remoteAuthBase64}`
+                                    }
+                                },
+                                create_target: false,
+                                continuous: true,
+                                owner: 'admin'
+                            }
+
+                            try {
+                                const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                                console.log('result of inserting replication record')
+                                console.log(result)
+                                replicationRecord._rev = result.rev
+                                console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                            } catch (err) {
+                                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                                throw new Error(`Unable to create replication entry: ${err.message}`)
+                            }
+                        }
+                        else {
+                            console.log(`${Utils.serverUri()}: Unknown error fetching replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                            throw err
+                        }
+                    }
                 }
             }
 
