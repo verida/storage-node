@@ -29,18 +29,6 @@ class Db {
         }
     }
 
-    async deleteFailedReplication(replicationId) {
-        const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, 'internal');
-
-        try {
-            const replicationStatus = await Axios.delete(`${dsn}/_scheduler/docs/_replicator/${replicationId}`)
-            return replicationStatus.data
-        } catch (err) {
-            console.log(err)
-            return undefined
-        }
-    }
-
     buildDsn(username, password, type='external') {
         let env = process.env;
         const HOST = type == 'internal' ? env.DB_HOST_INTERNAL : env.DB_HOST_EXTERNAL

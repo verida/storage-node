@@ -238,8 +238,9 @@ class UserManager {
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
                 const replicatorUsername = Utils.generateReplicaterUsername(endpointUri) // --- remove
 
+                let replicationRecord
                 try {
-                    await replicationDb.get(`${replicatorId}-${dbHash}`)
+                    replicationRecord = await replicationDb.get(`${replicatorId}-${dbHash}`)
                     console.log(`${Utils.serverUri()}: Located replication record for ${dbHash} on ${endpointUri} (${replicatorId})`)
                 } catch (err) {
                     if (err.message == 'missing' || err.reason == 'deleted') {
@@ -276,7 +277,10 @@ class UserManager {
                         }
 
                         try {
-                            await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                            const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                            console.log('result of inserting replication record')
+                            console.log(result)
+                            replicationRecord._rev = result.rev
                             //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
                         } catch (err) {
                             //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
@@ -302,7 +306,8 @@ class UserManager {
                     if (replicationStatus.state == 'failed') {
                         console.log(`Replication has failed, deleting entry: ${replicatorId}-${dbHash}`)
                         // replication has failed, so delete entry
-                        const deleteInfo = await Db.deleteFailedReplication(`${replicatorId}-${dbHash}`)
+                        const deleteInfo = await replicationDb.destroy(`${replicatorId}-${dbHash}`, replicationRecord._rev)
+                        console.log('deleted!')
                         console.log(deleteInfo)
                         continue
                     }
