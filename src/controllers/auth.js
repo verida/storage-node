@@ -289,7 +289,7 @@ class AuthController {
             }
         }
 
-        console.log(`result: thisEndpointFound (${thisEndpointFound}, remoteEndpointFound (${remoteEndpointFound}))`)
+        console.log(`result: thisEndpointFound (${thisEndpointFound}), remoteEndpointFound (${remoteEndpointFound})`)
 
         if (!thisEndpointFound) {
             console.log(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
