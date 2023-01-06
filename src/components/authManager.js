@@ -637,6 +637,9 @@ class AuthManager {
                 couchUri
             }
 
+            console.log('inserting creds')
+            console.log(creds)
+
             try {
                 const result = await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
                 console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri} ${result.id}`)
