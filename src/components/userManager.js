@@ -227,16 +227,16 @@ class UserManager {
         // Track if we find a replication failure
         let replicationFailureFound = false
 
-        // Ensure all databases have replication entries
-        for (let d in databases) {
-            const dbHash = databases[d].databaseHash
+        for (let e in endpoints) {
+            // create a fake endpoint to have a valid URL
+            // generateReplicatorHash() will strip back to hostname
+            const endpointUri = endpoints[e].origin
+            const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+            const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
 
-            for (let e in endpoints) {
-                // create a fake endpoint to have a valid URL
-                // generateReplicatorHash() will strip back to hostname
-                const endpointUri = endpoints[e].origin
-                const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-                const replicatorUsername = Utils.generateReplicaterUsername(endpointUri) // --- remove
+            // Ensure all databases have replication entries
+            for (let d in databases) {
+                const dbHash = databases[d].databaseHash
 
                 let replicationRecord
                 try {
@@ -323,56 +323,56 @@ class UserManager {
                     console.log(err)
                 }
             }
-        }
 
-        try {
-            if (replicationFailureFound) {
-                // Found a replication failure, need to ensure the replication credentials are valid
-                const validCredentials = await this.verifyReplicationCredentials(replicatorUsername)
-
-                if (!validCredentials) {
-                    // Replication not working due to auth, fetch new replication credentials and update all replications
-                    // Verify replication credentials are valid
-                    console.log(`${Utils.serverUri()}: Replication has invalid credentials, fetching new ones`)
-
-                    // Fetch the replication credentials for this endpoint
-                    // This will also ensure the endpoint creates the appropriate role so this context can replicate
-                    const { username, password, credsUpdated } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
-
-                    if (!credsUpdated) {
-                        console.log(`Credentials were updated, so updating all the replication entries`)
-                        const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
-                        const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-                        
-                        // find all replication records associated with this replicator
-                        const query = {
-                            selector: {
-                                _id: {
-                                    '$regex': `^${replicatorId}-`
+            try {
+                if (replicationFailureFound) {
+                    // Found a replication failure, need to ensure the replication credentials are valid
+                    const validCredentials = await this.verifyReplicationCredentials(replicatorUsername)
+    
+                    if (!validCredentials) {
+                        // Replication not working due to auth, fetch new replication credentials and update all replications
+                        // Verify replication credentials are valid
+                        console.log(`${Utils.serverUri()}: Replication has invalid credentials, fetching new ones`)
+    
+                        // Fetch the replication credentials for this endpoint
+                        // This will also ensure the endpoint creates the appropriate role so this context can replicate
+                        const { username, password, credsUpdated } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+    
+                        if (!credsUpdated) {
+                            console.log(`Credentials were updated, so updating all the replication entries`)
+                            const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+                            const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+                            
+                            // find all replication records associated with this replicator
+                            const query = {
+                                selector: {
+                                    _id: {
+                                        '$regex': `^${replicatorId}-`
+                                    }
+                                },
+                                limit: 1000
+                            }
+    
+                            const replicationEntries = await replicationDb.find(query)
+    
+                            for (let r in replicationEntries.docs) {
+                                const replicationEntry = replicationEntries.docs[r]
+                                console.log(`${Utils.serverUri()}: Updating replication credentials`)
+                                replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
+                                try {
+                                    await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
+                                    console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${r})`)
+                                } catch (err) {
+                                    console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${r}): ${err.message}`)
                                 }
-                            },
-                            limit: 1000
-                        }
-
-                        const replicationEntries = await replicationDb.find(query)
-
-                        for (let r in replicationEntries.docs) {
-                            const replicationEntry = replicationEntries.docs[r]
-                            console.log(`${Utils.serverUri()}: Updating replication credentials`)
-                            replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
-                            try {
-                                await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
-                                console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${r})`)
-                            } catch (err) {
-                                console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${r}): ${err.message}`)
                             }
                         }
                     }
                 }
+            } catch (err) {
+                console.log('ERRR!')
+                console.log(err)
             }
-        } catch (err) {
-            console.log('ERRR!')
-            console.log(err)
         }
 
         
