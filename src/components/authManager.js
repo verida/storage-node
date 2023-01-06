@@ -549,13 +549,14 @@ class AuthManager {
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
         const replicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
         
-        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri}`)
+        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri} (${replicaterUsername})`)
 
         let creds, password
         try {
             creds = await replicaterCredsDb.get(replicaterUsername)
             password = creds.password
             console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+            console.log(creds)
         } catch (err) {
             // If credentials aren't found, that's okay we will create them below
             if (err.error != 'not_found') {
