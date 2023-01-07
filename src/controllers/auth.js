@@ -222,6 +222,8 @@ class AuthController {
      * @returns 
      */
     async replicationCreds(req, res) {
+        console.log(`auth.replicationCreds()`)
+        console.log(req.body)
         const {
             endpointUri,        // endpoint making the request
             did,
@@ -299,6 +301,7 @@ class AuthController {
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
         try {
+            console.log(`auth.replicationCreds(): getting status of requesting endpoint`)
             const response = await Axios.get(`${endpointUri}/status`)
 
             endpointPublicKey = response.data.results.publicKey
@@ -315,17 +318,22 @@ class AuthController {
             }
 
             if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
+                console.log(`auth.replicationCreds(): invalid sig`)
                 return Utils.error(res, 'Invalid signature', 401)
             }
         } catch (err) {
+            console.log(`auth.replicationCreds(): unknown err, ${err.message}`)
             return Utils.error(res, `Unknown error: ${err.message}`)
         }
 
         const didContextHash = Utils.generateDidContextHash(did, contextName)
         const replicaterRole = `r${didContextHash}-replicater`
+        console.log(`auth.replicationCreds(): replicaterRole ${replicaterRole}`)
 
         try {
             const result = await AuthManager.ensureReplicationCredentials(endpointUri, password, replicaterRole)
+            console.log(`auth.replicationCreds(): ensure rep creds`)
+            console.log(result)
             return Utils.signedResponse({
                 result
             }, res)

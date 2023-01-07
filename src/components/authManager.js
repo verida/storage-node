@@ -474,7 +474,7 @@ class AuthManager {
      * @returns 
      */
     async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
-        //console.log(`ensureReplicationCredentials(${endpointUri}, ${password}, ${replicaterRole})`)
+        console.log(`ensureReplicationCredentials(${endpointUri}, ${password}, ${replicaterRole})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
 
@@ -486,7 +486,7 @@ class AuthManager {
 
             let userRequiresUpdate = false
             if (user.roles.indexOf(replicaterRole) == -1) {
-                //console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
                 user.roles.push(replicaterRole)
                 userRequiresUpdate = true
             }
@@ -495,12 +495,12 @@ class AuthManager {
             if (password) {
                 user.password = password
                 userRequiresUpdate = true
-                //console.log(`User exists and password needs updating`)
+                console.log(`User exists and password needs updating`)
             }
 
             if (userRequiresUpdate) {
                 // User exists and we need to update the password or roles
-                //console.log(`User exists, updating password and / or roles`)
+                console.log(`User exists, updating password and / or roles`)
                 
                 try {
                     await dbManager._insertOrUpdate(usersDb, user, user._id)
@@ -519,7 +519,7 @@ class AuthManager {
 
             // Need to create the user
             try {
-                //console.log('Replication user didnt exist, so creating')
+                console.log('Replication user didnt exist, so creating')
                 await dbManager._insertOrUpdate(usersDb, {
                     _id: id,
                     name: username,
