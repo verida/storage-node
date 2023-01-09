@@ -214,7 +214,8 @@ class UserManager {
                 databaseName: didContextDbName,
                 databaseHash: didContextDbName
             }
-            //console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
+            console.log(`${Utils.serverUri()}: Checking ${databases.length}) databases`)
+            console.log(databases)
         }
 
         // Ensure there is a replication entry for each
@@ -234,10 +235,13 @@ class UserManager {
             const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
             const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
 
+            console.log(`checking endpoint: ${endpointUri} / ${replicatorUsername}`)
+
             // Ensure all databases have replication entries
             let insertReplicationRecord = false
             for (let d in databases) {
                 const dbHash = databases[d].databaseHash
+                console.log(`checking database for ${endpointUri}: ${databases[d].databaseName} / ${dbHash}`)
 
                 // Find any replication errors and handle them nicely
                 try {
