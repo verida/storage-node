@@ -242,7 +242,9 @@ class UserManager {
                 // Find any replication errors and handle them nicely
                 try {
                     const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
-                    console.log(`${Utils.serverUri()}: Got replication status for ${dbHash} (${replicationStatus.state})`)
+                    if (replicationStatus) {
+                        console.log(`${Utils.serverUri()}: Got replication status for ${dbHash} (${replicationStatus.state})`)
+                    }
 
                     if (!replicationStatus) {
                         // Replication entry not found... need to create it
@@ -335,7 +337,7 @@ class UserManager {
     
                         // Fetch the replication credentials for this endpoint
                         // This will also ensure the endpoint creates the appropriate role so this context can replicate
-                        const { username, password, credsUpdated } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName)
+                        const { username, password, credsUpdated } = await AuthManager.fetchReplicaterCredentials(endpointUri, did, contextName, true)
     
                         if (!credsUpdated) {
                             console.log(`Credentials were updated, so updating all the replication entries`)

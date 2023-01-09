@@ -543,7 +543,7 @@ class AuthManager {
      * @param {*} contextName 
      * @returns 
      */
-    async fetchReplicaterCredentials(endpointUri, did, contextName) {
+    async fetchReplicaterCredentials(endpointUri, did, contextName, force = false) {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
@@ -565,7 +565,7 @@ class AuthManager {
         }
 
         let updatePassword = false
-        if (!password) {
+        if (!password || force) {
             // Generate a random password
             const secretKeyBytes = EncryptionUtils.randomKey(32)
             password = Buffer.from(secretKeyBytes).toString('hex')
