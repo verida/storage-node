@@ -369,10 +369,13 @@ class UserManager {
                         }
                     } else {
                         // credentials are valid, so just update the broken ones to use the correct credentials
-                        console.log(`${Utils.serverUri()}: Credentials are valid, so updating the broken ones with the correct credentials`)
+                        console.log(`${Utils.serverUri()}: Credentials are valid, so updating the broken ones with the correct credentials!`)
+                        console.log(replicationFailures.length)
                         for (let i in replicationFailures) {
+                            console.log(i)
                             const replicationStatus = replicationFailures[i]
                             console.log(replicationStatus)
+                            console.log(replicationStatus.doc_id)
                             try {
                                 const replicationEntry = await replicationDb.get(replicationStatus.doc_id)
                                 console.log(replicationEntry)
