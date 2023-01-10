@@ -538,24 +538,27 @@ class AuthManager {
     /**
      * Fetch the credentials for this endpoint to replicate to another endpoint
      * 
-     * @param {*} endpointUri 
+     * @param {*} remoteEndpointUri 
      * @param {*} did 
      * @param {*} contextName 
      * @returns 
      */
-    async fetchReplicaterCredentials(endpointUri, did, contextName, force = false) {
+    async fetchReplicaterCredentials(remoteEndpointUri, did, contextName, force = false) {
         // Check process.env.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
         const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
-        const replicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
+
+        const thisEndointUri = Utils.serverUri()
+        const thisReplicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
+        const remoteReplicaterUsername = Utils.generateReplicaterUsername(remoteEndpointUri)
         
-        console.log(`${Utils.serverUri()}: Fetching credentials for ${endpointUri} (${replicaterUsername})`)
+        console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername})`)
 
         let creds, password
         try {
-            creds = await replicaterCredsDb.get(replicaterUsername)
+            creds = await replicaterCredsDb.get(remoteReplicaterUsername)
             password = creds.password
-            console.log(`${Utils.serverUri()}: Located credentials for ${endpointUri}`)
+            console.log(`${Utils.serverUri()}: Located credentials from ${remoteEndpointUri} for ${Utils.serverUri()}`)
             console.log(creds)
         } catch (err) {
             // If credentials aren't found, that's okay we will create them below
@@ -593,17 +596,17 @@ class AuthManager {
         requestBody.signature = signature
 
         // Fetch credentials from the endpointUri
-        console.log(`${Utils.serverUri()}: Verifying replication creds for endpoint: ${endpointUri}`)
+        console.log(`${Utils.serverUri()}: Verifying replication creds for remote endpoint: ${remoteEndpointUri}`)
         try {
-            await Axios.post(`${endpointUri}/auth/replicationCreds`, requestBody, {
+            await Axios.post(`${remoteEndpointUri}/auth/replicationCreds`, requestBody, {
                 // 5 second timeout
                 timeout: 5000
             })
-            console.log(`${Utils.serverUri()}: Credentials verified for ${endpointUri}`)
+            console.log(`${Utils.serverUri()}: Credentials verified for ${remoteEndpointUri}`)
         } catch (err) {
             const message = err.response ? err.response.data.message : err.message
             if (err.response) {
-                throw Error(`Unable to verify credentials from ${endpointUri} (${message}})`)
+                throw Error(`Unable to verify credentials from ${remoteEndpointUri} (${message}})`)
             }
 
             throw err
@@ -614,13 +617,13 @@ class AuthManager {
             couchUri = creds.couchUri
         } else {
             try {
-                const statusResponse = await Axios.get(`${endpointUri}/status`)
+                const statusResponse = await Axios.get(`${remoteEndpointUri}/status`)
                 couchUri = statusResponse.data.results.couchUri
-                console.log(`${Utils.serverUri()}: Status fetched ${endpointUri} with CouchURI: ${couchUri}`)
+                console.log(`${Utils.serverUri()}: Status fetched ${remoteEndpointUri} with CouchURI: ${couchUri}`)
             } catch (err) {
                 const message = err.response ? err.response.data.message : err.message
                 if (err.response) {
-                    throw Error(`Unable to obtain couchUri from ${endpointUri} (${message})`)
+                    throw Error(`Unable to obtain couchUri from ${remoteEndpointUri} (${message})`)
                 }
 
                 throw err
@@ -630,7 +633,8 @@ class AuthManager {
         // Update the password (or create new replication entry if it doesn't exist)
         if (updatePassword) {
             creds = {
-                _id: replicaterUsername,
+                // Use the remote username so we share the same credentials across all contexts for this endpoint
+                _id: remoteReplicaterUsername,
                 // Use this server username
                 username: replicaterUsername,
                 password,
@@ -642,9 +646,9 @@ class AuthManager {
 
             try {
                 const result = await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                console.log(`${Utils.serverUri()}: Credentials saved for ${endpointUri} ${result.id}`)
+                console.log(`${Utils.serverUri()}: Credentials saved for ${remoteEndpointUri} ${result.id}`)
             } catch (err) {
-                throw new Error(`Unable to save replicater password : ${err.message} (${endpointUri})`)
+                throw new Error(`Unable to save replicater password : ${err.message} (${remoteEndpointUri})`)
             }
         }
 
