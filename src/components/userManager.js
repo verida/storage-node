@@ -372,18 +372,26 @@ class UserManager {
                         console.log(`${Utils.serverUri()}: Credentials are valid, so updating the broken ones with the correct credentials`)
                         for (let i in replicationFailures) {
                             const replicationStatus = replicationFailures[i]
-                            const replicationEntry = await replicationDb.get(replicationStatus._id)
-
-                            const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
-                            const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-
-                            console.log(`${Utils.serverUri()}: Updating replication credentials`, replicationEntry._id, remoteAuthBase64)
-                            replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
+                            console.log(replicationStatus)
                             try {
-                                await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
-                                console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${replicationEntry._id})`)
+                                const replicationEntry = await replicationDb.get(replicationStatus.doc_id)
+                                console.log(replicationEntry)
+
+                                const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+                                const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+
+                                console.log(`${Utils.serverUri()}: Updating replication credentials`, replicationEntry._id, remoteAuthBase64)
+                                replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
+                                try {
+                                    await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
+                                    console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${replicationEntry._id})`)
+                                } catch (err) {
+                                    console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${r}): ${err.message}`)
+                                }
                             } catch (err) {
-                                console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${r}): ${err.message}`)
+                                // should never happen, but catc just in case
+                                console.log(`${Utils.serverUri()}: Unable to locate replication entry (${replicationStatus.doc_id}): ${err.message}`)
+                                continue
                             }
                         }
                     }
