@@ -253,11 +253,12 @@ class UserManager {
                     if (!replicationStatus) {
                         // Replication entry not found... need to create it
                         insertReplicationRecord = true
-                    } else if (replicationStatus.state == 'failed') {
-                        console.log(`Replication has failed, deleting entry: ${replicatorId}-${dbHash}`)
+                    } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing') {
+                        console.log(`Replication has issues, deleting entry: ${replicatorId}-${dbHash}`)
                         // replication has failed, so delete entry
                         const deleteInfo = await replicationDb.destroy(`${replicatorId}-${dbHash}`, replicationRecord._rev)
                         insertReplicationRecord = true
+                        console.log(deleteInfo)
                     } else if (replicationStatus.state != 'crashing') {
                         // Replication is all good, so no further action required
                         continue
@@ -333,6 +334,7 @@ class UserManager {
                 if (replicationFailures.length > 0) {
                     // Found a replication failure, need to ensure the replication credentials are valid
                     const validCredentials = await this.verifyReplicationCredentials(replicatorUsername)
+                    console.log()
 
                     // Fetch the replication credentials for this endpoint
                     // This will also ensure the endpoint creates the appropriate role so this context can replicate
@@ -413,6 +415,7 @@ class UserManager {
     }
 
     async verifyReplicationCredentials(replicatorId) {
+        console.log(`verifyReplicationCredentials(${replicatorId})`)
         const couch = Db.getCouch('internal')
         const credsDb = couch.db.use(process.env.DB_REPLICATER_CREDS)
 
@@ -432,9 +435,11 @@ class UserManager {
                     timeout: 5000
                 })
 
+                console.log(`verifyReplicationCredentials(${replicatorId}) = valid`)
                 return true
             } catch (err) {
                 if (err.response && err.response.data && err.response.data.error && err.response.data.error == 'unauthorized') {
+                    console.log(`verifyReplicationCredentials(${replicatorId}) = invalid`)
                     return false
                 }
 
