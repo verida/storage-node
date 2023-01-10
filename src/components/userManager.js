@@ -362,11 +362,11 @@ class UserManager {
     
                             for (let r in replicationEntries.docs) {
                                 const replicationEntry = replicationEntries.docs[r]
-                                console.log(`${Utils.serverUri()}: Updating replication credentials`)
+                                console.log(`${Utils.serverUri()}: Updating replication credentials`, replicationEntry._id, remoteAuthBase64)
                                 replicationEntry.target.headers.Authorization = `Basic ${remoteAuthBase64}`
                                 try {
                                     await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
-                                    console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${r})`)
+                                    console.log(`${Utils.serverUri()}: Updated replication credentials for ${endpointUri} (${replicationEntry._id})`)
                                 } catch (err) {
                                     console.log(`${Utils.serverUri()}: Error updating replication credentials for ${endpointUri} (${r}): ${err.message}`)
                                 }
