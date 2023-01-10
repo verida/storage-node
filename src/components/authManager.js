@@ -636,7 +636,7 @@ class AuthManager {
                 // Use the remote username so we share the same credentials across all contexts for this endpoint
                 _id: remoteReplicaterUsername,
                 // Use this server username
-                username: replicaterUsername,
+                username: thisReplicaterUsername,
                 password,
                 couchUri
             }
