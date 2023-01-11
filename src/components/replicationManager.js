@@ -187,6 +187,7 @@ class ReplicationManager {
                         },
                         create_target: false,
                         continuous: true,
+                        winning_revs_only: true,
                         owner: 'admin'
                     }
 
