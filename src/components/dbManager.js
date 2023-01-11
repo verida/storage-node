@@ -219,98 +219,103 @@ class DbManager {
     }
 
     async configurePermissions(did, db, username, contextName, permissions) {
-        console.log(`configurePermissions() START`)
-        permissions = permissions ? permissions : {};
+        try {
+            console.log(`configurePermissions() START`)
+            permissions = permissions ? permissions : {};
 
-        let owner = username;
+            let owner = username;
 
-        // Database owner always has full permissions
-        let writeUsers = [owner];
-        let readUsers = [owner];
-        let deleteUsers = [owner];
+            // Database owner always has full permissions
+            let writeUsers = [owner];
+            let readUsers = [owner];
+            let deleteUsers = [owner];
 
-        switch (permissions.write) {
-            case "users":
-                writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, contextName));
-                deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, contextName));
-                break;
-            case "public":
-                writeUsers = writeUsers.concat([process.env.DB_PUBLIC_USER]);
-                break;
-        }
-
-        switch (permissions.read) {
-            case "users":
-                readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, contextName));
-                break;
-            case "public":
-                readUsers = readUsers.concat([process.env.DB_PUBLIC_USER]);
-                break;
-        }
-
-        const dbMembers = _.union(readUsers, writeUsers);
-        const didContextHash = Utils.generateDidContextHash(did, contextName)
-        const replicaterRole = `r${didContextHash}-replicater`
-
-        let securityDoc = {
-            admins: {
-                names: [owner],
-                roles: []
-            },
-            members: {
-                // this grants read access to all members
-                names: dbMembers,
-                roles: [replicaterRole, 'replicater-local']
+            switch (permissions.write) {
+                case "users":
+                    writeUsers = _.union(writeUsers, Utils.didsToUsernames(permissions.writeList, contextName));
+                    deleteUsers = _.union(deleteUsers, Utils.didsToUsernames(permissions.deleteList, contextName));
+                    break;
+                case "public":
+                    writeUsers = writeUsers.concat([process.env.DB_PUBLIC_USER]);
+                    break;
             }
-        };
 
-        // Insert security document to ensure owner is the admin and any other read / write users can access the database
-        try {
-            await this._insertOrUpdate(db, securityDoc, '_security');
-        } catch (err) {
-            console.error(`Unable to update _security document for ${did}: ${err.message}`)
-            return false;
-        }
+            switch (permissions.read) {
+                case "users":
+                    readUsers = _.union(readUsers, Utils.didsToUsernames(permissions.readList, contextName));
+                    break;
+                case "public":
+                    readUsers = readUsers.concat([process.env.DB_PUBLIC_USER]);
+                    break;
+            }
 
-        // Create validation document so only owner users in the write list can write to the database
-        let writeUsersJson = JSON.stringify(writeUsers);
-        let deleteUsersJson = JSON.stringify(deleteUsers);
+            const dbMembers = _.union(readUsers, writeUsers);
+            const didContextHash = Utils.generateDidContextHash(did, contextName)
+            const replicaterRole = `r${didContextHash}-replicater`
 
-        try {
-            const writeFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${writeUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}`;
-            const writeDoc = {
-                "validate_doc_update": writeFunction
+            let securityDoc = {
+                admins: {
+                    names: [owner],
+                    roles: []
+                },
+                members: {
+                    // this grants read access to all members
+                    names: dbMembers,
+                    roles: [replicaterRole, 'replicater-local']
+                }
             };
 
-            await this._insertOrUpdate(db, writeDoc, '_design/only_permit_write_users');
-        } catch (err) {
-            console.error(`Unable to update only_permit_write_users document for ${did}: ${err.message}`)
-            // CouchDB throws a document update conflict without any obvious reason
-            if (err.reason !== "Document update conflict.") {
-                throw err;
-            }
-        }
-
-        if (permissions.write === "public") {
-            // If the public has write permissions, disable public from deleting records
+            // Insert security document to ensure owner is the admin and any other read / write users can access the database
             try {
-                const deleteFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${deleteUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}`;
-                const deleteDoc = {
-                    "validate_doc_update": deleteFunction
+                await this._insertOrUpdate(db, securityDoc, '_security');
+            } catch (err) {
+                console.error(`Unable to update _security document for ${did}: ${err.message}`)
+                return false;
+            }
+
+            // Create validation document so only owner users in the write list can write to the database
+            let writeUsersJson = JSON.stringify(writeUsers);
+            let deleteUsersJson = JSON.stringify(deleteUsers);
+
+            try {
+                const writeFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${writeUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1) throw({ unauthorized: 'User is not permitted to write to database' });\n}`;
+                const writeDoc = {
+                    "validate_doc_update": writeFunction
                 };
 
-                await this._insertOrUpdate(db, deleteDoc, '_design/disable_public_delete');
+                await this._insertOrUpdate(db, writeDoc, '_design/only_permit_write_users');
             } catch (err) {
-                console.error(`Unable to update validate_doc_update document for ${did}: ${err.message}`)
+                console.error(`Unable to update only_permit_write_users document for ${did}: ${err.message}`)
                 // CouchDB throws a document update conflict without any obvious reason
-                if (err.reason != "Document update conflict.") {
+                if (err.reason !== "Document update conflict.") {
                     throw err;
                 }
             }
-        }
 
-        console.log(`configurePermissions() END`)
-        return true;
+            if (permissions.write === "public") {
+                // If the public has write permissions, disable public from deleting records
+                try {
+                    const deleteFunction = `\n    function(newDoc, oldDoc, userCtx, secObj) {\n        if (${deleteUsersJson}.indexOf(userCtx.name) == -1 && userCtx.roles.indexOf('${replicaterRole}') == -1 && newDoc._deleted) throw({ unauthorized: 'User is not permitted to delete from database' });\n}`;
+                    const deleteDoc = {
+                        "validate_doc_update": deleteFunction
+                    };
+
+                    await this._insertOrUpdate(db, deleteDoc, '_design/disable_public_delete');
+                } catch (err) {
+                    console.error(`Unable to update validate_doc_update document for ${did}: ${err.message}`)
+                    // CouchDB throws a document update conflict without any obvious reason
+                    if (err.reason != "Document update conflict.") {
+                        throw err;
+                    }
+                }
+            }
+
+            console.log(`configurePermissions() END`)
+            return true;
+        } catch (err) {
+            console.log(err)
+            return false
+        }
     }
 
     /**
