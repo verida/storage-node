@@ -219,6 +219,7 @@ class DbManager {
     }
 
     async configurePermissions(did, db, username, contextName, permissions) {
+        console.log(`configurePermissions() START`)
         permissions = permissions ? permissions : {};
 
         let owner = username;
@@ -308,6 +309,7 @@ class DbManager {
             }
         }
 
+        console.log(`configurePermissions() END`)
         return true;
     }
 
