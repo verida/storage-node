@@ -263,6 +263,10 @@ class AuthController {
 
         // Lookup DID document and confirm endpointUri is a valid endpoint
         const didDocument = await AuthManager.getDidDocument(did)
+        if (!didDocument) {
+            return Utils.error(res, `Unable to locate DID: ${did}`)
+        }
+
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
 
         if (!endpointService || !endpointService.serviceEndpoint) {
