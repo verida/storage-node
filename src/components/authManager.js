@@ -596,7 +596,7 @@ class AuthManager {
         requestBody.signature = signature
 
         // Fetch credentials from the endpointUri
-        console.log(`${Utils.serverUri()}: Verifying replication creds for remote endpoint: ${remoteEndpointUri}`)
+        // console.log(`${Utils.serverUri()}: Verifying replication creds for remote endpoint: ${remoteEndpointUri}`)
         try {
             await Axios.post(`${remoteEndpointUri}/auth/replicationCreds`, requestBody, {
                 // 5 second timeout
