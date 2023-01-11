@@ -15,23 +15,31 @@ import Utils from './utils'
 import CONFIG from './config'
 
 // Enable verbose logging of what the tests are doing
-const LOGGING_ENABLED = false
+const LOGGING_ENABLED = true
 
 // Use a pre-built mnemonic where the first private key is a Verida DID private key
 // mnemonic with a Verida DID that points to 2x local endpoints
-const MNEMONIC = 'pave online install gift glimpse purpose truth loan arm wing west option'
+//const MNEMONIC = 'pave online install gift glimpse purpose truth loan arm wing west option'
+const MNEMONIC = false
+// 3x devnet endpoints
+//const MNEMONIC = 'corn annual wealth busy pigeon kind vacuum fitness awful uncover pony dad'
 
 // Context name to use for the tests
 const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
 
 // Endpoints to use for testing
 // WARNING!!!
-// Only ever use local network endpoints.
+// Only ever use local or development network endpoints.
 // These tests will delete the `_replicator` database and `verida_replicator_creds` on
 // ALL endpoints when they are complete.
+/*const ENDPOINT_DSN = {
+    'https://acacia-dev1.tn.verida.tech:443': 'https://admin:xDU0UcO0zfapancsmrW7@acacia-dev1.tn.verida.tech:443',
+    'https://acacia-dev2.tn.verida.tech:443': 'https://admin:uyf6rOipUORcsx9NunOZ@acacia-dev2.tn.verida.tech:443',
+    'https://acacia-dev3.tn.verida.tech:443': 'https://admin:ZVOyBzwLxlmTTOQx25mA@acacia-dev3.tn.verida.tech:443',
+}*/
 const ENDPOINT_DSN = {
-    'http://192.168.68.117:5000': 'http://admin:admin@192.168.68.117:5984',
-    'http://192.168.68.118:5000': 'http://admin:admin@192.168.68.118:5984',
+    'http://192.168.68.124:5000': 'http://admin:admin@192.168.68.124:5984',
+//    'http://192.168.68.115:5000': 'http://admin:admin@192.168.68.115:5984',
 }
 const ENDPOINTS = Object.keys(ENDPOINT_DSN)
 const ENDPOINTS_DID = ENDPOINTS.map(item => `${item}/did/`)
@@ -82,8 +90,10 @@ describe("Replication tests", function() {
         this.beforeAll(async () => {
             // Create a new VDA private key
             if (MNEMONIC) {
+                log('Loading wallet from MNEMONIC')
                 wallet = ethers.Wallet.fromMnemonic(MNEMONIC)
             } else {
+                log('Creating random wallet')
                 wallet = ethers.Wallet.createRandom()
             }
             
@@ -92,6 +102,7 @@ describe("Replication tests", function() {
             DID_PUBLIC_KEY = wallet.publicKey
             DID_PRIVATE_KEY = wallet.privateKey
             keyring = new Keyring(wallet.mnemonic.phrase)
+            console.log(ENDPOINTS_DID)
             await didClient.authenticate(DID_PRIVATE_KEY, 'web3', CONFIG.DID_CLIENT_CONFIG.web3Config, ENDPOINTS_DID)
 
             TEST_DATABASE_HASH = TEST_DATABASES.map(item => ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, item))
@@ -114,9 +125,13 @@ describe("Replication tests", function() {
                 environment: CONFIG.ENVIRONMENT
             })
     
-            // Create new DID document (using DIDClient) for the private key with two testing endpoints (local)
-            let doc = await didClient.get(DID)
-            if (!doc) {
+            // Create new DID document (using DIDClient) for the private key with testing endpoints
+            let doc
+            try {
+                doc = await didClient.get(DID)
+                log(`DID Document exists.`)
+            } catch (err) {
+                log(`DID Document didn't exist. Creating.`)
                 doc = new DIDDocument(DID, DID_PUBLIC_KEY)
             }
 
@@ -132,6 +147,7 @@ describe("Replication tests", function() {
             })
 
             try {
+                log ('Saving DID document')
                 const endpointResponses = await didClient.save(doc)
             } catch (err) {
                 log(err)
@@ -501,6 +517,35 @@ describe("Replication tests", function() {
                     }
                 }
                 
+            }
+        })
+
+        it('verify user database list is being replicated', async () => {
+            for (let e in ENDPOINTS) {
+                const endpoint = ENDPOINTS[e]
+
+                log(`${endpoint}: Calling checkReplication()`)
+                await Utils.checkReplication(endpoint, AUTH_TOKENS[endpoint])
+
+                const didContextHash = ComponentUtils.generateDidContextHash(DID, CONTEXT_NAME)
+                const didContextDbName = `c${didContextHash}`
+
+                const couchAdmin = new CouchDb({
+                    url: ENDPOINT_DSN[endpoint],
+                    requestDefaults: {
+                        rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
+                    }
+                })
+
+                const replicationConn = couchAdmin.db.use('_replicator')
+
+                log(`${endpoint}: Confirming the user database list database (${didContextDbName}) is being replicated`)
+
+                try {
+                    await replicationConn.get(`${didContextDbName}`)
+                } catch (err) {
+                    assert.equal(err.error, 'not_found', `Replication entry (${didContextDbName}) not found`)
+                }
             }
         })
 

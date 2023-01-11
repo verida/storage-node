@@ -2,6 +2,7 @@ import DbManager from '../components/dbManager.js';
 import UserManager from '../components/userManager.js';
 import Utils from '../components/utils.js';
 import Db from '../components/db.js'
+import ReplicationManager from '../components/replicationManager'
 
 class UserController {
 
@@ -294,7 +295,7 @@ class UserController {
         const databaseName = req.body.databaseName
 
         try {
-            const result = await UserManager.checkReplication(did, contextName, databaseName)
+            const result = await ReplicationManager.checkReplication(did, contextName, databaseName)
 
             return Utils.signedResponse({
                 status: "success",

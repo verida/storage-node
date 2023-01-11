@@ -222,8 +222,6 @@ class AuthController {
      * @returns 
      */
     async replicationCreds(req, res) {
-        console.log(`auth.replicationCreds()`)
-        console.log(req.body)
         const {
             endpointUri,        // endpoint making the request
             did,
@@ -262,12 +260,22 @@ class AuthController {
         }
 
         // Lookup DID document and confirm endpointUri is a valid endpoint
-        const didDocument = await AuthManager.getDidDocument(did)
-        const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let didDocument = await AuthManager.getDidDocument(did)
+        if (!didDocument) {
+            return Utils.error(res, `Unable to locate DID: ${did}`)
+        }
 
+        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
         if (!endpointService || !endpointService.serviceEndpoint) {
-            console.log(`Invalid context: DID not linked (${did}) to context ${contextName}`)
-            return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
+            // DID document may have recently been updated, so re-fetch
+            didDocument = await AuthManager.getDidDocument(did, true)
+            if (didDocument) {
+                endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+            }
+
+            if (!didDocument || !endpointService || !endpointService.serviceEndpoint) {
+                return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
+            }
         }
 
         const thisHostname = (new URL(Utils.serverUri())).hostname
@@ -289,19 +297,19 @@ class AuthController {
         }
 
         if (!thisEndpointFound) {
-            console.info(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
+            // console.info(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
             return Utils.error(res, `Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
         }
 
         if (!remoteEndpointFound) {
-            console.info(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
+            // console.info(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
             return Utils.error(res, `Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
         }
         
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
         try {
-            console.log(`auth.replicationCreds(): getting status of requesting endpoint`)
+            // console.log(`auth.replicationCreds(): getting status of requesting endpoint`)
             const response = await Axios.get(`${endpointUri}/status`)
 
             endpointPublicKey = response.data.results.publicKey
@@ -318,22 +326,21 @@ class AuthController {
             }
 
             if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
-                console.log(`auth.replicationCreds(): invalid sig`)
                 return Utils.error(res, 'Invalid signature', 401)
             }
         } catch (err) {
-            console.log(`auth.replicationCreds(): unknown err, ${err.message}`)
+            console.error(`Auth.replicationCreds(): Unknown error: ${err.message}`)
             return Utils.error(res, `Unknown error: ${err.message}`)
         }
 
         const didContextHash = Utils.generateDidContextHash(did, contextName)
         const replicaterRole = `r${didContextHash}-replicater`
-        console.log(`auth.replicationCreds(): replicaterRole ${replicaterRole}`)
+        // console.log(`auth.replicationCreds(): replicaterRole ${replicaterRole}`)
 
         try {
             const result = await AuthManager.ensureReplicationCredentials(endpointUri, password, replicaterRole)
-            console.log(`auth.replicationCreds(): ensure rep creds`)
-            console.log(result)
+            // console.log(`auth.replicationCreds(): ensure rep creds`)
+            // console.log(result)
             return Utils.signedResponse({
                 result
             }, res)

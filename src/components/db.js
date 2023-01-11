@@ -24,7 +24,6 @@ class Db {
             const replicationStatus = await Axios.get(`${dsn}/_scheduler/docs/_replicator/${replicationId}`)
             return replicationStatus.data
         } catch (err) {
-            console.log(err)
             return undefined
         }
     }

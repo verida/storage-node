@@ -8,7 +8,6 @@ import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
 import dbManager from './dbManager.js';
-import Axios from 'axios'
 
 dotenv.config();
 
@@ -86,7 +85,7 @@ class AuthManager {
         try {
             const didDocument = await this.getDidDocument(did)
             if (!didDocument) {
-                console.log(`DID not found: ${did}`)
+                console.error(`DID not found: ${did}`)
                 return false
             }
 
@@ -116,7 +115,7 @@ class AuthManager {
             }
 
             if (!didDocument) {
-                console.info(`DID document not in cache: ${did}`)
+                console.info(`DID document not in cache: ${did}, fetching`)
                 if (!didClient) {
                     console.info(`DID client didn't exist, creating`)
                     const didClientConfig = {
@@ -134,8 +133,6 @@ class AuthManager {
                     const { DID_CACHE_DURATION }  = process.env
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
                 }
-            } else {
-                console.info(`DID document IN cache: ${did}`)
             }
 
             return didDocument
@@ -474,7 +471,7 @@ class AuthManager {
      * @returns 
      */
     async ensureReplicationCredentials(endpointUri, password, replicaterRole) {
-        console.log(`ensureReplicationCredentials(${endpointUri}, ${password}, ${replicaterRole})`)
+        //console.log(`ensureReplicationCredentials(${endpointUri}, ${password}, ${replicaterRole})`)
         const username = Utils.generateReplicaterUsername(endpointUri)
         const id = `org.couchdb.user:${username}`
 
@@ -486,7 +483,7 @@ class AuthManager {
 
             let userRequiresUpdate = false
             if (user.roles.indexOf(replicaterRole) == -1) {
-                console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
+                //console.log(`User exists, but needs the replicatorRole added (${replicaterRole})`)
                 user.roles.push(replicaterRole)
                 userRequiresUpdate = true
             }
@@ -495,12 +492,12 @@ class AuthManager {
             if (password) {
                 user.password = password
                 userRequiresUpdate = true
-                console.log(`User exists and password needs updating`)
+                //console.log(`User exists and password needs updating`)
             }
 
             if (userRequiresUpdate) {
                 // User exists and we need to update the password or roles
-                console.log(`User exists, updating password and / or roles`)
+                //console.log(`User exists, updating password and / or roles`)
                 
                 try {
                     await dbManager._insertOrUpdate(usersDb, user, user._id)
@@ -519,7 +516,7 @@ class AuthManager {
 
             // Need to create the user
             try {
-                console.log('Replication user didnt exist, so creating')
+                //console.log('Replication user didnt exist, so creating')
                 await dbManager._insertOrUpdate(usersDb, {
                     _id: id,
                     name: username,
@@ -533,134 +530,6 @@ class AuthManager {
                 throw new Error(`Unable to create replication user: ${err.message}`)
             }
         }
-    }
-
-    /**
-     * Fetch the credentials for this endpoint to replicate to another endpoint
-     * 
-     * @param {*} remoteEndpointUri 
-     * @param {*} did 
-     * @param {*} contextName 
-     * @returns 
-     */
-    async fetchReplicaterCredentials(remoteEndpointUri, did, contextName, force = false) {
-        // Check process.env.DB_REPLICATER_CREDS for existing credentials
-        const couch = Db.getCouch('internal');
-        const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
-
-        const thisEndointUri = Utils.serverUri()
-        const thisReplicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
-        const remoteReplicaterUsername = Utils.generateReplicaterUsername(remoteEndpointUri)
-        
-        console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername})`)
-
-        let creds, password
-        try {
-            creds = await replicaterCredsDb.get(remoteReplicaterUsername)
-            password = creds.password
-            console.log(`${Utils.serverUri()}: Located credentials from ${remoteEndpointUri} for ${Utils.serverUri()}`)
-            console.log(creds)
-        } catch (err) {
-            // If credentials aren't found, that's okay we will create them below
-            if (err.error != 'not_found') {
-                throw err
-            }
-        }
-
-        let updatePassword = false
-        if (!password || force) {
-            // Generate a random password
-            const secretKeyBytes = EncryptionUtils.randomKey(32)
-            password = Buffer.from(secretKeyBytes).toString('hex')
-            updatePassword = true
-        }
-
-        const timestampMinutes = Math.floor(Date.now() / 1000 / 60)
-
-        const requestBody = {
-            did,
-            contextName,
-            endpointUri: Utils.serverUri(),
-            timestampMinutes,
-            password
-        }
-
-        // Only include the password if it is changing
-        if (!updatePassword) {
-            delete requestBody['password']
-        }
-
-        const privateKeyBytes = new Uint8Array(Buffer.from(process.env.VDA_PRIVATE_KEY.substring(2), 'hex'))
-        const signature = EncryptionUtils.signData(requestBody, privateKeyBytes)
-
-        requestBody.signature = signature
-
-        // Fetch credentials from the endpointUri
-        console.log(`${Utils.serverUri()}: Verifying replication creds for remote endpoint: ${remoteEndpointUri}`)
-        try {
-            await Axios.post(`${remoteEndpointUri}/auth/replicationCreds`, requestBody, {
-                // 5 second timeout
-                timeout: 5000
-            })
-            console.log(`${Utils.serverUri()}: Credentials verified for ${remoteEndpointUri}`)
-        } catch (err) {
-            const message = err.response ? err.response.data.message : err.message
-            if (err.response) {
-                throw Error(`Unable to verify credentials from ${remoteEndpointUri} (${message}})`)
-            }
-
-            throw err
-        }
-
-        let couchUri
-        if (creds) {
-            couchUri = creds.couchUri
-        } else {
-            try {
-                const statusResponse = await Axios.get(`${remoteEndpointUri}/status`)
-                couchUri = statusResponse.data.results.couchUri
-                console.log(`${Utils.serverUri()}: Status fetched ${remoteEndpointUri} with CouchURI: ${couchUri}`)
-            } catch (err) {
-                const message = err.response ? err.response.data.message : err.message
-                if (err.response) {
-                    throw Error(`Unable to obtain couchUri from ${remoteEndpointUri} (${message})`)
-                }
-
-                throw err
-            }
-        }
-
-        // Update the password (or create new replication entry if it doesn't exist)
-        if (updatePassword) {
-            creds = {
-                // Use the remote username so we share the same credentials across all contexts for this endpoint
-                _id: remoteReplicaterUsername,
-                // Use this server username
-                username: thisReplicaterUsername,
-                password,
-                couchUri
-            }
-
-            console.log('inserting creds')
-            console.log(creds)
-
-            try {
-                const result = await dbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                console.log(`${Utils.serverUri()}: Credentials saved for ${remoteEndpointUri} ${result.id}`)
-            } catch (err) {
-                throw new Error(`Unable to save replicater password : ${err.message} (${remoteEndpointUri})`)
-            }
-        }
-
-        const result = {
-            username: creds.username,
-            password: creds.password,
-            // did the credentials exit already?
-            credsUpdated: updatePassword ? false : true,
-            couchUri: creds.couchUri
-        }
-
-        return result
     }
 
     // Garbage collection of refresh tokens
