@@ -269,9 +269,11 @@ class AuthController {
         if (!endpointService || !endpointService.serviceEndpoint) {
             // DID document may have recently been updated, so re-fetch
             didDocument = await AuthManager.getDidDocument(did, true)
-            endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+            if (didDocument) {
+                endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+            }
 
-            if (!endpointService || !endpointService.serviceEndpoint) {
+            if (!didDocument || !endpointService || !endpointService.serviceEndpoint) {
                 return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
             }
         }
