@@ -373,9 +373,11 @@ class UserManager {
                         // credentials are valid, so just update the broken ones to use the correct credentials
                         console.log(`${Utils.serverUri()}: Credentials are valid, so updating the broken ones with the correct credentials!`)
                         console.log(replicationFailures.length)
+                        console.log(replicationFailures)
                         for (let i in replicationFailures) {
                             console.log(i)
                             const replicationStatus = replicationFailures[i]
+                            console.log('replication status:')
                             console.log(replicationStatus)
                             console.log(replicationStatus.doc_id)
                             try {
