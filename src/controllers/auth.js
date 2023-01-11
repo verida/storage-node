@@ -222,8 +222,8 @@ class AuthController {
      * @returns 
      */
     async replicationCreds(req, res) {
-        console.log(`auth.replicationCreds()`)
-        console.log(req.body)
+        //console.log(`auth.replicationCreds()`)
+        //console.log(req.body)
         const {
             endpointUri,        // endpoint making the request
             did,
@@ -266,7 +266,7 @@ class AuthController {
         const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
 
         if (!endpointService || !endpointService.serviceEndpoint) {
-            console.log(`Invalid context: DID not linked (${did}) to context ${contextName}`)
+            // console.log(`Invalid context: DID not linked (${did}) to context ${contextName}`)
             return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
         }
 
@@ -289,19 +289,19 @@ class AuthController {
         }
 
         if (!thisEndpointFound) {
-            console.info(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
+            // console.info(`Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
             return Utils.error(res, `Invalid DID and context: Not associated with this endpoint ${Utils.serverUri()}`)
         }
 
         if (!remoteEndpointFound) {
-            console.info(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
+            // console.info(`Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
             return Utils.error(res, `Invalid DID and context: Not associated with remote endpoint ${serverUri}`)
         }
         
         // Pull endpoint public key from /status and verify the signature
         let endpointPublicKey
         try {
-            console.log(`auth.replicationCreds(): getting status of requesting endpoint`)
+            // console.log(`auth.replicationCreds(): getting status of requesting endpoint`)
             const response = await Axios.get(`${endpointUri}/status`)
 
             endpointPublicKey = response.data.results.publicKey
@@ -328,12 +328,12 @@ class AuthController {
 
         const didContextHash = Utils.generateDidContextHash(did, contextName)
         const replicaterRole = `r${didContextHash}-replicater`
-        console.log(`auth.replicationCreds(): replicaterRole ${replicaterRole}`)
+        // console.log(`auth.replicationCreds(): replicaterRole ${replicaterRole}`)
 
         try {
             const result = await AuthManager.ensureReplicationCredentials(endpointUri, password, replicaterRole)
-            console.log(`auth.replicationCreds(): ensure rep creds`)
-            console.log(result)
+            // console.log(`auth.replicationCreds(): ensure rep creds`)
+            // console.log(result)
             return Utils.signedResponse({
                 result
             }, res)
