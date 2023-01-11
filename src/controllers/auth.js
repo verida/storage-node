@@ -260,16 +260,20 @@ class AuthController {
         }
 
         // Lookup DID document and confirm endpointUri is a valid endpoint
-        const didDocument = await AuthManager.getDidDocument(did)
+        let didDocument = await AuthManager.getDidDocument(did)
         if (!didDocument) {
             return Utils.error(res, `Unable to locate DID: ${did}`)
         }
 
-        const endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
-
+        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
         if (!endpointService || !endpointService.serviceEndpoint) {
-            // console.log(`Invalid context: DID not linked (${did}) to context ${contextName}`)
-            return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
+            // DID document may have recently been updated, so re-fetch
+            didDocument = await AuthManager.getDidDocument(did, true)
+            endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+
+            if (!endpointService || !endpointService.serviceEndpoint) {
+                return Utils.error(res, `Invalid context: DID not linked (${did}) to context ${contextName}`)
+            }
         }
 
         const thisHostname = (new URL(Utils.serverUri())).hostname
