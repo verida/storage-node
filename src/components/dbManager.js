@@ -267,6 +267,7 @@ class DbManager {
         try {
             await this._insertOrUpdate(db, securityDoc, '_security');
         } catch (err) {
+            console.error(`Unable to update _security document for ${did}: ${err.message}`)
             return false;
         }
 
@@ -282,6 +283,7 @@ class DbManager {
 
             await this._insertOrUpdate(db, writeDoc, '_design/only_permit_write_users');
         } catch (err) {
+            console.error(`Unable to update only_permit_write_users document for ${did}: ${err.message}`)
             // CouchDB throws a document update conflict without any obvious reason
             if (err.reason !== "Document update conflict.") {
                 throw err;
@@ -298,6 +300,7 @@ class DbManager {
 
                 await this._insertOrUpdate(db, deleteDoc, '_design/disable_public_delete');
             } catch (err) {
+                console.error(`Unable to update validate_doc_update document for ${did}: ${err.message}`)
                 // CouchDB throws a document update conflict without any obvious reason
                 if (err.reason != "Document update conflict.") {
                     throw err;
