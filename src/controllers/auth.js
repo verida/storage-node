@@ -222,8 +222,6 @@ class AuthController {
      * @returns 
      */
     async replicationCreds(req, res) {
-        //console.log(`auth.replicationCreds()`)
-        //console.log(req.body)
         const {
             endpointUri,        // endpoint making the request
             did,
@@ -322,11 +320,10 @@ class AuthController {
             }
 
             if (!EncryptionUtils.verifySig(params, signature, endpointPublicKey)) {
-                console.log(`auth.replicationCreds(): invalid sig`)
                 return Utils.error(res, 'Invalid signature', 401)
             }
         } catch (err) {
-            console.log(`auth.replicationCreds(): unknown err, ${err.message}`)
+            console.error(`Auth.replicationCreds(): Unknown error: ${err.message}`)
             return Utils.error(res, `Unknown error: ${err.message}`)
         }
 
