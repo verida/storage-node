@@ -157,7 +157,7 @@ class ReplicationManager {
             if (Object.keys(missingReplicationEntries).length > 0) {
                 //console.log(`${Utils.serverUri()}: We had some failed or missing replication entries for endpoint ${endpointUri}, so fetch credentials`)
                 // force create of new credentials if we have an auth error
-                const { username, password, couchUri } = await ReplicationManager.fetchReplicaterCredentials(endpointUri, did, contextName, authError)
+                const { username, password, couchUri } = await this.fetchReplicaterCredentials(endpointUri, did, contextName, authError)
 
                 // re-add all missing replication entries
                 for (let m in missingReplicationEntries) {
