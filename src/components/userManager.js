@@ -147,7 +147,8 @@ class UserManager {
      * @param {*} databaseName (optional) If not specified, checks all databases
      */
     async checkReplication(did, contextName, databaseName) {
-        //console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+        console.log(`-------`)
+        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
         let didService = didDocument.locateServiceEndpoint(contextName, 'database')
