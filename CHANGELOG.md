@@ -1,3 +1,17 @@
+2023-01-13 (2.0.0)
+--------------------
+
+- Support blockchain DID registry
+- Support refresh and access tokens
+- Support server side replication, including cehcks and recovery
+- Support device disconnections
+- Support maintaining database of context specific databases to enable monitoring of usage
+- Support database deletion
+- Support create, update, retreive and delete DID documents
+- Support `/lookup/did` endpoint to provide a DID document caching service
+- Remove lambda support
+- Support docker containers
+
 
 2021-09-17 (1.2.0)
 --------------------
