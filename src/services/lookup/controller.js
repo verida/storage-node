@@ -9,15 +9,19 @@ class DidLookup {
         if (!req.params.did) {
             return Utils.error(res, `No DID specified`)
         }
-
+        
+        const ignoreCache = req.query.ignoreCache ? req.query.ignoreCache : false
         const did = req.params.did.toLowerCase()
 
-        let doc = mcache.get(did)
-        if (doc) {
-            return Utils.success(res, {
-                did: did,
-                document: doc
-            })
+        let doc
+        if (!ignoreCache) {
+            doc = mcache.get(did)
+            if (doc) {
+                return Utils.success(res, {
+                    did: did,
+                    document: doc
+                })
+            }
         }
 
         const didClient = new DIDClient({
