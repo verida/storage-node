@@ -63,7 +63,16 @@ class Utils {
     }
 
     didsToUsernames(dids, contextName) {
-        return dids ? dids.map(did => this.generateUsername(did.toLowerCase(), contextName)) : []
+        const usernames = []
+        for (let d in dids) {
+            if (!dids[d]) {
+                continue
+            }
+
+            usernames.push(this.generateUsername(dids[d].toLowerCase(), contextName))
+        }
+
+        return usernames
     }
 
     signResponse(response, privateKey) {
