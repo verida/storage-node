@@ -93,13 +93,6 @@ class UserController {
             });
         }
 
-        if (!did || !contextName) {
-            return res.status(401).send({
-                status: "fail",
-                message: "Permission denied"
-            });
-        }
-
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
         let success;
