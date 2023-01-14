@@ -1,0 +1,11 @@
+node_modules
+
+.git
+.github
+
+dist
+.env*
+docker-compose.yml
+Dockerfile
+*.md
+claudia.*
