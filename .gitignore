@@ -1,5 +1,10 @@
 node_modules
 couchdb
 dist
+.DS_Store
+.vscode
+curl_tests
+dbdata
 
-.env.dev
+.env
+.env*

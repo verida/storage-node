@@ -1,38 +1,111 @@
-const crypto = require('crypto');
+import EncryptionUtils from "@verida/encryption-utils"
 
 class Utils {
-  generateUsernameFromRequest(req) {
-    let did = req.auth.user.toLowerCase();
-    let applicationName = req.headers['application-name'];
-    return this.generateUsername(did, applicationName);
-  }
 
-  generateUsername(did, applicationName) {
-    let hash = crypto.createHmac('sha256', process.env.HASH_KEY);
-    hash.update(did + '/' + applicationName);
-    const username = hash.digest('hex');
-
-    // Username must start with a letter
-    return 'v' + username;
-  }
-
-  didsToUsernames(dids, applicationName) {
-    if (!dids || !dids.length) {
-      return [];
+    generateHash(value) {
+        return EncryptionUtils.hash(value).substring(2);
     }
 
-    let usernames = [];
-    for (var d in dids) {
-      if (!dids[d]) {
-        continue;
-      }
+    generateReplicaterUsername(endpointUri) {
+        const hostname = (new URL(endpointUri)).hostname
 
-      let did = dids[d].toLowerCase();
-      usernames.push(this.generateUsername(did, applicationName));
+        return `r${this.generateHash(hostname)}`
     }
 
-    return usernames;
-  }
+    generateDidContextHash(did, contextName) {
+        let text = [
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+
+        return this.generateHash(text)
+    }
+
+    generateUsername(did, contextName) {
+        did = did.toLowerCase()
+        const text = [
+            did,
+            contextName
+        ].join('/')
+
+        const hash = EncryptionUtils.hash(text).substring(2)
+
+        // Username must start with a letter
+        return "v" + hash
+    }
+
+    generateDatabaseName(did, contextName, databaseName) {
+        let text = [
+            did.toLowerCase(),
+            contextName,
+            databaseName,
+        ].join("/");
+        
+        const hash = EncryptionUtils.hash(text).substring(2);
+
+        // Database name must start with a letter
+        return "v" + hash
+    }
+
+    generateReplicatorHash(endpointUri, did, contextName) {
+        const hostname = (new URL(endpointUri)).hostname
+
+        let text = [
+            hostname,
+            did.toLowerCase(),
+            contextName
+        ].join("/");
+        
+        const hash = EncryptionUtils.hash(text).substring(2);
+
+        // Database name must start with a letter
+        return "e" + hash
+    }
+
+    didsToUsernames(dids, contextName) {
+        const usernames = []
+        for (let d in dids) {
+            if (!dids[d]) {
+                continue
+            }
+
+            usernames.push(this.generateUsername(dids[d].toLowerCase(), contextName))
+        }
+
+        return usernames
+    }
+
+    signResponse(response, privateKey) {
+        privateKey = new Uint8Array(Buffer.from(privateKey.substring(2),'hex'))
+        return EncryptionUtils.signData(response, privateKey)
+    }
+
+    signedResponse(data, response) {
+        const signature = this.signResponse(data, process.env.VDA_PRIVATE_KEY)
+        return response.status(200).send({
+            ...data,
+            signature
+        });
+    }
+
+    async error(res, message, httpStatus=400) {
+        return res.status(httpStatus).send({
+            status: "fail",
+            message
+        })
+    }
+
+    async success(res, data) {
+        return res.status(200).send({
+            status: "success",
+            data
+        })
+    }
+
+    serverUri() {
+        return process.env.ENDPOINT_URI
+    }
+
 }
 
 let utils = new Utils();
