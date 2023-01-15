@@ -1,11 +1,13 @@
-import db from '../components/db'
-import Utils from '../components/utils'
-import packageJson from '../../package.json'
+import packageJson from '../../package.json';
+import db from '../components/db';
+import Utils from '../components/utils';
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { ethers } from 'ethers'
+import { ethers } from 'ethers';
+import { BUILD_DETAILS } from '../build';
+
 
 class SystemController {
 
@@ -18,7 +20,8 @@ class SystemController {
             currentUsers,
             version: packageJson.version,
             publicKey: wallet.publicKey,
-            couchUri: db.buildHost()
+            couchUri: db.buildHost(),
+            buildTimestamp: BUILD_DETAILS.buildTimestamp
         }
 
         return Utils.signedResponse({
