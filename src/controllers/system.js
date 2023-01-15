@@ -21,7 +21,7 @@ class SystemController {
             version: packageJson.version,
             publicKey: wallet.publicKey,
             couchUri: db.buildHost(),
-            buildtime: BUILD_DETAILS.buildtime
+            buildTimestamp: BUILD_DETAILS.buildTimestamp
         }
 
         return Utils.signedResponse({
