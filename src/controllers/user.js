@@ -120,9 +120,6 @@ class UserController {
         const username = req.tokenData.username
         const databaseHashes = req.body.databaseHashes
 
-        console.log(`pingDatabases()`)
-        console.log(databaseHashes)
-
         try {
             await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
 

@@ -15,14 +15,14 @@ import Utils from './utils'
 import CONFIG from './config'
 
 // Enable verbose logging of what the tests are doing
-const LOGGING_ENABLED = true
+const LOGGING_ENABLED = false
 
 // Use a pre-built mnemonic where the first private key is a Verida DID private key
 // mnemonic with a Verida DID that points to 2x local endpoints
 //const MNEMONIC = 'pave online install gift glimpse purpose truth loan arm wing west option'
 //const MNEMONIC = false
 // 3x devnet endpoints
-const MNEMONIC = 'meat essence critic december sure outer before normal upset sure primary laundry'
+const MNEMONIC = 'oval nasty choice palm aim phrase destroy slice twelve recall witness night'
 
 // Context name to use for the tests
 const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
@@ -40,6 +40,7 @@ const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
 const ENDPOINT_DSN = {
     'http://192.168.68.135:5000': 'http://admin:admin@192.168.68.135:5984',
     'http://192.168.68.127:5000': 'http://admin:admin@192.168.68.127:5984',
+    'http://192.168.68.113:5000': 'http://admin:admin@192.168.68.113:5984',
 }
 const ENDPOINTS = Object.keys(ENDPOINT_DSN)
 const ENDPOINTS_DID = ENDPOINTS.map(item => `${item}/did/`)
@@ -104,7 +105,6 @@ describe("Replication tests", function() {
             DID_PUBLIC_KEY = wallet.publicKey
             DID_PRIVATE_KEY = wallet.privateKey
             keyring = new Keyring(wallet.mnemonic.phrase)
-            console.log(ENDPOINTS_DID)
             await didClient.authenticate(DID_PRIVATE_KEY, 'web3', CONFIG.DID_CLIENT_CONFIG.web3Config, ENDPOINTS_DID)
 
             TEST_DATABASE_HASH = TEST_DATABASES.map(item => ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, item))
@@ -254,7 +254,6 @@ describe("Replication tests", function() {
                     assert.ok(replicationResponse, 'Have a replication job')
 
                     const status = replicationResponse.data
-                    console.log(status)
                     assert.ok(['pending', 'running'].indexOf(status.state) !== -1, 'Replication is active')
                 }
             }
@@ -407,8 +406,7 @@ describe("Replication tests", function() {
             }
         })
 
-        // @todo
-        it.skip('verify missing database is correctly created with checkReplication(databaseName)', async () => {
+        it('verify missing database is correctly created with checkReplication(databaseName)', async () => {
             // manually delete the database from endpoint 1
             const endpoint1 = ENDPOINTS[0]
             const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
@@ -431,7 +429,7 @@ describe("Replication tests", function() {
 
         // Do it again, but without specifying the database
         // @todo
-        it.skip('verify missing database is correctly created with checkReplication()', async () => {
+        it('verify missing database is correctly created with checkReplication()', async () => {
             // manually delete the database from endpoint 1
             const endpoint1 = ENDPOINTS[0]
             const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
@@ -525,7 +523,7 @@ describe("Replication tests", function() {
         })
 
         // @todo
-        it.skip('verify user database list is being replicated', async () => {
+        it('verify user database list is being replicated', async () => {
             for (let e in ENDPOINTS) {
                 const endpoint = ENDPOINTS[e]
 

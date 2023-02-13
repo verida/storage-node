@@ -556,7 +556,7 @@ class AuthManager {
                     await tokenDb.destroy(doc._id, doc._rev)
                 } catch (err) {
                     if (err.error != 'not_found' && err.error != 'conflict') {
-                        console.log(`Unknown error in garbage collection: ${err.message}`)
+                        console.error(`Unknown error in garbage collection: ${err.message}`)
                     }
                 }
             }

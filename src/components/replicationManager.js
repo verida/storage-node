@@ -16,7 +16,7 @@ function now() {
 class ReplicationManager {
 
     async touchDatabases(did, contextName, databaseHashes) {
-        console.log(`${Utils.serverUri()}: touchDatabases(${did}, ${contextName}, ${databaseHashes.length})`)
+        //console.log(`${Utils.serverUri()}: touchDatabases(${did}, ${contextName}, ${databaseHashes.length})`)
         
         // Determine the endpoints this node needs to replicate to
         const endpoints = await this.getReplicationEndpoints(did, contextName)
@@ -42,7 +42,7 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${dbHash} missing from ${endpointUri}`)
+                        console.error(`${Utils.serverUri()}: ${dbHash} missing replication to ${endpointUri}`)
                         // Replication entry not found... Will need to create it
                         touchReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
@@ -57,7 +57,6 @@ class ReplicationManager {
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
-                    console.log(err)
                     console.error(`${Utils.serverUri()}: Unknown error checking replication status of database ${dbHash}: ${err.message}`)
                 }
             }
@@ -66,7 +65,7 @@ class ReplicationManager {
             // @todo: No need as they will be garbage collected?
             for (let b in brokenReplicationEntries) {
                 const replicationEntry = brokenReplicationEntries[b]
-                console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
+                //console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
 
                 try {
                     const replicationRecord = await replicationDb.get(replicationEntry.doc_id)
@@ -102,7 +101,7 @@ class ReplicationManager {
 
         for (let d in dbHashes) {
             const dbHash = dbHashes[d]
-            console.log(`${Utils.serverUri()}: Create / update replication record for ${endpointUri} / ${dbHash}`)
+            //console.log(`${Utils.serverUri()}: Create / update replication record for ${endpointUri} / ${dbHash}`)
 
             const replicationRecord = {
                 _id: `${replicatorId}-${dbHash}`,
@@ -130,10 +129,9 @@ class ReplicationManager {
             try {
                 const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
                 replicationRecord._rev = result.rev
-                console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
-                console.log(replicationRecord)
+                //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                //console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                 throw new Error(`Unable to create replication entry: ${err.message}`)
             }
         }
@@ -193,13 +191,13 @@ class ReplicationManager {
         const thisReplicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
         const remoteReplicaterUsername = Utils.generateReplicaterUsername(remoteEndpointUri)
         
-        console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername}) force = ${force}`)
+        //console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername}) force = ${force}`)
 
         let creds, password
         try {
             creds = await replicaterCredsDb.get(remoteReplicaterUsername)
             password = creds.password
-            console.log(`${Utils.serverUri()}: Credentials for ${remoteEndpointUri} already existed`)
+            //console.log(`${Utils.serverUri()}: Credentials for ${remoteEndpointUri} already existed`)
         } catch (err) {
             // If credentials aren't found, that's okay we will create them below
             if (err.error != 'not_found') {
@@ -243,7 +241,7 @@ class ReplicationManager {
                 // 5 second timeout
                 timeout: 5000
             })
-            console.log(`${Utils.serverUri()}: Credentials verified for ${remoteEndpointUri}`)
+            //console.log(`${Utils.serverUri()}: Credentials verified for ${remoteEndpointUri}`)
             credsUpdated = updatePassword ? updatePassword : result.result == 'updated'
         } catch (err) {
             const message = err.response ? err.response.data.message : err.message
@@ -284,7 +282,7 @@ class ReplicationManager {
 
             try {
                 const result = await DbManager._insertOrUpdate(replicaterCredsDb, creds, creds._id)
-                console.log(`${Utils.serverUri()}: Credentials saved for ${remoteEndpointUri} ${result.id}`)
+                //console.log(`${Utils.serverUri()}: Credentials saved for ${remoteEndpointUri} ${result.id}`)
             } catch (err) {
                 throw new Error(`Unable to save replicater password : ${err.message} (${remoteEndpointUri})`)
             }
@@ -305,7 +303,7 @@ class ReplicationManager {
     }
 
     async updateReplicationCredentials(username, password, couchUri) {
-        console.log(`${Utils.serverUri()}: Credentials were updated, so updating all existing replication records for this endpoint ${couchUri} to use the new credentials`)
+        //console.log(`${Utils.serverUri()}: Credentials were updated, so updating all existing replication records for this endpoint ${couchUri} to use the new credentials`)
         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
         
@@ -324,7 +322,7 @@ class ReplicationManager {
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
         const replicationEntries = await replicationDb.find(query)
-        console.log(`${Utils.serverUri()}: Found ${replicationEntries.docs.length}`)
+        //console.log(`${Utils.serverUri()}: Found ${replicationEntries.docs.length}`)
 
         for (let r in replicationEntries.docs) {
             const replicationEntry = replicationEntries.docs[r]
@@ -332,7 +330,7 @@ class ReplicationManager {
             try {
                 await DbManager._insertOrUpdate(replicationDb, replicationEntry, replicationEntry._id)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error updating replication credentials for ${couchUri} (${r}): ${err.message}`)
+                console.error(`${Utils.serverUri()}: Error updating replication credentials for ${couchUri} (${r}): ${err.message}`)
             }
         }
     }
@@ -362,8 +360,6 @@ class ReplicationManager {
                 continue
             }
             const destroyResult = await replicationDb.destroy(replicationEntry._id, replicationEntry._rev)
-            console.log('cleared expired replication')
-            console.log(destroyResult)
         }
     }
 
