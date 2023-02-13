@@ -319,7 +319,23 @@ class UserController {
     async checkReplication(req, res) {
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
-        const userDatabases = await DbManager.getUserDatabases(did, contextName)
+        const databaseName = req.body.databaseName
+
+        let userDatabases = await DbManager.getUserDatabases(did, contextName)
+
+        if (databaseName) {
+            if (userDatabases.indexOf(databaseName) === -1) {
+                return res.status(401).send({
+                    status: "fail",
+                    message: "Invalid database name"
+                });
+            } else {
+                userDatabases = [databaseName]
+            }
+        }
+
+        console.log('checking databases')
+        console.log(userDatabases)
         await UserManager.checkDatabases(userDatabases)
 
         return Utils.signedResponse({
