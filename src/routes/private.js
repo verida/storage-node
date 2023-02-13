@@ -10,6 +10,12 @@ router.post('/user/deleteDatabases', UserController.deleteDatabases);
 router.post('/user/databases', UserController.databases);
 router.post('/user/databaseInfo', UserController.databaseInfo);
 router.post('/user/usage', UserController.usage);
+
+// ensure databases are replicating
+router.post('/user/pingDatabases', UserController.pingDatabases);
+router.post('/user/pingDatabase', UserController.pingDatabases);
+
+// @todo: remove
 router.post('/user/checkReplication', UserController.checkReplication);
 
 export default router;

@@ -113,6 +113,18 @@ class UserController {
         }
     }
 
+    async pingDatabases(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const username = req.tokenData.username
+        const databaseHashes = req.body.databaseHashes
+
+        console.log(`pingDatabases()`)
+        console.log(databaseHashes)
+
+        ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+    }
+
     async deleteDatabases(req, res) {
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
@@ -282,24 +294,20 @@ class UserController {
         }
     }
 
+    /**
+     * This is now deprecated
+     * 
+     * @todo: Remove
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async checkReplication(req, res) {
-        const did = req.tokenData.did
-        const contextName = req.tokenData.contextName
-        const databaseName = req.body.databaseName
-
-        try {
-            const result = await ReplicationManager.checkReplication(did, contextName, databaseName)
-
-            return Utils.signedResponse({
-                status: "success",
-                result
-            }, res);
-        } catch (err) {
-            return res.status(500).send({
-                status: "fail",
-                message: err.message
-            });
-        }
+        return Utils.signedResponse({
+            status: "success",
+            result: {}
+        }, res);
     }
 
 }

@@ -9,31 +9,139 @@ import EncryptionUtils from '@verida/encryption-utils';
 import dotenv from 'dotenv';
 dotenv.config();
 
+function now() {
+    return Math.floor(Date.now() / 1000)
+}
+
 class ReplicationManager {
 
+    async touchDatabases(did, contextName, databaseHashes) {
+        console.log(`${Utils.serverUri()}: touchDatabases(${did}, ${contextName}, ${databaseHashes.length})`)
+        
+        // Determine the endpoints this node needs to replicate to
+        const endpoints = await this.getReplicationEndpoints(did, contextName)
+
+        // Touch all the databases for every endpoint
+        for (let e in endpoints) {
+            // create a fake endpoint to have a valid URL
+            // generateReplicatorHash() will strip back to hostname
+            const endpointUri = endpoints[e].origin
+            const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+            const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
+
+            const touchReplicationEntries = []
+
+            // Find all entries that have an issue
+            const brokenReplicationEntries = []
+            let authError = false
+            for (let d in databaseHashes) {
+                const dbHash = databaseHashes[d]
+                
+                // Find existing replication records
+                try {
+                    const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
+
+                    // Handle replication errors
+                    if (!replicationStatus) {
+                        console.error(`${Utils.serverUri()}: ${databases[d].databaseName} missing from ${endpointUri}`)
+                        // Replication entry not found... Will need to create it
+                        touchReplicationEntries.push(dbHash)
+                    } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
+                        console.error(`${Utils.serverUri()}:  ${databases[d].databaseName} have invalid state ${replicationStatus.state} from ${endpointUri}`)
+                        brokenReplicationEntries.push(replicationStatus)
+                        touchReplicationEntries.push(dbHash)
+                        if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
+                            authError = true
+                        }
+                    } else {
+                        // Replication is good, but need to update the touched timestamp
+                        touchReplicationEntries.push(dbHash)
+                    }
+                } catch (err) {
+                    console.error(`${Utils.serverUri()}: Unknown error checking replication status of database ${databases[d].databaseName} / ${dbHash}: ${err.message}`)
+                }
+            }
+
+            // Delete broken replication entries
+            // @todo: No need as they will be garbage collected?
+            for (let b in brokenReplicationEntries) {
+                const replicationEntry = brokenReplicationEntries[b]
+                console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
+
+                try {
+                    const replicationRecord = await replicationDb.get(replicationEntry.doc_id)
+                    await replicationDb.destroy(replicationRecord._id, replicationRecord._rev)
+                } catch (err) {
+                    console.error(`${Utils.serverUri()}: Unable to find and delete replication record (${replicationEntry.doc_id}): ${err.message}`)
+                    delete missingReplicationEntries[replicationEntry.databaseHash]
+                }
+            }
+
+            // Create or update all replication entries for the list of database hashes
+            if (Object.keys(touchReplicationEntries).length > 0) {
+                await this.createUpdateReplicationEntries(did, contextName, endpointUri, touchReplicationEntries, authError)
+            }
+        }
+    }
+
     /**
-     * Confirm replication is correctly configured for a given DID and application context.
-     * 
-     * If a storage node is being added or removed to the application context, it must be the
-     * last node to have checkReplication called. This ensures the node has a list of all the
-     * active databases and can ensure it is replicating correctly to the other nodes.
-     * 
-     * The client SDK should call checkReplication() when opening a context to ensure the replication is working as expected.
-     *
-     * This is called very often, so needs to be efficient
-     * 
-     * @param {*} did 
-     * @param {*} contextName 
-     * @param {*} databaseName (optional) If not specified, checks all databases
+     * Create new or update existing replication entry
      */
-    async checkReplication(did, contextName, databaseName) {
-        console.log(`${Utils.serverUri()}: checkReplication(${did}, ${contextName}, ${databaseName})`)
+    async createUpdateReplicationEntries(did, contextName, endpointUri, dbHashes, forceCreds = false) {
+        const { username, password, couchUri } = await this.fetchReplicaterCredentials(endpointUri, did, contextName, forceCreds)
+        const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+
+        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${dbHash} is missing... creating.`)
+        const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
+        const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+
+        const couch = Db.getCouch('internal')
+        const replicationDb = couch.db.use('_replicator')
+
+        for (let d in dbHashes) {
+            const dbHash = dbHashes[d]
+
+            const replicationRecord = {
+                _id: `${replicatorId}-${dbHash}`,
+                user_ctx: {
+                    name: process.env.DB_REPLICATION_USER
+                },
+                source: {
+                    url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
+                    headers: {
+                        Authorization: `Basic ${localAuthBase64}`
+                    }
+                },
+                target: {
+                    url: `${couchUri}/${dbHash}`,
+                    headers: {
+                        Authorization: `Basic ${remoteAuthBase64}`
+                    }
+                },
+                create_target: false,
+                continuous: true,
+                owner: 'admin',
+                expiry: (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
+            }
+
+            try {
+                const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
+                replicationRecord._rev = result.rev
+                console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+            } catch (err) {
+                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                throw new Error(`Unable to create replication entry: ${err.message}`)
+            }
+        }
+    }
+
+    async getReplicationEndpoints() {
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
         let didService = didDocument.locateServiceEndpoint(contextName, 'database')
 
         if (!didService) {
-            // Service not found, try to fetch the DID document without caching (as it may have been udpated)
+            // Service not found, try to fetch the DID document without caching (as it may have been updated)
             didDocument = await AuthManager.getDidDocument(did, true)
             didService = didDocument.locateServiceEndpoint(contextName, 'database')
         }
@@ -61,151 +169,7 @@ class ReplicationManager {
         // Remove this endpoint from the list of endpoints to check
         endpoints.splice(endpointIndex, 1)
 
-        // Build a list of databases to chck
-        const userDatabases = await DbManager.getUserDatabases(did, contextName)
-
-        let databases = {}
-        if (databaseName) {
-            for (let i in userDatabases) {
-                const item = userDatabases[i]
-                if (item.databaseName == databaseName) {
-                    databases[item.databaseName] = item
-                }
-            }
-
-            // Only check a single database
-            if (!Object.keys(databases).length === 0) {
-                return
-            }
-        } else {
-            // Fetch all databases for this context
-            for (let i in userDatabases) {
-                const item = userDatabases[i]
-                databases[item.databaseName] = item
-            }
-
-            // Ensure the user database list database is included in the list of databases
-            const didContextHash = Utils.generateDidContextHash(did, contextName)
-            const didContextDbName = `c${didContextHash}`
-
-            databases[didContextDbName] = {
-                did,
-                contextName,
-                databaseName: didContextDbName,
-                databaseHash: didContextDbName
-            }
-        }
-
-        // Ensure there is a replication entry for each
-        const couch = Db.getCouch('internal')
-        const replicationDb = couch.db.use('_replicator')
-
-        const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
-        const localAuthBase64 = localAuthBuffer.toString('base64')
-
-        console.log(`${Utils.serverUri()}: Checking ${endpoints.length} endpoints and ${Object.keys(databases).length} databases`)
-
-        for (let e in endpoints) {
-            // create a fake endpoint to have a valid URL
-            // generateReplicatorHash() will strip back to hostname
-            const endpointUri = endpoints[e].origin
-            const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-            const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
-
-            // Find all entries that have an issue
-            const brokenReplicationEntries = []
-            const missingReplicationEntries = {}
-            let authError = false
-            for (let d in databases) {
-                const dbHash = databases[d].databaseHash
-                
-                // Find any replication errors and handle them nicely
-                try {
-                    const replicationStatus = await Db.getReplicationStatus(`${replicatorId}-${dbHash}`)
-
-                    if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${databases[d].databaseName} missing from ${endpointUri}`)
-                        // Replication entry not found... Will need to create it
-                        missingReplicationEntries[dbHash] = databases[d]
-                    } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
-                        console.error(`${Utils.serverUri()}:  ${databases[d].databaseName} have invalid state ${replicationStatus.state} from ${endpointUri}`)
-                        brokenReplicationEntries.push(replicationStatus)
-                        missingReplicationEntries[dbHash] = databases[d]
-                        if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
-                            authError = true
-                        }
-                    }
-                } catch (err) {
-                    console.error(`${Utils.serverUri()}: Unknown error checking replication status of database ${databases[d].databaseName} / ${dbHash}: ${err.message}`)
-                }
-            }
-
-            // Delete broken replication entries and add to missing
-            for (let b in brokenReplicationEntries) {
-                const replicationEntry = brokenReplicationEntries[b]
-                console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
-
-                try {
-                    const replicationRecord = await replicationDb.get(replicationEntry.doc_id)
-                    await replicationDb.destroy(replicationRecord._id, replicationRecord._rev)
-                } catch (err) {
-                    console.error(`${Utils.serverUri()}: Unable to find and delete replication record (${replicationEntry.doc_id}): ${err.message}`)
-                    delete missingReplicationEntries[replicationEntry.databaseHash]
-                }
-            }
-
-            if (Object.keys(missingReplicationEntries).length > 0) {
-                //console.log(`${Utils.serverUri()}: We had some failed or missing replication entries for endpoint ${endpointUri}, so fetch credentials`)
-                // force create of new credentials if we have an auth error
-                const { username, password, couchUri } = await this.fetchReplicaterCredentials(endpointUri, did, contextName, authError)
-
-                // re-add all missing replication entries
-                for (let m in missingReplicationEntries) {
-                    const replicationEntry = missingReplicationEntries[m]
-                    const dbHash = replicationEntry.databaseHash
-
-                    console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${replicationEntry.databaseName} / ${dbHash} is missing... creating.`)
-                    const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
-                    const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
-
-                    const replicationRecord = {
-                        _id: `${replicatorId}-${dbHash}`,
-                        user_ctx: {
-                            name: process.env.DB_REPLICATION_USER
-                        },
-                        source: {
-                            url: `http://localhost:${process.env.DB_PORT_INTERNAL}/${dbHash}`,
-                            headers: {
-                                Authorization: `Basic ${localAuthBase64}`
-                            }
-                        },
-                        target: {
-                            url: `${couchUri}/${dbHash}`,
-                            headers: {
-                                Authorization: `Basic ${remoteAuthBase64}`
-                            }
-                        },
-                        create_target: false,
-                        continuous: true,
-                        owner: 'admin'
-                    }
-
-                    try {
-                        const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
-                        replicationRecord._rev = result.rev
-                        console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
-                    } catch (err) {
-                        console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
-                        throw new Error(`Unable to create replication entry: ${err.message}`)
-                    }
-                }
-            }
-        }
-
-        // @todo: Remove any replication entries for deleted databases
-
-        // Check user databases are configured correctly
-        await UserManager.checkDatabases(userDatabases)
+        return endpoints
     }
 
     /**
@@ -366,6 +330,33 @@ class ReplicationManager {
             } catch (err) {
                 console.log(`${Utils.serverUri()}: Error updating replication credentials for ${couchUri} (${r}): ${err.message}`)
             }
+        }
+    }
+
+    async clearExpired() {
+        const couch = Db.getCouch('internal')
+        const replicationDb = couch.db.use('_replicator')
+
+        // Find all expired replication entries
+        const query = {
+            selector: {
+                expiry: {
+                    '$lt': now()
+                }
+            },
+            limit: 10
+        }
+
+        const expiredReplications = await replicationDb.find(query)
+        if (expiredReplications.docs.length == 0) {
+            return
+        }
+
+        for (let e in expiredReplications.docs) {
+            const replicationEntry = expiredReplications.docs[e]
+            const destroyResult = await replicationDb.destroy(replicationEntry._id, replicationEntry._rev)
+            console.log('cleared expired replication')
+            console.log(destroyResult)
         }
     }
 
