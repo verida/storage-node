@@ -317,6 +317,11 @@ class UserController {
      * @returns 
      */
     async checkReplication(req, res) {
+        const did = req.tokenData.did
+        const contextName = req.tokenData.contextName
+        const userDatabases = await DbManager.getUserDatabases(did, contextName)
+        await UserManager.checkDatabases(userDatabases)
+
         return Utils.signedResponse({
             status: "success",
             result: {}
