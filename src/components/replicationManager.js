@@ -135,7 +135,7 @@ class ReplicationManager {
         }
     }
 
-    async getReplicationEndpoints() {
+    async getReplicationEndpoints(did, contextName) {
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
         let didService = didDocument.locateServiceEndpoint(contextName, 'database')

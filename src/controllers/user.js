@@ -69,7 +69,8 @@ class UserController {
                 await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
-                    status: "success"
+                    status: "success",
+                    databaseHash
                 }, res);
             }
         } catch (err) {
