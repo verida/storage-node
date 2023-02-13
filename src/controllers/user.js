@@ -123,7 +123,19 @@ class UserController {
         console.log(`pingDatabases()`)
         console.log(databaseHashes)
 
-        ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+        try {
+            await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+
+            return Utils.signedResponse({
+                status: "success",
+                databaseHashes
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
+            });
+        } 
     }
 
     async deleteDatabases(req, res) {

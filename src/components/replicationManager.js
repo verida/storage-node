@@ -43,11 +43,11 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${databases[d].databaseName} missing from ${endpointUri}`)
+                        console.error(`${Utils.serverUri()}: ${dbHash} missing from ${endpointUri}`)
                         // Replication entry not found... Will need to create it
                         touchReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
-                        console.error(`${Utils.serverUri()}:  ${databases[d].databaseName} have invalid state ${replicationStatus.state} from ${endpointUri}`)
+                        console.error(`${Utils.serverUri()}:  ${dbHash} have invalid state ${replicationStatus.state} from ${endpointUri}`)
                         brokenReplicationEntries.push(replicationStatus)
                         touchReplicationEntries.push(dbHash)
                         if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
@@ -58,7 +58,8 @@ class ReplicationManager {
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
-                    console.error(`${Utils.serverUri()}: Unknown error checking replication status of database ${databases[d].databaseName} / ${dbHash}: ${err.message}`)
+                    console.log(err)
+                    console.error(`${Utils.serverUri()}: Unknown error checking replication status of database ${dbHash}: ${err.message}`)
                 }
             }
 
@@ -91,15 +92,18 @@ class ReplicationManager {
         const { username, password, couchUri } = await this.fetchReplicaterCredentials(endpointUri, did, contextName, forceCreds)
         const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
 
-        console.log(`${Utils.serverUri()}: Replication record for ${endpointUri} / ${dbHash} is missing... creating.`)
         const remoteAuthBuffer = Buffer.from(`${username}:${password}`);
         const remoteAuthBase64 = remoteAuthBuffer.toString('base64')
+
+        const localAuthBuffer = Buffer.from(`${process.env.DB_REPLICATION_USER}:${process.env.DB_REPLICATION_PASS}`);
+        const localAuthBase64 = localAuthBuffer.toString('base64')
 
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
 
         for (let d in dbHashes) {
             const dbHash = dbHashes[d]
+            console.log(`${Utils.serverUri()}: Create / update replication record for ${endpointUri} / ${dbHash}`)
 
             const replicationRecord = {
                 _id: `${replicatorId}-${dbHash}`,
@@ -128,6 +132,7 @@ class ReplicationManager {
                 const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
                 replicationRecord._rev = result.rev
                 console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                console.log(replicationRecord)
             } catch (err) {
                 console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                 throw new Error(`Unable to create replication entry: ${err.message}`)
@@ -354,6 +359,9 @@ class ReplicationManager {
 
         for (let e in expiredReplications.docs) {
             const replicationEntry = expiredReplications.docs[e]
+            if (replicationEntry._id.match(/_design/)) {
+                continue
+            }
             const destroyResult = await replicationDb.destroy(replicationEntry._id, replicationEntry._rev)
             console.log('cleared expired replication')
             console.log(destroyResult)
