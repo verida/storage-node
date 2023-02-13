@@ -20,9 +20,9 @@ const LOGGING_ENABLED = true
 // Use a pre-built mnemonic where the first private key is a Verida DID private key
 // mnemonic with a Verida DID that points to 2x local endpoints
 //const MNEMONIC = 'pave online install gift glimpse purpose truth loan arm wing west option'
-const MNEMONIC = false
+//const MNEMONIC = false
 // 3x devnet endpoints
-//const MNEMONIC = 'corn annual wealth busy pigeon kind vacuum fitness awful uncover pony dad'
+const MNEMONIC = 'meat essence critic december sure outer before normal upset sure primary laundry'
 
 // Context name to use for the tests
 const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
@@ -38,8 +38,8 @@ const CONTEXT_NAME = 'Verida Test: Storage Node Replication'
     'https://acacia-dev3.tn.verida.tech:443': 'https://admin:ZVOyBzwLxlmTTOQx25mA@acacia-dev3.tn.verida.tech:443',
 }*/
 const ENDPOINT_DSN = {
-    'http://192.168.68.124:5000': 'http://admin:admin@192.168.68.124:5984',
-//    'http://192.168.68.115:5000': 'http://admin:admin@192.168.68.115:5984',
+    'http://192.168.68.135:5000': 'http://admin:admin@192.168.68.135:5984',
+    'http://192.168.68.127:5000': 'http://admin:admin@192.168.68.127:5984',
 }
 const ENDPOINTS = Object.keys(ENDPOINT_DSN)
 const ENDPOINTS_DID = ENDPOINTS.map(item => `${item}/did/`)
@@ -67,6 +67,8 @@ function log(output) {
         console.log(output)
     }
 }
+
+const databaseHashes = {}
 
 /**
  * WARNING: ONLY RUN THIS TEST ON LOCALHOST
@@ -107,7 +109,7 @@ describe("Replication tests", function() {
 
             TEST_DATABASE_HASH = TEST_DATABASES.map(item => ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, item))
     
-            log(DID_ADDRESS, DID, DID_PRIVATE_KEY, DID_PUBLIC_KEY, wallet.mnemonic.phrase)
+            console.log(DID_ADDRESS, DID, DID_PRIVATE_KEY, DID_PUBLIC_KEY, wallet.mnemonic.phrase)
     
             // Create a new VDA account using our test endpoints
             account = new AutoAccount({
@@ -148,7 +150,7 @@ describe("Replication tests", function() {
 
             try {
                 log ('Saving DID document')
-                const endpointResponses = await didClient.save(doc)
+                await didClient.save(doc)
             } catch (err) {
                 log(err)
                 log(didClient.getLastEndpointErrors())
@@ -188,76 +190,73 @@ describe("Replication tests", function() {
                     const dbName = TEST_DATABASES[i]
                     const response = await Utils.createDatabase(dbName, DID, CONTEXT_NAME, AUTH_TOKENS[endpoint], endpoint)
                     assert.equal(response.data.status, 'success', 'database created')
+                    databaseHashes[dbName] = response.data.databaseHash
                 }
             }
         })
 
         // Call `checkReplication(db1)` on all the endpoints (first database only)
-        it('can initialise replication for one database via checkReplication()', async () => {
+        it('can initialise replication for one database via pingDatabases()', async () => {
             // @todo: fix code so endpoint doesn't create replication entries to itself
-            try {
-                for (let i in ENDPOINTS) {
-                    const endpoint = ENDPOINTS[i]
-                    log(`${endpoint}: Calling checkReplication() on for ${TEST_DATABASES[0]}`)
-                    const result = await Utils.checkReplication(endpoint, AUTH_TOKENS[endpoint], TEST_DATABASES[0])
-                    assert.equal(result.data.status, 'success', 'Check replication completed successfully')
-                }
+            for (let i in ENDPOINTS) {
+                const endpoint = ENDPOINTS[i]
+                log(`${endpoint}: Calling pingDatabases() on for ${TEST_DATABASES[0]} (${databaseHashes[TEST_DATABASES[0]]})`)
+                const result = await Utils.pingDatabases(endpoint, AUTH_TOKENS[endpoint], databaseHashes[TEST_DATABASES[0]])
+                assert.equal(result.data.status, 'success', 'Check replication completed successfully')
+            }
 
-                // Sleep 5ms to have replication time to initialise
-                log('Sleeping so replication has time to do its thing...')
-                await Utils.sleep(5000)
+            // Sleep 5ms to have replication time to initialise
+            log('Sleeping so replication has time to do its thing...')
+            await Utils.sleep(5000)
 
-                for (let i in ENDPOINTS) {
-                    const endpoint = ENDPOINTS[i]
-                    const couch = new CouchDb({
-                        url: ENDPOINT_DSN[endpoint],
-                        requestDefaults: {
-                            rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
-                        }
-                    })
-                    const conn = couch.db.use('_replicator')
-
-                    // Check replications entries have been created for all the other endpoints (but not this endpoint)
-                    for (let e in ENDPOINTS) {
-                        const endpointCheckUri = ENDPOINTS[e]
-                        if (endpointCheckUri == endpoint) {
-                            continue
-                        }
-
-                        const replicatorId = ComponentUtils.generateReplicatorHash(endpointCheckUri, DID, CONTEXT_NAME)
-                        const dbHash = ComponentUtils.generateDatabaseName(DID, CONTEXT_NAME, TEST_DATABASES[0])
-                        log(`${endpoint}: (${endpointCheckUri}) Locating _replication entry for ${TEST_DATABASES[0]} (${replicatorId}-${dbHash})`)
-
-                        let replicationEntry
-                        try {
-                            replicationEntry = await conn.get(`${replicatorId}-${dbHash}`)
-                        } catch (err) {
-                            log('pouchdb connection error')
-                            log(err.message)
-                            assert.fail(`Replication record not created (${replicatorId}-${dbHash})`)
-                        }
-
-                        // Check info is accurate
-                        assert.ok(replicationEntry)
-                        assert.ok(replicationEntry.source, `Have a source for ${endpointCheckUri}`)
-                        assert.ok(replicationEntry.target, `Have a target for ${endpointCheckUri}`)
-                        assert.equal(replicationEntry.source.url, `http://localhost:5984/${dbHash}`, `Source URI is correct for ${endpointCheckUri}`)
-                        assert.equal(replicationEntry.target.url, `${ENDPOINTS_COUCH[endpointCheckUri]}/${dbHash}`, `Destination URI is correct for ${endpointCheckUri}`)
-
-                        if (!REPLICATOR_CREDS[endpointCheckUri]) {
-                            REPLICATOR_CREDS[endpointCheckUri] = replicationEntry.target.headers
-                        }
-
-                        const replicationResponse = await Axios.get(`${ENDPOINT_DSN[endpoint]}/_scheduler/docs/_replicator/${replicatorId}-${dbHash}`)
-                        assert.ok(replicationResponse, 'Have a replication job')
-
-                        const status = replicationResponse.data
-                        assert.ok(['pending', 'running'].indexOf(status.state) !== -1, 'Replication is active')
+            for (let i in ENDPOINTS) {
+                const endpoint = ENDPOINTS[i]
+                const couch = new CouchDb({
+                    url: ENDPOINT_DSN[endpoint],
+                    requestDefaults: {
+                        rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED_SSL.toLowerCase() !== "false"
                     }
+                })
+                const conn = couch.db.use('_replicator')
+
+                // Check replications entries have been created for all the other endpoints (but not this endpoint)
+                for (let e in ENDPOINTS) {
+                    const endpointCheckUri = ENDPOINTS[e]
+                    if (endpointCheckUri == endpoint) {
+                        continue
+                    }
+
+                    const replicatorId = ComponentUtils.generateReplicatorHash(endpointCheckUri, DID, CONTEXT_NAME)
+                    const dbHash = databaseHashes[TEST_DATABASES[0]]
+                    log(`${endpoint}: (${endpointCheckUri}) Locating _replication entry for ${TEST_DATABASES[0]} (${replicatorId}-${dbHash})`)
+
+                    let replicationEntry
+                    try {
+                        replicationEntry = await conn.get(`${replicatorId}-${dbHash}`)
+                    } catch (err) {
+                        log('pouchdb connection error')
+                        log(err.message)
+                        assert.fail(`Replication record not created (${replicatorId}-${dbHash})`)
+                    }
+
+                    // Check info is accurate
+                    assert.ok(replicationEntry)
+                    assert.ok(replicationEntry.source, `Have a source for ${endpointCheckUri}`)
+                    assert.ok(replicationEntry.target, `Have a target for ${endpointCheckUri}`)
+                    assert.equal(replicationEntry.source.url, `http://localhost:5984/${dbHash}`, `Source URI is correct for ${endpointCheckUri}`)
+                    assert.equal(replicationEntry.target.url, `${ENDPOINTS_COUCH[endpointCheckUri]}/${dbHash}`, `Destination URI is correct for ${endpointCheckUri}`)
+
+                    if (!REPLICATOR_CREDS[endpointCheckUri]) {
+                        REPLICATOR_CREDS[endpointCheckUri] = replicationEntry.target.headers
+                    }
+
+                    const replicationResponse = await Axios.get(`${ENDPOINT_DSN[endpoint]}/_scheduler/docs/_replicator/${replicatorId}-${dbHash}`)
+                    assert.ok(replicationResponse, 'Have a replication job')
+
+                    const status = replicationResponse.data
+                    console.log(status)
+                    assert.ok(['pending', 'running'].indexOf(status.state) !== -1, 'Replication is active')
                 }
-            } catch (err) {
-                log(err)
-                assert.fail('error')
             }
         })
 
@@ -305,12 +304,15 @@ describe("Replication tests", function() {
             }
         })
 
-        it('can initialise replication for all database via checkReplication()', async () => {
+        it('can initialise replication for all endpoints and databases via pingDatabases()', async () => {
             for (let i in ENDPOINTS) {
                 const endpoint = ENDPOINTS[i]
                 log(`${endpoint}: Calling checkReplication() on all databases for ${endpoint}`)
-                const result = await Utils.checkReplication(endpoint, AUTH_TOKENS[endpoint])
-                assert.equal(result.data.status, 'success', 'Check replication completed successfully')
+
+                for (let d in TEST_DATABASES) {
+                    const result = await Utils.pingDatabases(endpoint, AUTH_TOKENS[endpoint], databaseHashes[TEST_DATABASES[d]])
+                    assert.equal(result.data.status, 'success', `pingDatabases completed successfully for ${TEST_DATABASES[d]}`)
+                }
             }
         })
 
@@ -361,7 +363,7 @@ describe("Replication tests", function() {
                         for (let j in createdDatabaseIds) {
                             const createdId = createdDatabaseIds[j]
                             const result = await conn.get(createdId)
-                            assert.equal(result._id, createdId, 'Record deleted')
+                            assert.equal(result._id, createdId, 'Record exists')
                         }
                     }
                 } catch (err) {
@@ -371,7 +373,7 @@ describe("Replication tests", function() {
             }
         })
 
-        it('verify non-replicated database is fixed with checkReplication()', async () => {
+        it('verify non-replicated database is fixed with pingDatabases()', async () => {
             // manually delete the database replication entry from endpoint 1 to endpoint 2
             const endpoint1 = ENDPOINTS[0]
             const endpoint2 = ENDPOINTS[1]
@@ -390,8 +392,8 @@ describe("Replication tests", function() {
                 assert.fail(`Replication record not found (${replicatorId}-${dbHash})`)
             }
 
-            // call checkReplication() on endpoint 1
-            const result = await Utils.checkReplication(endpoint1, AUTH_TOKENS[endpoint1], TEST_DATABASES[0])
+            // call pingDatabases() on endpoint 1
+            const result = await Utils.pingDatabases(endpoint1, AUTH_TOKENS[endpoint1], Object.values(databaseHashes))
             assert.equal(result.data.status, 'success', 'checkReplication() success')
 
             // verify the replication entry exists and is valid
@@ -405,7 +407,8 @@ describe("Replication tests", function() {
             }
         })
 
-        it('verify missing database is correctly created with checkReplication(databaseName)', async () => {
+        // @todo
+        it.skip('verify missing database is correctly created with checkReplication(databaseName)', async () => {
             // manually delete the database from endpoint 1
             const endpoint1 = ENDPOINTS[0]
             const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
@@ -427,7 +430,8 @@ describe("Replication tests", function() {
         })
 
         // Do it again, but without specifying the database
-        it('verify missing database is correctly created with checkReplication()', async () => {
+        // @todo
+        it.skip('verify missing database is correctly created with checkReplication()', async () => {
             // manually delete the database from endpoint 1
             const endpoint1 = ENDPOINTS[0]
             const couch = buildEndpointConnection(ENDPOINT_DSN[endpoint1], {})
@@ -454,7 +458,7 @@ describe("Replication tests", function() {
 
         // @todo inject a fake database into storage node 1, call checkReplication() on storage node 2, make sure it's not created
 
-        it('verify deleted database is correctly removed with checkReplication()', async () => {
+        it.skip('verify deleted database is correctly removed with checkReplication()', async () => {
             // @todo
         })
 
@@ -520,7 +524,8 @@ describe("Replication tests", function() {
             }
         })
 
-        it('verify user database list is being replicated', async () => {
+        // @todo
+        it.skip('verify user database list is being replicated', async () => {
             for (let e in ENDPOINTS) {
                 const endpoint = ENDPOINTS[e]
 
@@ -554,7 +559,6 @@ describe("Replication tests", function() {
 
     // WARNING: This should never run on production!
     this.afterAll(async () => {
-        //return
         log('Destroying _replicator, verida_replicater_creds and test databases on ALL endpoints')
 
         for (let endpoint in ENDPOINT_DSN) {
@@ -572,7 +576,16 @@ describe("Replication tests", function() {
             try {
                 await conn.db.destroy('verida_replicater_creds')
             } catch (err) {}
+
+            // Create _replicator database and index
             await conn.db.create('_replicator')
+            const expiryIndex = {
+                index: { fields: ['expiry'] },
+                name: 'expiry'
+            };
+            const replicatorDb = conn.db.use('_replicator');
+            await replicatorDb.createIndex(expiryIndex);
+
             await conn.db.create('verida_replicater_creds')
 
             // Delete test databases

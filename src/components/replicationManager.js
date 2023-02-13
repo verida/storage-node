@@ -27,7 +27,6 @@ class ReplicationManager {
             // generateReplicatorHash() will strip back to hostname
             const endpointUri = endpoints[e].origin
             const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
-            const replicatorUsername = Utils.generateReplicaterUsername(endpointUri)
 
             const touchReplicationEntries = []
 
@@ -194,7 +193,7 @@ class ReplicationManager {
         const thisReplicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())
         const remoteReplicaterUsername = Utils.generateReplicaterUsername(remoteEndpointUri)
         
-        console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername})`)
+        console.log(`${Utils.serverUri()}: Fetching credentials from ${remoteEndpointUri} / ${remoteReplicaterUsername} for this replicator username (${thisEndointUri} / ${thisReplicaterUsername}) force = ${force}`)
 
         let creds, password
         try {
