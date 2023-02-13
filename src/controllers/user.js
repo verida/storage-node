@@ -324,18 +324,22 @@ class UserController {
         let userDatabases = await DbManager.getUserDatabases(did, contextName)
 
         if (databaseName) {
-            if (userDatabases.indexOf(databaseName) === -1) {
+            let dbIsValidForUser = false
+            for (let d in userDatabases) {
+                if (userDatabases[d].databaseName == databaseName) {
+                    dbIsValidForUser = true
+                    userDatabases = [userDatabases[d]]
+                    break
+                }
+            }
+            if (!dbIsValidForUser) {
                 return res.status(401).send({
                     status: "fail",
                     message: "Invalid database name"
                 });
-            } else {
-                userDatabases = [databaseName]
             }
         }
 
-        console.log('checking databases')
-        console.log(userDatabases)
         await UserManager.checkDatabases(userDatabases)
 
         return Utils.signedResponse({
