@@ -11,8 +11,9 @@
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn clean && yarn babel src -d dist --extensions .js",
     "serve": "node --trace-warnings dist/server.js",
-    "build-docker-multiplatform": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .",
-    "build-docker-amd64": "yarn build && docker buildx build --platform linux/amd64 --push -t verida/storage-node:latest ."
+    "build-docker-multiplatform-dev": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:dev .",
+    "build-docker-multiplatform-prod": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .",
+    "build-docker-amd64-prod": "yarn build && docker buildx build --platform linux/amd64 --push -t verida/storage-node:latest ."
   },
   "files": [
     "**/*.ts",
