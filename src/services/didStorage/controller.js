@@ -18,6 +18,8 @@ class DidStorage {
         const didDocument = new DIDDocument(req.body.document)
         const jsonDoc = didDocument.export()
 
+        console.log(`did.create(${did})`)
+
         try {
             Utils.verifyDocument(did, didDocument, {
                 versionId: 0
@@ -65,6 +67,8 @@ class DidStorage {
         const did = req.params.did.toLowerCase()
         const didDocument = new DIDDocument(req.body.document)
         const jsonDoc = didDocument.export()
+
+        console.log(`did.update(${did})`)
 
         let existingDoc
         try {
@@ -124,6 +128,7 @@ class DidStorage {
         const signature = req.headers.signature
         const versionResponse = await Utils.getDidDocument(did, true, false)
 
+        console.log(`did.delete(${did})`)
 
         if (!versionResponse || !versionResponse.versions || versionResponse.versions.length === 0) {
             return Utils.error(res, `DID Document not found`)
@@ -170,6 +175,8 @@ class DidStorage {
     async get(req, res) {
         const did = req.params.did.toLowerCase()
         const allVersions = req.query.allVersions && req.query.allVersions === 'true'
+
+        console.log(`did.get(${did})`)
 
         const result = await Utils.getDidDocument(did, allVersions)
         if (!result) {
