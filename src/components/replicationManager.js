@@ -148,6 +148,10 @@ class ReplicationManager {
             didService = didDocument.locateServiceEndpoint(contextName, 'database')
         }
 
+        if (!didService) {
+            throw new Error(`Unable to locate service endpoint for this DID and context`)
+        }
+
         // create a copy of the endpoints as this is cached and we will modify later
         // ensure it's hostname only
         let endpoints = []

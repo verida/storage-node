@@ -115,12 +115,13 @@ class UserController {
     }
 
     async pingDatabases(req, res) {
-        const did = req.tokenData.did
-        const contextName = req.tokenData.contextName
-        const username = req.tokenData.username
-        const databaseHashes = req.body.databaseHashes
-
         try {
+            const did = req.tokenData.did
+            const contextName = req.tokenData.contextName
+            const databaseHashes = req.body.databaseHashes
+            console.log('pingDatabases()')
+            console.log(databaseHashes)
+
             await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
 
             return Utils.signedResponse({
@@ -132,7 +133,7 @@ class UserController {
                 status: "fail",
                 message: err.message
             });
-        } 
+        }
     }
 
     async deleteDatabases(req, res) {
