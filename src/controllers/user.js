@@ -119,8 +119,6 @@ class UserController {
             let did = req.tokenData.did
             let contextName = req.tokenData.contextName
             const databaseHashes = req.body.databaseHashes
-            console.log('pingDatabases()')
-            console.log(databaseHashes)
             const isWritePublic = req.body.isWritePublic
 
             if (isWritePublic && databaseHashes.length > 1) {
@@ -132,7 +130,6 @@ class UserController {
             }
 
             if (isWritePublic) {
-                console.log('isWritePublic!')
                 // If we have a public write database, then the current user
                 // isn't the owner.
                 // As such, need to use the supplied owner `did` and `contextName`
@@ -146,7 +143,6 @@ class UserController {
                         message: `Invalid permissions to initiate replication for ${databaseHashes[0]}`
                     });
                 }
-                console.log('permission checks passed')
             }
 
             await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
