@@ -97,13 +97,18 @@ class DbManager {
         }
     }
 
-    async getUserDatabase(did, contextName, databaseName) {
+    async getUserDatabase(did, contextName, databaseName, isHash=false) {
         const couch = Db.getCouch()
         const didContextHash = Utils.generateDidContextHash(did, contextName)
         const didContextDbName = `c${didContextHash}`
         const db = couch.db.use(didContextDbName)
 
-        const id = Utils.generateDatabaseName(did, contextName, databaseName)
+        let id
+        if (isHash) {
+            id = databaseName
+        } else {
+            id = Utils.generateDatabaseName(did, contextName, databaseName)
+        }
 
         try {
             const doc = await db.get(id)

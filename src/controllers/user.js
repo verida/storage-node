@@ -116,11 +116,36 @@ class UserController {
 
     async pingDatabases(req, res) {
         try {
-            const did = req.tokenData.did
-            const contextName = req.tokenData.contextName
+            let did = req.tokenData.did
+            let contextName = req.tokenData.contextName
             const databaseHashes = req.body.databaseHashes
             console.log('pingDatabases()')
             console.log(databaseHashes)
+            const isWritePublic = req.body.isWritePublic
+
+            if (isWritePublic && databaseHashes.length > 1) {
+                // If we are expecting to be pinging a public write database
+                // Ensure we only touch one database to prevent any security issues
+                // of users spoofing the replication of databases they don't have
+                // access
+                databaseHashes = [databaseHashes[0]]
+            }
+
+            if (isWritePublic) {
+                // If we have a public write database, then the current user
+                // isn't the owner.
+                // As such, need to use the supplied owner `did` and `contextName`
+                did = req.body.did
+                contextName = req.body.contextName
+
+                const databaseEntry = await DbManager.getUserDatabase(did, contextName, databaseHashes[0], true)
+                if (databaseEntry.permissions.write != 'public') {
+                    return res.status(500).send({
+                        status: "fail",
+                        message: `Invalid permissions to initiate replication for ${databaseHashes[0]}`
+                    });
+                }
+            }
 
             await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
 
