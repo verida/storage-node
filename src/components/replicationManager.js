@@ -42,7 +42,7 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${dbHash} missing replication to ${endpointUri}`)
+                        //console.error(`${Utils.serverUri()}: ${dbHash} missing replication to ${endpointUri}`)
                         // Replication entry not found... Will need to create it
                         touchReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
