@@ -124,7 +124,6 @@ class DidStorage {
         const signature = req.headers.signature
         const versionResponse = await Utils.getDidDocument(did, true, false)
 
-
         if (!versionResponse || !versionResponse.versions || versionResponse.versions.length === 0) {
             return Utils.error(res, `DID Document not found`)
         }

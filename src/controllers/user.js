@@ -69,7 +69,8 @@ class UserController {
                 await DbManager.saveUserDatabase(did, contextName, databaseName, databaseHash, options.permissions)
 
                 return Utils.signedResponse({
-                    status: "success"
+                    status: "success",
+                    databaseHash
                 }, res);
             }
         } catch (err) {
@@ -106,6 +107,61 @@ class UserController {
                 }, res);
             }
         } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.message
+            });
+        }
+    }
+
+    /**
+     * Ensure replication is running on databases owned by this user
+     * OR
+     * A database that is public write
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
+    async pingDatabases(req, res) {
+        try {
+            let did = req.tokenData.did
+            let contextName = req.tokenData.contextName
+            const databaseHashes = req.body.databaseHashes
+            const isWritePublic = req.body.isWritePublic
+
+            if (isWritePublic && databaseHashes.length > 1) {
+                // If we are expecting to be pinging a public write database
+                // Ensure we only touch one database to prevent any security issues
+                // of users spoofing the replication of databases they don't have
+                // access
+                databaseHashes = [databaseHashes[0]]
+            }
+
+            if (isWritePublic) {
+                // If we have a public write database, then the current user
+                // isn't the owner.
+                // As such, need to use the supplied owner `did` and `contextName`
+                did = req.body.did
+                contextName = req.body.contextName
+
+                const databaseEntry = await DbManager.getUserDatabase(did, contextName, databaseHashes[0], true)
+                if (databaseEntry.permissions.write != 'public') {
+                    return res.status(500).send({
+                        status: "fail",
+                        message: `Invalid permissions to initiate replication for ${databaseHashes[0]}`
+                    });
+                }
+            }
+
+            await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+
+            return Utils.signedResponse({
+                status: "success",
+                databaseHashes
+            }, res);
+        } catch (err) {
+            console.error(err.message)
             return res.status(500).send({
                 status: "fail",
                 message: err.message
@@ -282,24 +338,45 @@ class UserController {
         }
     }
 
+    /**
+     * This is now deprecated
+     * 
+     * @todo: Remove
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async checkReplication(req, res) {
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
         const databaseName = req.body.databaseName
 
-        try {
-            const result = await ReplicationManager.checkReplication(did, contextName, databaseName)
+        let userDatabases = await DbManager.getUserDatabases(did, contextName)
 
-            return Utils.signedResponse({
-                status: "success",
-                result
-            }, res);
-        } catch (err) {
-            return res.status(500).send({
-                status: "fail",
-                message: err.message
-            });
+        if (databaseName) {
+            let dbIsValidForUser = false
+            for (let d in userDatabases) {
+                if (userDatabases[d].databaseName == databaseName) {
+                    dbIsValidForUser = true
+                    userDatabases = [userDatabases[d]]
+                    break
+                }
+            }
+            if (!dbIsValidForUser) {
+                return res.status(401).send({
+                    status: "fail",
+                    message: "Invalid database name"
+                });
+            }
         }
+
+        await UserManager.checkDatabases(userDatabases)
+
+        return Utils.signedResponse({
+            status: "success",
+            result: {}
+        }, res);
     }
 
 }
