@@ -376,7 +376,7 @@ class AuthManager {
             })
         } catch (err) {
             // Handle invalid JWT by rejecting verification
-            if (err.name == "JsonWebTokenError") {
+            if (err.name == "JsonWebTokenError" || err.name == "TokenExpiredError") {
                 return false
             }
             
