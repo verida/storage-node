@@ -62,6 +62,7 @@ class ReplicationManager {
             }
 
             // Delete broken replication entries
+            const couch = Db.getCouch('internal')
             const replicationDb = couch.db.use('_replicator')
             // @todo: No need as they will be garbage collected?
             for (let b in brokenReplicationEntries) {
