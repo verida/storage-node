@@ -1,7 +1,6 @@
 import Db from './db.js'
 import Utils from './utils.js'
 import DbManager from './dbManager.js';
-import UserManager from './userManager.js';
 import AuthManager from './authManager.js';
 import Axios from 'axios'
 import EncryptionUtils from '@verida/encryption-utils';
@@ -16,7 +15,7 @@ function now() {
 class ReplicationManager {
 
     async touchDatabases(did, contextName, databaseHashes) {
-        console.log(`${Utils.serverUri()}: touchDatabases(${did}, ${contextName}, ${databaseHashes.length})`)
+        //console.log(`${Utils.serverUri()}: touchDatabases(${did}, ${contextName}, ${databaseHashes.length})`)
         
         // Determine the endpoints this node needs to replicate to
         const endpoints = await this.getReplicationEndpoints(did, contextName)
@@ -102,7 +101,7 @@ class ReplicationManager {
 
         for (let d in dbHashes) {
             const dbHash = dbHashes[d]
-            console.log(`${Utils.serverUri()}: Create / update replication record for ${endpointUri} / ${dbHash}`)
+            //console.log(`${Utils.serverUri()}: Create / update replication record for ${endpointUri} / ${dbHash}`)
 
             const replicationRecord = {
                 _id: `${replicatorId}-${dbHash}`,
@@ -130,7 +129,7 @@ class ReplicationManager {
             try {
                 const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
                 replicationRecord._rev = result.rev
-                console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
             } catch (err) {
                 console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
                 throw new Error(`Unable to create replication entry: ${err.message}`)
