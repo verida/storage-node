@@ -72,7 +72,6 @@ class ReplicationManager {
                     await replicationDb.destroy(replicationRecord._id, replicationRecord._rev)
                 } catch (err) {
                     console.error(`${Utils.serverUri()}: Unable to find and delete replication record (${replicationEntry.doc_id}): ${err.message}`)
-                    delete missingReplicationEntries[replicationEntry.databaseHash]
                 }
             }
 
