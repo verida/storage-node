@@ -167,6 +167,7 @@ class UserController {
                 databaseHashes
             }, res);
         } catch (err) {
+            console.error(err.message)
             return res.status(500).send({
                 status: "fail",
                 message: err.message
