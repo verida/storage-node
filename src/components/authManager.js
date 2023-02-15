@@ -193,8 +193,6 @@ class AuthManager {
 
         await tokenDb.insert(tokenRow);
 
-        this.gc()
-
         return token
     }
 
@@ -378,7 +376,7 @@ class AuthManager {
             })
         } catch (err) {
             // Handle invalid JWT by rejecting verification
-            if (err.name == "JsonWebTokenError") {
+            if (err.name == "JsonWebTokenError" || err.name == "TokenExpiredError") {
                 return false
             }
             
@@ -446,16 +444,19 @@ class AuthManager {
             }
         }
 
+        const expiryIndex = {
+            index: { fields: ['expiry'] },
+            name: 'expiry'
+        };
+
+        const replicatorDb = couch.db.use('_replicator');
+        await replicatorDb.createIndex(expiryIndex);
+
         const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
             index: { fields: ['deviceHash'] },
             name: 'deviceHash'
-        };
-
-        const expiryIndex = {
-            index: { fields: ['expiry'] },
-            name: 'expiry'
         };
 
         await tokenDb.createIndex(deviceIndex);
@@ -533,15 +534,7 @@ class AuthManager {
     }
 
     // Garbage collection of refresh tokens
-    async gc() {
-        const GC_PERCENT = process.env.GC_PERCENT
-        const random = Math.random()
-
-        if (random >= GC_PERCENT) {
-            // Skip running GC
-            return
-        }
-
+    async clearExpired() {
         // Delete all expired refresh tokens
         const now = parseInt((new Date()).getTime() / 1000.0)
         const query = {
@@ -563,7 +556,7 @@ class AuthManager {
                     await tokenDb.destroy(doc._id, doc._rev)
                 } catch (err) {
                     if (err.error != 'not_found' && err.error != 'conflict') {
-                        console.log(`Unknown error in garbage collection: ${err.message}`)
+                        console.error(`Unknown error in garbage collection: ${err.message}`)
                     }
                 }
             }

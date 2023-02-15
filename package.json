@@ -11,8 +11,9 @@
     "dev": "nodemon --exec babel-node src/server.js",
     "build": "yarn clean && yarn babel src -d dist --extensions .js",
     "serve": "node --trace-warnings dist/server.js",
-    "build-docker-multiplatform": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .",
-    "build-docker-amd64": "yarn build && docker buildx build --platform linux/amd64 --push -t verida/storage-node:latest ."
+    "build-docker-multiplatform-dev": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:dev .",
+    "build-docker-multiplatform-prod": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .",
+    "build-docker-amd64-prod": "yarn build && docker buildx build --platform linux/amd64 --push -t verida/storage-node:latest ."
   },
   "files": [
     "**/*.ts",
@@ -43,9 +44,9 @@
   "homepage": "https://github.com/verida/storage-node/README.md",
   "dependencies": {
     "@babel/runtime": "^7.16.7",
-    "@verida/did-client": "^2.0.0-rc4",
-    "@verida/did-document": "^2.0.0-rc4",
-    "@verida/encryption-utils": "^2.0.0-rc5",
+    "@verida/did-client": "^2.0.5",
+    "@verida/did-document": "^2.0.5",
+    "@verida/encryption-utils": "^2.0.4",
     "aws-serverless-express": "^3.4.0",
     "axios": "^1.2.1",
     "cors": "^2.8.5",

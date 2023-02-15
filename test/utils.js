@@ -117,6 +117,22 @@ class Utils {
         return response
     }
 
+    async pingDatabases(endpointUri, accessToken, databaseHashes) {
+        if (typeof(databaseHashes) === 'string') {
+            databaseHashes = [databaseHashes]
+        }
+
+        const response = await Axios.post(`${endpointUri}/user/pingDatabases`, {
+            databaseHashes
+        }, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        });
+        
+        return response
+    }
+
     signString(str, privateKey) {
         if (privateKey == 'string') {
             privateKey = new Uint8Array(Buffer.from(privateKey.substr(2),'hex'))
