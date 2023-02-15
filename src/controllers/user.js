@@ -45,6 +45,8 @@ class UserController {
             });
         }
 
+        console.log(`createDatabase(${databaseName})`)
+
         try {
             const userUsage = await UserManager.getUsage(did, contextName)
             if (userUsage.usagePercent >= 100) {
@@ -96,6 +98,8 @@ class UserController {
 
         const databaseHash = Utils.generateDatabaseName(did, contextName, databaseName)
 
+        console.log(`deleteDatabase(${databaseName} / ${databaseHash})`)
+
         let success;
         try {
             success = await DbManager.deleteDatabase(databaseHash, username);
@@ -114,6 +118,15 @@ class UserController {
         }
     }
 
+    /**
+     * Ensure replication is running on databases owned by this user
+     * OR
+     * A database that is public write
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     * @returns 
+     */
     async pingDatabases(req, res) {
         try {
             let did = req.tokenData.did
@@ -341,6 +354,8 @@ class UserController {
         const did = req.tokenData.did
         const contextName = req.tokenData.contextName
         const databaseName = req.body.databaseName
+
+        console.log(`checkReplication(${databaseName} / ${did}})`)
 
         let userDatabases = await DbManager.getUserDatabases(did, contextName)
 
