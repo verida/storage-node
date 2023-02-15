@@ -1,3 +1,8 @@
+2023-02-15 (2.1.0)
+--------------------
+
+- Redesign how replication works (initiated when a user connects and remains active for 20 minutes, instead of always replicate everything)
+
 2023-01-13 (2.0.0)
 --------------------
 
