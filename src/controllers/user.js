@@ -134,6 +134,8 @@ class UserController {
             const databaseHashes = req.body.databaseHashes
             const isWritePublic = req.body.isWritePublic
 
+            console.log(`pingDatabases(${databaseHashes} / ${did})`)
+
             if (isWritePublic && databaseHashes.length > 1) {
                 // If we are expecting to be pinging a public write database
                 // Ensure we only touch one database to prevent any security issues
