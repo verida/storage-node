@@ -46,7 +46,7 @@ class ReplicationManager {
                         // Replication entry not found... Will need to create it
                         touchReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
-                        console.error(`${Utils.serverUri()}:  ${dbHash} have invalid state ${replicationStatus.state} from ${endpointUri}`)
+                        console.error(`${Utils.serverUri()}:  ${dbHash} has invalid state (${replicationStatus.state}) replicating to ${endpointUri}`)
                         brokenReplicationEntries.push(replicationStatus)
                         touchReplicationEntries.push(dbHash)
                         if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
@@ -62,6 +62,7 @@ class ReplicationManager {
             }
 
             // Delete broken replication entries
+            const replicationDb = couch.db.use('_replicator')
             // @todo: No need as they will be garbage collected?
             for (let b in brokenReplicationEntries) {
                 const replicationEntry = brokenReplicationEntries[b]
