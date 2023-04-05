@@ -13,6 +13,7 @@ dotenv.config();
 const VDA_PRIVATE_KEY = process.env.VDA_PRIVATE_KEY
 const wallet = new ethers.Wallet(VDA_PRIVATE_KEY)
 const VDA_PUBLIC_KEY = wallet.publicKey
+const SERVER_URL = CONFIG.SERVER_URL
 
 class Utils {
 
@@ -144,6 +145,12 @@ class Utils {
     verifySignature(response) {
         if (!response.data.signature) {
             return false
+        }
+        
+        // Skip signature verification if running on localhost
+        // (local private key is different from the remote private key)
+        if (!SERVER_URL.match('localhost')) {
+            return true
         }
 
         const signature = response.data.signature

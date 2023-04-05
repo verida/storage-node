@@ -5,25 +5,31 @@ dotenv.config();
 
 export default {
     DID_CLIENT_CONFIG: {
+        network: EnvironmentType.TESTNET,
         callType: 'web3',
         web3Config: {
-            privateKey: ''
+            privateKey: '',
+            rpcUrl: 'https://rpc-mumbai.maticvigil.com'
         },
     },
     ENVIRONMENT: EnvironmentType.TESTNET,
-    SERVER_URL: `http://localhost:5000`,
-    VDA_PRIVATE_KEY: '0x19d3b996ec98a9a536efdffbae41e5eaaf117765a587483c69195c9460165c34',
+    // No trailing slash
+    SERVER_URL: `https://node1-euw6.gcp.devnet.verida.tech`,
+    // Private key for a Verida identity that is used for interacting with nodes
+    // Note: Ensure this private key has committed its DID to the network
+    // Run `yarn run test test/vda-did` to generate a new private key with a valid DID in `verida-js/vda-did`
+    VDA_PRIVATE_KEY: '',
     CONTEXT_NAME: 'Verida Storage Node Test: Test Application 1',
-    DATABASE_SERVER: 'https://sn-acacia1.tn.verida.tech/',  // http://localhost:5000/ for local testing when running local @verida/storage-node
-    MESSAGE_SERVER: 'https://sn-acacia1.tn.verida.tech/',  // http://localhost:5000/ for local testing when running local @verida/storage-node
+    DATABASE_SERVER: 'http://localhost:5000/',  // http://localhost:5000/ for local testing when running local @verida/storage-node
+    MESSAGE_SERVER: 'http://localhost:5000/',  // http://localhost:5000/ for local testing when running local @verida/storage-node
     DEFAULT_ENDPOINTS: {
         defaultDatabaseServer: {
             type: 'VeridaDatabase',
-            endpointUri: 'https://sn-acacia1.tn.verida.tech/'
+            endpointUri: 'https://node1-euw6.gcp.devnet.verida.tech'
         },
         defaultMessageServer: {
             type: 'VeridaMessage',
-            endpointUri: 'https://sn-acacia1.tn.verida.tech/'
+            endpointUri: 'https://node1-euw6.gcp.devnet.verida.tech'
         },
     },
     TEST_DEVICE_ID: 'Unit test device'
