@@ -21,21 +21,26 @@ let refreshToken, accessToken, newRefreshToken
 describe("Server tests", function() {
     this.beforeAll(async () => {
         //await AuthManager.initDb() -- This is required if the server is running locally and has never been run before, run just once
-        //await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) -- This is required if the private key has never been initilaized with an application context, run just once
+        await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) // -- This is required if the private key has never been initilaized with an application context, run just once
         accountInfo = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
     })
 
     describe("Authenticate", () => {
         it("Generates AuthJWT", async () => {
-            const authJwtResult = await Axios.post(`${SERVER_URL}/auth/generateAuthJwt`, {
-                did: accountInfo.did,
-                contextName: CONTEXT_NAME
-            });
+            try {
+                const authJwtResult = await Axios.post(`${SERVER_URL}/auth/generateAuthJwt`, {
+                    did: accountInfo.did,
+                    contextName: CONTEXT_NAME
+                });
 
-            assert.ok(authJwtResult && authJwtResult.data && authJwtResult.data.authJwt, "Have authJWT in response")
+                assert.ok(authJwtResult && authJwtResult.data && authJwtResult.data.authJwt, "Have authJWT in response")
 
-            authRequestId = authJwtResult.data.authJwt.authRequestId
-            authJwt = authJwtResult.data.authJwt.authJwt
+                authRequestId = authJwtResult.data.authJwt.authRequestId
+                authJwt = authJwtResult.data.authJwt.authJwt
+            } catch (err) {
+                console.log(err.response.data)
+                assert.fail(err.message)
+            }
         })
 
         // If running the tests against a remote server with a different access token JWT private key, this test will fail
@@ -63,8 +68,11 @@ describe("Server tests", function() {
 
             // Also returns a valid access token
             assert.ok(authenticateResponse.data.accessToken, "Has an access token")
-            const validAccessToken = AuthManager.verifyAccessToken(authenticateResponse.data.accessToken)
-            assert.ok(validAccessToken, "Have a valid access token")
+
+            if (authenticateResponse.data.host.match('localhost')) {
+                const validAccessToken = AuthManager.verifyAccessToken(authenticateResponse.data.accessToken)
+                assert.ok(validAccessToken, "Have a valid access token")
+            }
         })
 
         it("Verifies refresh tokens", async () => {
@@ -159,7 +167,7 @@ describe("Server tests", function() {
                     }
 
                     resolve(false)
-                }) 
+                })
             })
 
             const connectResult = await pendingConnect
@@ -333,7 +341,7 @@ describe("Server tests", function() {
             assert.ok(response.data.results.indexOf('DeleteAll_1') >= 0, 'Deleted correct databases (DeleteAll_1)')
             assert.ok(response.data.results.indexOf('DeleteAll_2') >= 0, 'Deleted correct databases (DeleteAll_2)')
             assert.ok(response.data.results.indexOf('DeleteAll_3') >= 0, 'Deleted correct databases (DeleteAll_3)')           
-            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response') 
+            assert.ok(TestUtils.verifySignature(response), 'Have a valid signature in response')
         })
     })
 
