@@ -21,8 +21,31 @@ let corsConfig = {
   //origin: process.env.CORS_HOST
 };
 
+let serverOnline = false
 
-// Parse incoming requests data
+const initDatabases = async () => {
+  if (!serverOnline) {
+    await AuthManager.initDb()
+    await userManager.ensureDefaultDatabases()
+    await didUtils.createDb()
+    serverOnline = true
+  }
+}
+
+app.use(async (req, res, next) => {
+  if (!serverOnline) {
+    try {
+      await initDatabases()
+    } catch (err) {
+      return res.status(500).send({
+        status: "fail",
+        message: `Error initializing databases: ${err.message}`
+      })
+    }
+  }
+
+  next()
+})
 app.use(cors(corsConfig));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -31,9 +54,5 @@ app.use(didStorageRoutes);
 app.use(publicRoutes);
 app.use(requestValidator);
 app.use(privateRoutes);
-
-AuthManager.initDb();
-userManager.ensureDefaultDatabases();
-didUtils.createDb()
 
 export default app;
