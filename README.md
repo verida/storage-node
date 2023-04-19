@@ -167,4 +167,4 @@ Common issues when running tests:
 To test a deployed node, do the following
 
 * Modify `tests/config.js` with the correct endpoint URLs
-* Run `yarn test tests/server.js`
+* Run `yarn test test/server.js`
