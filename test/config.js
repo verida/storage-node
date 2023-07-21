@@ -1,6 +1,13 @@
 import { EnvironmentType } from "@verida/account"
 import dotenv from 'dotenv';
 
+const ENDPOINTS = ['https://node1-euw6.gcp.devnet.verida.tech:443/']
+
+const DID_ENDPOINTS = []
+for (let e in ENDPOINTS) {
+    DID_ENDPOINTS.push(`${ENDPOINTS[e]}did/`)
+}
+
 dotenv.config();
 
 export default {
@@ -11,6 +18,7 @@ export default {
             privateKey: '',
             rpcUrl: 'https://rpc-mumbai.maticvigil.com'
         },
+        didEndpoints: DID_ENDPOINTS
     },
     ENVIRONMENT: EnvironmentType.TESTNET,
     // No trailing slash
@@ -25,11 +33,11 @@ export default {
     DEFAULT_ENDPOINTS: {
         defaultDatabaseServer: {
             type: 'VeridaDatabase',
-            endpointUri: 'https://node1-euw6.gcp.devnet.verida.tech'
+            endpointUri: ENDPOINTS
         },
         defaultMessageServer: {
             type: 'VeridaMessage',
-            endpointUri: 'https://node1-euw6.gcp.devnet.verida.tech'
+            endpointUri: ENDPOINTS
         },
     },
     TEST_DEVICE_ID: 'Unit test device'
