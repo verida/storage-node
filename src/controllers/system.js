@@ -17,7 +17,7 @@ class SystemController {
         const wallet = new ethers.Wallet(process.env.VDA_PRIVATE_KEY)
 
         const results = {
-            maxUsers: parseInt(process.env.MAX_USERS),
+            maxStorageSlots: parseInt(process.env.MAX_USERS),
             storageSlotsUsed,
             metrics: metrics,
             version: packageJson.version,
