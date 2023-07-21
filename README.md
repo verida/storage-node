@@ -162,7 +162,7 @@ Common issues when running tests:
 2. `HMAC error`: The key in CouchDB configuration for `jwt_keys/hmac:_default` does not match `ACCESS_JWT_SIGN_PK` in `.env`
 
 
-## Testing a deplyed node
+## Testing a deployed node
 
 To test a deployed node, do the following
 
