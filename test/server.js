@@ -354,9 +354,13 @@ describe("Server tests", function() {
         it("Status", async () => {
             const response = await Axios.get(`${SERVER_URL}/status`);
 
-            assert.equal(response.data.results.maxUsers, process.env.MAX_USERS, 'Correct maximum number of users')
-            assert.ok(response.data.results.currentUsers > 2, 'At least two users')
-            assert.ok(response.data.results.version && response.data.results.version.length, 'Version specified')
+            assert.equal(response.data.results.maxUsers, process.env.MAX_USERS, 'Correct maximum number of users');
+            assert.ok(response.data.results.currentUsers > 2, 'At least two users');
+            assert.ok(response.data.results.version && response.data.results.version.length, 'Version specified');
+            assert.ok(response.data.results.metrics && response.data.results.metrics.length === 3, 'Metrics exist');
+            assert.ok(response.data.results.metrics.continuousChangesClientCount >= 0, 'Metric continuousChangesClientCount is in expected range');
+            assert.ok(response.data.results.metrics.requestMeanTimeMS >= 0, 'Metric requestMeanTimeMS is in expected range');
+            assert.ok(response.data.results.metrics.requestTimeStdDevMS >= 0, 'Metric requestTimeStdDevMS is in expected range');
         })
     })
 })
