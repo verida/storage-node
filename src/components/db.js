@@ -1,8 +1,5 @@
-import dotenv from 'dotenv';
-import CouchDb from 'nano';
 import Axios from 'axios';
-
-dotenv.config();
+import CouchDb from 'nano';
 
 class Db {
 
@@ -48,6 +45,23 @@ class Db {
         const usersDb = couch.db.use('_users')
         const info = await usersDb.info()
         return info.doc_count
+    }
+
+    // Get some useful couch statistics and metrics to include in the status
+    async getCouchStats() {
+        const dsn = this.buildDsn(process.env.DB_USER, process.env.DB_PASS, 'internal');
+
+        try {
+            const metrics = await Axios.get(`${dsn}/_node/_local/_stats/couchdb/`);
+            return {
+                requestMeanTimeMS: metrics.data['request_time']['value']['arithmetic_mean'],
+                requestTimeStdDevMS: metrics.data['request_time']['value']['standard_deviation'],
+                continuousChangesClientCount: metrics.data['httpd']['clients_requesting_changes']['value']
+            }
+        } catch (err) {
+            console.log(err);
+            return undefined
+        }
     }
 
 }

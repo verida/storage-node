@@ -156,15 +156,18 @@ docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-
 
 Run tests with `yarn run tests`
 
+You will need to update `/test/config.js` with at least the `VDA_PRIVATE_KEY`, `DID_CLIENT_CONFIG.web3Config.privateKey` 
+and possibily `ENDPOINTS` and `SERVER_URL`.
+
 Common issues when running tests:
 
 1. `Bad key`: The key in CouchDB configuration for `jwt_keys/hmac:_default` is not a valid Base64 encoded key
 2. `HMAC error`: The key in CouchDB configuration for `jwt_keys/hmac:_default` does not match `ACCESS_JWT_SIGN_PK` in `.env`
 
 
-## Testing a deplyed node
+## Testing a deployed node
 
 To test a deployed node, do the following
 
-* Modify `tests/config.js` with the correct endpoint URLs
+* Modify `test/config.js` with the correct endpoint URLs
 * Run `yarn test test/server.js`
