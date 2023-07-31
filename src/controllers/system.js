@@ -18,7 +18,9 @@ class SystemController {
 
         const results = {
             maxStorageSlots: parseInt(process.env.MAX_USERS),
-            storageSlotsUsed,
+            maxUsers: parseInt(process.env.MAX_USERS),
+            storageSlotsUsed: storageSlotsUsed,
+            currentUsers: storageSlotsUsed,
             metrics: metrics,
             version: packageJson.version,
             publicKey: wallet.publicKey,
