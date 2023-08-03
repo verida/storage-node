@@ -131,7 +131,7 @@ class ReplicationManager {
                 replicationRecord._rev = result.rev
                 //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
+                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
                 throw new Error(`Unable to create replication entry: ${err.message}`)
             }
         }
