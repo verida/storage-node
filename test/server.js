@@ -1,11 +1,11 @@
 import assert from 'assert';
 
-import Axios from 'axios'
+import Axios from 'axios';
 
 import AuthManager from "../src/components/authManager";
-import TestUtils from "./utils"
+import TestUtils from "./utils";
 
-import CONFIG from './config'
+import CONFIG from './config';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -46,33 +46,38 @@ describe("Server tests", function() {
         // If running the tests against a remote server with a different access token JWT private key, this test will fail
         // because it uses the private key on this local server config for verification of the access token
         it("Authenticates using AuthJWT", async () => {
-            const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did.toLowerCase()}\n${authRequestId}`
-            const signature = await accountInfo.account.sign(consentMessage)
+            try {
+                const consentMessage = `Authenticate this application context: "${CONTEXT_NAME}"?\n\n${accountInfo.did.toLowerCase()}\n${authRequestId}`
+                const signature = await accountInfo.account.sign(consentMessage)
 
-            const authenticateResponse = await Axios.post(`${SERVER_URL}/auth/authenticate`, {
-                authJwt,
-                did: accountInfo.did,
-                contextName: CONTEXT_NAME,
-                signature,
-                deviceId: TEST_DEVICE_ID
-            })
+                const authenticateResponse = await Axios.post(`${SERVER_URL}/auth/authenticate`, {
+                    authJwt,
+                    did: accountInfo.did,
+                    contextName: CONTEXT_NAME,
+                    signature,
+                    deviceId: TEST_DEVICE_ID
+                })
 
-            assert.ok(authenticateResponse && authenticateResponse.data && authenticateResponse.data.refreshToken, "Have refreshToken in response")
-            assert.equal(authenticateResponse.data.status, 'success', "Success response")
-            assert.ok(authenticateResponse.data.refreshToken.length, "Non zero length refresh token response")
+                assert.ok(authenticateResponse && authenticateResponse.data && authenticateResponse.data.refreshToken, "Have refreshToken in response")
+                assert.equal(authenticateResponse.data.status, 'success', "Success response")
+                assert.ok(authenticateResponse.data.refreshToken.length, "Non zero length refresh token response")
 
-            refreshToken = authenticateResponse.data.refreshToken
+                refreshToken = authenticateResponse.data.refreshToken
 
-            // Also returns a hostname
-            assert.ok(authenticateResponse.data.host.length, "Hostname provided")
+                // Also returns a hostname
+                assert.ok(authenticateResponse.data.host.length, "Hostname provided")
 
-            // Also returns a valid access token
-            assert.ok(authenticateResponse.data.accessToken, "Has an access token")
+                // Also returns a valid access token
+                assert.ok(authenticateResponse.data.accessToken, "Has an access token")
 
-            if (authenticateResponse.data.host.match('localhost')) {
-                const validAccessToken = AuthManager.verifyAccessToken(authenticateResponse.data.accessToken)
-                assert.ok(validAccessToken, "Have a valid access token")
-            }
+                if (authenticateResponse.data.host.match('localhost')) {
+                    const validAccessToken = AuthManager.verifyAccessToken(authenticateResponse.data.accessToken)
+                    assert.ok(validAccessToken, "Have a valid access token")
+                }
+            } catch (err) {
+                console.log(err.response.data)
+                assert.fail(err.message)
+            }            
         })
 
         it("Verifies refresh tokens", async () => {
@@ -349,9 +354,13 @@ describe("Server tests", function() {
         it("Status", async () => {
             const response = await Axios.get(`${SERVER_URL}/status`);
 
-            assert.equal(response.data.results.maxUsers, process.env.MAX_USERS, 'Correct maximum number of users')
-            assert.ok(response.data.results.currentUsers > 2, 'At least two users')
-            assert.ok(response.data.results.version && response.data.results.version.length, 'Version specified')
+            assert.equal(response.data.results.maxUsers, process.env.MAX_USERS, 'Correct maximum number of users');
+            assert.ok(response.data.results.currentUsers > 2, 'At least two users');
+            assert.ok(response.data.results.version && response.data.results.version.length, 'Version specified');
+            assert.ok(response.data.results.metrics && response.data.results.metrics.length === 3, 'Metrics exist');
+            assert.ok(response.data.results.metrics.continuousChangesClientCount >= 0, 'Metric continuousChangesClientCount is in expected range');
+            assert.ok(response.data.results.metrics.requestMeanTimeMS >= 0, 'Metric requestMeanTimeMS is in expected range');
+            assert.ok(response.data.results.metrics.requestTimeStdDevMS >= 0, 'Metric requestTimeStdDevMS is in expected range');
         })
     })
 })

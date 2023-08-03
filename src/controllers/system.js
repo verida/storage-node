@@ -12,12 +12,16 @@ import { BUILD_DETAILS } from '../build';
 class SystemController {
 
     async status(req, res) {
-        const currentUsers = await db.totalUsers()
+        const storageSlotsUsed = await db.totalUsers();
+        const metrics = await db.getCouchStats();
         const wallet = new ethers.Wallet(process.env.VDA_PRIVATE_KEY)
 
         const results = {
+            maxStorageSlots: parseInt(process.env.MAX_USERS),
             maxUsers: parseInt(process.env.MAX_USERS),
-            currentUsers,
+            storageSlotsUsed: storageSlotsUsed,
+            currentUsers: storageSlotsUsed,
+            metrics: metrics,
             version: packageJson.version,
             publicKey: wallet.publicKey,
             couchUri: db.buildHost(),
