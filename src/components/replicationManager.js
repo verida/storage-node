@@ -89,7 +89,7 @@ class ReplicationManager {
 
             // Touch (update expiry attribute) on 
             if (Object.keys(touchReplicationEntries).length > 0) {
-                await this.touchExpiry(did, contextName, endpointUri, touchReplicationEntries)
+                await this.touchReplicationEntries(did, contextName, endpointUri, touchReplicationEntries)
             }
         }
     }
