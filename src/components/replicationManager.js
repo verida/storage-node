@@ -84,7 +84,7 @@ class ReplicationManager {
 
             // Create or update all broken replication entries
             if (Object.keys(createReplicationEntries).length > 0) {
-                await this.createUpdateReplicationEntries(did, contextName, endpointUri, brokenReplicationEntries, authError)
+                await this.createUpdateReplicationEntries(did, contextName, endpointUri, createReplicationEntries, authError)
             }
 
             // Touch (update expiry attribute) on 
