@@ -45,11 +45,11 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${dbHash} missing replication to ${endpointUri}; adding to create list`)
+                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} missing replication to ${endpointUri}; adding to create list`)
                         // Replication entry not found... Will need to create it
                         createReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
-                        console.error(`${Utils.serverUri()}:  ${dbHash} has invalid state (${replicationStatus.state}) replicating to ${endpointUri}; deleting and adding to create list`)
+                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has invalid state (${replicationStatus.state}) replicating to ${endpointUri}; deleting and adding to create list`)
                         brokenReplicationEntries.push(replicationStatus)
                         createReplicationEntries.push(dbHash)
                         if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
@@ -57,7 +57,7 @@ class ReplicationManager {
                         }
                     } else {
                         // Replication is good, but need to update the touched timestamp
-                        console.error(`${Utils.serverUri()}: ${dbHash} has no replication errors, will touch expiry`)
+                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
