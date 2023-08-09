@@ -58,6 +58,7 @@ class ReplicationManager {
                     } else {
                         // Replication is good, but need to update the touched timestamp
                         console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
+                        console.log(replicationStatus)
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
@@ -104,6 +105,7 @@ class ReplicationManager {
 
             try {
                 doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
+                console.log(doc)
                 doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
                 console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId})`)
