@@ -103,11 +103,11 @@ class ReplicationManager {
             const dbHash = dbHashes[d]
 
             try {
-                doc = await db.get(`${replicatorId}-${dbHash}`);
+                doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
                 doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
-                replicationRecord._rev = result.rev
                 console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId})`)
+                console.log(result)
             } catch (err) {
                 console.log(`${Utils.serverUri()}: Error touching replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
             }
