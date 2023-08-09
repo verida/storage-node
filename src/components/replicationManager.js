@@ -95,6 +95,7 @@ class ReplicationManager {
     }
 
     async touchReplicationEntries(did, contextName, endpointUri, dbHashes) {
+        const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
         const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
 
