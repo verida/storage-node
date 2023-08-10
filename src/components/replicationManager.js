@@ -96,6 +96,7 @@ class ReplicationManager {
     }
 
     async touchReplicationEntries(did, contextName, endpointUri, dbHashes) {
+        console.log('- touchReplicationEntries')
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
         const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
@@ -104,7 +105,11 @@ class ReplicationManager {
             const dbHash = dbHashes[d]
 
             try {
+                console.log('- getting ', `${replicatorId}-${dbHash}`)
                 doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
+                if (!doc) {
+                    console.log('doc not found...')
+                }
                 console.log(doc)
                 doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
