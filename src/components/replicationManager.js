@@ -106,7 +106,7 @@ class ReplicationManager {
 
             try {
                 console.log('- getting ', `${replicatorId}-${dbHash}`)
-                doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
+                const doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
                 if (!doc) {
                     console.log('doc not found...')
                 }
