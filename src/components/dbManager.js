@@ -347,7 +347,7 @@ class DbManager {
                 return await db.insert(newDoc, id);
             }
         } catch (err) {
-            throw new Error(`Unexpected error inserting / updating (${id} / ${doc._rev})`)
+            throw new Error(`Unexpected error inserting / updating (${id} / ${doc._rev}): ${err.message}`)
         }
     }
 
