@@ -58,7 +58,6 @@ class ReplicationManager {
                     } else {
                         // Replication is good, but need to update the touched timestamp
                         console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
-                        console.log(replicationStatus)
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
@@ -73,7 +72,7 @@ class ReplicationManager {
             // @todo: No need as they will be garbage collected?
             for (let b in brokenReplicationEntries) {
                 const replicationEntry = brokenReplicationEntries[b]
-                console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
+                console.warn(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
 
                 try {
                     const replicationRecord = await replicationDb.get(replicationEntry.doc_id)
@@ -96,7 +95,6 @@ class ReplicationManager {
     }
 
     async touchReplicationEntries(did, contextName, endpointUri, dbHashes) {
-        console.log('- touchReplicationEntries')
         const couch = Db.getCouch('internal')
         const replicationDb = couch.db.use('_replicator')
         const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
@@ -105,18 +103,16 @@ class ReplicationManager {
             const dbHash = dbHashes[d]
 
             try {
-                console.log('- getting ', `${replicatorId}-${dbHash}`)
                 const doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
                 if (!doc) {
-                    console.log('doc not found...')
+                    console.error(`${Utils.serverUri()}: Attempting to touched replication entry that doesn't exist: ${endpointUri} (${replicatorId}-${dbHash})`)
+                    continue;
                 }
-                console.log(doc)
                 doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
-                console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId})`)
-                console.log(result)
+                console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error touching replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
+                console.error(`${Utils.serverUri()}: Error touching replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
             }
         }
     }
@@ -169,8 +165,14 @@ class ReplicationManager {
                 replicationRecord._rev = result.rev
                 console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
-                throw new Error(`Unable to create replication entry: ${err.message}`)
+                if (err.message.match(/update conflict/)) {
+                    // Attempted to save a replication entry that already exists
+                    // This can be a race condition, so we can easily ignore (since it has already been saved)
+                    console.log(`${Utils.serverUri()}: Skipping replication entry for ${endpointUri} (${replicatorId}-${dbHash}), already exists`)
+                } else {
+                    console.error(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
+                    throw new Error(`Unable to create replication entry: ${err.message}`)
+                }
             }
         }
     }
