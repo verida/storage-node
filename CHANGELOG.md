@@ -1,3 +1,10 @@
+2023-08-22 (2.2.0)
+--------------------
+
+- Refactor to process replication entries differently depending on those that are missing, broken or need touching (update expiry)
+- Log the full replication identifier when replication entry fails to update
+- Improve insert / update error logging
+
 2023-02-15 (2.1.0)
 --------------------
 
