@@ -45,7 +45,7 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} missing replication to ${endpointUri}; adding to create list`)
+                        //console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} missing replication to ${endpointUri}; adding to create list`)
                         // Replication entry not found... Will need to create it
                         createReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
@@ -57,7 +57,7 @@ class ReplicationManager {
                         }
                     } else {
                         // Replication is good, but need to update the touched timestamp
-                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
+                        //console.log(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
@@ -110,7 +110,7 @@ class ReplicationManager {
                 }
                 doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
-                console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
+                //console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
                 console.error(`${Utils.serverUri()}: Error touching replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
             }
@@ -163,12 +163,12 @@ class ReplicationManager {
             try {
                 const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
                 replicationRecord._rev = result.rev
-                console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
+                //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
                 if (err.message.match(/update conflict/)) {
                     // Attempted to save a replication entry that already exists
                     // This can be a race condition, so we can easily ignore (since it has already been saved)
-                    console.log(`${Utils.serverUri()}: Skipping replication entry for ${endpointUri} (${replicatorId}-${dbHash}), already exists`)
+                    //console.log(`${Utils.serverUri()}: Skipping replication entry for ${endpointUri} (${replicatorId}-${dbHash}), already exists`)
                 } else {
                     console.error(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
                     throw new Error(`Unable to create replication entry: ${err.message}`)
