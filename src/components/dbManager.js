@@ -334,16 +334,20 @@ class DbManager {
             doc = await db.get(id);
         } catch (err) {
             if (err.reason != "missing" && err.reason != 'deleted') {
-                throw err;
+                throw new Error(`Unexpected error fetching record ${id}: ${err.message}`);
             }
         }
 
-        if (doc._rev) {
-            newDoc._rev = doc._rev;
-            newDoc._id = id;
-            return await db.insert(newDoc);
-        } else {
-            return await db.insert(newDoc, id);
+        try {
+            if (doc._rev) {
+                newDoc._rev = doc._rev;
+                newDoc._id = id;
+                return await db.insert(newDoc);
+            } else {
+                return await db.insert(newDoc, id);
+            }
+        } catch (err) {
+            throw new Error(`Unexpected error inserting / updating (${id} / ${doc._rev}): ${err.message}`)
         }
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "@verida/storage-node",
-  "version": "2.1.6",
+  "version": "2.2.0",
   "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
@@ -13,6 +13,7 @@
     "serve": "node --trace-warnings dist/server.js",
     "build-docker-multiplatform-dev": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:dev .",
     "build-docker-multiplatform-prod": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .",
+    "build-docker-multiplatform-debug": "yarn build && docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:debug .",
     "build-docker-amd64-prod": "yarn build && docker buildx build --platform linux/amd64 --push -t verida/storage-node:latest ."
   },
   "files": [
