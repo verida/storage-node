@@ -27,11 +27,15 @@ class ReplicationManager {
             const endpointUri = endpoints[e].origin
             const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
 
+            // Replication entries that need their expiry updated
             const touchReplicationEntries = []
-
-            // Find all entries that have an issue
+            // Replication entries that need creating
+            const createReplicationEntries = []
+            // Replication entries that are broken
             const brokenReplicationEntries = []
             let authError = false
+
+            // Find all entries that have an issue
             for (let d in databaseHashes) {
                 const dbHash = databaseHashes[d]
                 
@@ -41,18 +45,19 @@ class ReplicationManager {
 
                     // Handle replication errors
                     if (!replicationStatus) {
-                        //console.error(`${Utils.serverUri()}: ${dbHash} missing replication to ${endpointUri}`)
+                        //console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} missing replication to ${endpointUri}; adding to create list`)
                         // Replication entry not found... Will need to create it
-                        touchReplicationEntries.push(dbHash)
+                        createReplicationEntries.push(dbHash)
                     } else if (replicationStatus.state == 'failed' || replicationStatus.state == 'crashing' || replicationStatus.state == 'error') {
-                        console.error(`${Utils.serverUri()}:  ${dbHash} has invalid state (${replicationStatus.state}) replicating to ${endpointUri}`)
+                        console.error(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has invalid state (${replicationStatus.state}) replicating to ${endpointUri}; deleting and adding to create list`)
                         brokenReplicationEntries.push(replicationStatus)
-                        touchReplicationEntries.push(dbHash)
+                        createReplicationEntries.push(dbHash)
                         if (replicationStatus.state == 'crashing' && replicationStatus.info.error.match(/replication_auth_error/)) {
                             authError = true
                         }
                     } else {
                         // Replication is good, but need to update the touched timestamp
+                        //console.log(`${Utils.serverUri()}: ${replicatorId}-${dbHash} has no replication errors, will touch expiry`)
                         touchReplicationEntries.push(dbHash)
                     }
                 } catch (err) {
@@ -63,10 +68,11 @@ class ReplicationManager {
             // Delete broken replication entries
             const couch = Db.getCouch('internal')
             const replicationDb = couch.db.use('_replicator')
+
             // @todo: No need as they will be garbage collected?
             for (let b in brokenReplicationEntries) {
                 const replicationEntry = brokenReplicationEntries[b]
-                console.log(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
+                console.warn(`${Utils.serverUri()}: Replication has issues, deleting entry: ${replicationEntry.doc_id} (${replicationEntry.state})`)
 
                 try {
                     const replicationRecord = await replicationDb.get(replicationEntry.doc_id)
@@ -76,9 +82,37 @@ class ReplicationManager {
                 }
             }
 
-            // Create or update all replication entries for the list of database hashes
+            // Create or update all broken replication entries
+            if (Object.keys(createReplicationEntries).length > 0) {
+                await this.createUpdateReplicationEntries(did, contextName, endpointUri, createReplicationEntries, authError)
+            }
+
+            // Touch (update expiry attribute) on 
             if (Object.keys(touchReplicationEntries).length > 0) {
-                await this.createUpdateReplicationEntries(did, contextName, endpointUri, touchReplicationEntries, authError)
+                await this.touchReplicationEntries(did, contextName, endpointUri, touchReplicationEntries)
+            }
+        }
+    }
+
+    async touchReplicationEntries(did, contextName, endpointUri, dbHashes) {
+        const couch = Db.getCouch('internal')
+        const replicationDb = couch.db.use('_replicator')
+        const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
+
+        for (let d in dbHashes) {
+            const dbHash = dbHashes[d]
+
+            try {
+                const doc = await replicationDb.get(`${replicatorId}-${dbHash}`);
+                if (!doc) {
+                    console.error(`${Utils.serverUri()}: Attempting to touched replication entry that doesn't exist: ${endpointUri} (${replicatorId}-${dbHash})`)
+                    continue;
+                }
+                doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
+                const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
+                //console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
+            } catch (err) {
+                console.error(`${Utils.serverUri()}: Error touching replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
             }
         }
     }
@@ -129,10 +163,16 @@ class ReplicationManager {
             try {
                 const result = await DbManager._insertOrUpdate(replicationDb, replicationRecord, replicationRecord._id)
                 replicationRecord._rev = result.rev
-                //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId})`)
+                //console.log(`${Utils.serverUri()}: Saved replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
-                console.log(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}): ${err.message}`)
-                throw new Error(`Unable to create replication entry: ${err.message}`)
+                if (err.message.match(/update conflict/)) {
+                    // Attempted to save a replication entry that already exists
+                    // This can be a race condition, so we can easily ignore (since it has already been saved)
+                    //console.log(`${Utils.serverUri()}: Skipping replication entry for ${endpointUri} (${replicatorId}-${dbHash}), already exists`)
+                } else {
+                    console.error(`${Utils.serverUri()}: Error saving replication entry for ${endpointUri} (${replicatorId}-${dbHash}): ${err.message}`)
+                    throw new Error(`Unable to create replication entry: ${err.message}`)
+                }
             }
         }
     }

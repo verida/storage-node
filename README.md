@@ -171,3 +171,7 @@ To test a deployed node, do the following
 
 * Modify `test/config.js` with the correct endpoint URLs
 * Run `yarn test test/server.js`
+
+# Production Infrastructure Notes
+
+When deploying behind a HTTP load balancer it is important to make sure it doesn't close the connection during a long-poll call. The server will keep pushing data through this connection, but some load balancers (eg the Google Cloud loadbalancer) will close anyway. In these case configure the load balancer with a long timeout (we recommend 3600 seconds).
