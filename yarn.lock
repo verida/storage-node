@@ -2149,7 +2149,7 @@
     did-resolver "^4.0.1"
     ethers "^5.5.1"
 
-"@verida/did-document@2.4.0-rc2", "@verida/did-document@^2.4.0-rc1":
+"@verida/did-document@2.4.0-rc1", "@verida/did-document@^2.4.0-rc1":
   version "2.4.0-rc1"
   resolved "https://registry.yarnpkg.com/@verida/did-document/-/did-document-2.4.0-rc1.tgz#92c698cdc356d04d6490823231df1b087205ca4b"
   integrity sha512-EbVu2b3CsJvrG6CISIPeMAJoPwKAQVC3RwbKxDOpy5neambzX4ziJxEOqDyRVzg44ZqhGPmDdU8iD0/TNYIiQw==
@@ -2163,7 +2163,7 @@
     did-resolver "^4.0.1"
     lodash "^4.17.21"
 
-"@verida/encryption-utils@2.4.0-rc2", "@verida/encryption-utils@^2.2.2":
+"@verida/encryption-utils@2.2.3", "@verida/encryption-utils@^2.2.2":
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/@verida/encryption-utils/-/encryption-utils-2.2.3.tgz#625dc5d49f63f031d41a63c6769307420363809d"
   integrity sha512-jYxWEsLjaOWmjb7NiOFMtSg8g93HHkg5/24VdCSbnHYRAy//r2Bj08E6gWkqU8ot6P9g1s+VCF2DeWnhcmPHpA==
