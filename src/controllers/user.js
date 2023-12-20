@@ -154,11 +154,11 @@ class UserController {
                 }
             }
 
-            await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+            const result = await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
 
             return Utils.signedResponse({
                 status: "success",
-                databaseHashes
+                ...result
             }, res);
         } catch (err) {
             console.error(err.message)
