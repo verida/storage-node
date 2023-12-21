@@ -24,10 +24,11 @@ class ReplicationManager {
 
         // Touch all the databases for every endpoint
         for (let e in endpoints) {
+            const endpointUri = endpoints[e].origin
+
             try {
                 // create a fake endpoint to have a valid URL
                 // generateReplicatorHash() will strip back to hostname
-                const endpointUri = endpoints[e].origin
                 const replicatorId = Utils.generateReplicatorHash(endpointUri, did, contextName)
 
                 // Replication entries that need their expiry updated
