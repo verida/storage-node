@@ -8,21 +8,28 @@ import TestUtils from "./utils";
 import CONFIG from './config';
 
 import dotenv from 'dotenv';
+import utils from '../src/components/utils';
 dotenv.config();
 
 const { CONTEXT_NAME, SERVER_URL, TEST_DEVICE_ID } = CONFIG
 
-let authJwt, accountInfo, authRequestId
+let authJwt, accountInfo, authRequestId, context
 let refreshToken, accessToken, newRefreshToken
 
 // NOTE: These tests fail if the CONFIG.PRIVATE_KEY hasn't been already setup with a valid Verida DID Document
 // Run `yarn run test test/vda-did` to generate a new private key with a valid DID in `verida-js/vda-did`
 
 describe("Server tests", function() {
-    this.beforeAll(async () => {
+    this.beforeAll(async function() {
+        this.timeout(200 * 1000)
         //await AuthManager.initDb() -- This is required if the server is running locally and has never been run before, run just once
-        await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) // -- This is required if the private key has never been initilaized with an application context, run just once
+        context = await TestUtils.ensureVeridaAccount(CONFIG.VDA_PRIVATE_KEY) // -- This is required if the private key has never been initilaized with an application context, run just once
         accountInfo = await TestUtils.connectAccount(CONFIG.VDA_PRIVATE_KEY)
+
+        // const db = await context.openDatabase('test')
+        // await db.save({hello: 'world'})
+        // const info = await db.info()
+        // console.log(info)
     })
 
     describe("Authenticate", () => {
@@ -361,6 +368,79 @@ describe("Server tests", function() {
             assert.ok(response.data.results.metrics.continuousChangesClientCount >= 0, 'Metric continuousChangesClientCount is in expected range');
             assert.ok(response.data.results.metrics.requestMeanTimeMS >= 0, 'Metric requestMeanTimeMS is in expected range');
             assert.ok(response.data.results.metrics.requestTimeStdDevMS >= 0, 'Metric requestTimeStdDevMS is in expected range');
+        })
+    })
+
+    describe("Contexts", () => {
+        it("Can fetch did contextName from contextHash", async function() {
+            const did = accountInfo.did
+            const timestamp = parseInt((new Date()).getTime() / 1000.0)
+            const serverUri = utils.serverUri()
+            const contextHash = `0x${utils.generateDidContextHash(did, CONTEXT_NAME)}`
+
+            const consentMessage = `Obtain context hash (${contextHash}) for server: "${serverUri}"?\n\n${did}\n${timestamp}`
+            const signature = await accountInfo.account.sign(consentMessage)
+
+            try {
+                const response = await Axios.post(`${SERVER_URL}/user/contextHash`, {
+                    did,
+                    timestamp,
+                    signature,
+                    contextHash
+                });
+
+                assert.equal(response.data.status, 'success', 'Request succeeded')
+                assert.equal(response.data.result.contextName, CONTEXT_NAME, 'Context name matches expected value')
+            } catch (err) {
+                assert.fail(err.message)
+            }
+        })
+
+        it(`Can't fetch contextName with invalid timestamp`, async () => {
+            const did = accountInfo.did
+            const timestamp = parseInt((new Date()).getTime() / 1000.0) - 60*5
+            const serverUri = utils.serverUri()
+            const contextHash = `0x${utils.generateDidContextHash(did, CONTEXT_NAME)}`
+
+            const consentMessage = `Obtain context hash (${contextHash}) for server: "${serverUri}"?\n\n${did}\n${timestamp}`
+            const signature = await accountInfo.account.sign(consentMessage)
+
+            try {
+                const response = await Axios.post(`${SERVER_URL}/user/contextHash`, {
+                    did,
+                    timestamp,
+                    signature,
+                    contextHash
+                });
+
+                assert.fail(`Response succeeded when it shouldn't`)
+            } catch (err) {
+                assert.equal(err.response.status, 401)
+                assert.equal(err.message, 'Request failed with status code 401')
+            }
+        })
+
+        it(`Can't fetch contextName with invalid signature`, async () => {
+            const did = accountInfo.did
+            const timestamp = parseInt((new Date()).getTime() / 1000.0)
+            const contextHash = `0x${utils.generateDidContextHash(did, CONTEXT_NAME)}`
+            const signature = 'abc'
+
+            try {
+                const response = await Axios.post(`${SERVER_URL}/user/contextHash`, {
+                    did,
+                    timestamp,
+                    signature,
+                    contextHash
+                });
+
+                console.log(response)
+
+                assert.fail(`Response succeeded when it shouldn't`)
+            } catch (err) {
+                assert.equal(err.response.status, 401)
+                assert.equal(err.message, 'Request failed with status code 401')
+            }
         })
     })
 })

@@ -3,6 +3,8 @@ import UserManager from '../components/userManager.js';
 import Utils from '../components/utils.js';
 import Db from '../components/db.js'
 import ReplicationManager from '../components/replicationManager'
+import utils from '../components/utils.js';
+import AuthManager from '../components/authManager.js';
 
 class UserController {
 
@@ -154,11 +156,11 @@ class UserController {
                 }
             }
 
-            await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
+            const result = await ReplicationManager.touchDatabases(did, contextName, databaseHashes)
 
             return Utils.signedResponse({
                 status: "success",
-                databaseHashes
+                ...result
             }, res);
         } catch (err) {
             console.error(err.message)
@@ -271,6 +273,54 @@ class UserController {
         }
     }
 
+    async contextHash(req, res) {
+        const now = parseInt((new Date()).getTime() / 1000.0)
+        const minTimestamp = now - 60
+        const maxTimestamp = now + 60
+
+        const {
+            did,
+            timestamp,
+            signature,
+            contextHash
+         } = req.body
+
+        if (!did || !timestamp || !signature) {
+            return res.status(500).send({
+                status: "fail",
+                message: `Invalid parameters (did, timestamp, signature, contextHash are required)`
+            });
+        }
+
+        // Verify timestamp is within a 1 minute window of now
+        if (timestamp < minTimestamp || timestamp > maxTimestamp) {
+            return res.status(401).send({
+                status: "fail",
+                message: `Invalid timestamp`
+            });
+        }
+
+        const serverUri = utils.serverUri()
+
+        const consentMessage = `Obtain context hash (${contextHash}) for server: "${serverUri}"?\n\n${did}\n${timestamp}`
+        const success = await AuthManager.verifySignedConsentMessage(did, signature, consentMessage)
+
+        if (!success) {
+            return res.status(401).send({
+                status: "fail",
+                message: `Invalid signature`
+            });
+        }
+
+        const contextName = await UserManager.getUserContextHash(did, contextHash)
+        return Utils.signedResponse({
+            status: "success",
+            result: {
+                contextName
+            }
+        }, res)
+    }
+
     async databaseInfo(req, res) {
         const databaseName = req.body.databaseName;
         const did = req.tokenData.did
@@ -339,9 +389,9 @@ class UserController {
     }
 
     /**
-     * This is now deprecated
+     * This is used to ensure databases that should exist, exist.
      * 
-     * @todo: Remove
+     * The name is a misnomer
      * 
      * @param {*} req 
      * @param {*} res 

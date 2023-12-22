@@ -57,15 +57,17 @@ class DbManager {
         const db = await this.getUserDatabaseCouch(did, contextName)
         const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
+        const data = {
+            _id: id,
+            did,
+            contextName,
+            databaseName,
+            databaseHash,
+            permissions: permissions ? permissions : {}
+        }
+
         try {
-            const result = await this._insertOrUpdate(db, {
-                _id: id,
-                did,
-                contextName,
-                databaseName,
-                databaseHash,
-                permissions: permissions ? permissions : {}
-            }, id)
+            await this._insertOrUpdate(db, data, id)
         } catch (err) {
             // It's possible the replication of the database list has already
             // replicated this database entry causing a document update conflict

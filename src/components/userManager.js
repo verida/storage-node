@@ -99,6 +99,23 @@ class UserManager {
         }
     }
 
+    async getUserContextHash(did, contextHash) {
+        const couch = Db.getCouch()
+        const didContextDbName = `c${contextHash.substring(2)}`
+        const db = couch.db.use(didContextDbName)
+
+        const records = await db.list({
+            include_docs: true,
+            limit: 1
+        })
+
+        if (records.rows.length == 0) {
+            return
+        }
+
+        return records.rows[0].doc.contextName
+    }
+
     async getUsage(did, contextName) {
         const username = Utils.generateUsername(did, contextName);
         const user = await this.getByUsername(username);
