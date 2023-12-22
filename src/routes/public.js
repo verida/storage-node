@@ -19,6 +19,7 @@ router.post('/auth/invalidateDeviceId', AuthController.invalidateDeviceId);
 router.post('/auth/isTokenValid', AuthController.isTokenValid);
 
 router.post('/user/contextHash', UserController.contextHash);
+router.post('/user/destroyContext', UserController.destroyContext);
 
 router.get('/lookup/did/:did', DidLookupController.lookup)
 
