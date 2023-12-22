@@ -18,15 +18,15 @@ const SERVER_URL = CONFIG.SERVER_URL
 class Utils {
 
     async ensureVeridaAccount(privateKey) {
-        const account = new AutoAccount(CONFIG.DEFAULT_ENDPOINTS, {
+        const account = new AutoAccount({
             privateKey: privateKey,
             didClientConfig: CONFIG.DID_CLIENT_CONFIG,
             environment: CONFIG.ENVIRONMENT
-        })
+        }, CONFIG.DEFAULT_ENDPOINTS)
 
-        await Network.connect({
+        return await Network.connect({
             client: {
-                environment: 'testnet'
+                environment: CONFIG.ENVIRONMENT
             },
             account: account,
             context: {
@@ -36,11 +36,11 @@ class Utils {
     }
 
     async connectAccount(privateKey) {
-        const account = new AutoAccount(CONFIG.DEFAULT_ENDPOINTS, {
+        const account = new AutoAccount({
             privateKey: privateKey,
             didClientConfig: CONFIG.DID_CLIENT_CONFIG,
             environment: CONFIG.ENVIRONMENT
-        })
+        }, CONFIG.DEFAULT_ENDPOINTS)
 
         const did = await account.did()
 
