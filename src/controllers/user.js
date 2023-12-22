@@ -183,31 +183,20 @@ class UserController {
             });
         }
 
-        const databases = await DbManager.getUserDatabases(did, contextName)
-        const results = []
+        try {
+            const results = await DbManager.deleteContextDatabases(did, username, contextName);
 
-        for (let d in databases) {
-            const database = databases[d]
-            const databaseHash = Utils.generateDatabaseName(did, contextName, database.databaseName)
-            try {
-                let success = await DbManager.deleteDatabase(databaseHash, username);
-                if (success) {
-                    await DbManager.deleteUserDatabase(did, contextName, database.databaseName, databaseHash)
-                    results.push(database.databaseName)
-                }
-            } catch (err) {
-                return res.status(500).send({
-                    status: "fail",
-                    message: err.error + ": " + err.reason,
-                    results
-                });
-            }
-        };
-
-        return Utils.signedResponse({
-            status: "success",
-            results
-        }, res);
+            return Utils.signedResponse({
+                status: "success",
+                results
+            }, res);
+        } catch (err) {
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason,
+                results
+            });
+        }
     }
 
     // Update permissions on a user's database
@@ -269,6 +258,68 @@ class UserController {
             return res.status(500).send({
                 status: "fail",
                 message: err.message
+            });
+        }
+    }
+
+    async destroyContext(req, res) {
+        const now = parseInt((new Date()).getTime() / 1000.0)
+        const minTimestamp = now - 60
+        const maxTimestamp = now + 60
+
+        const {
+            did,
+            timestamp,
+            signature,
+            contextName
+         } = req.body
+
+         if (!did || !timestamp || !signature) {
+            return res.status(500).send({
+                status: "fail",
+                message: `Invalid parameters (did, timestamp, signature, contextHash are required)`
+            });
+        }
+
+        // Verify timestamp is within a 1 minute window of now
+        if (timestamp < minTimestamp || timestamp > maxTimestamp) {
+            return res.status(401).send({
+                status: "fail",
+                message: `Invalid timestamp`
+            });
+        }
+
+        const serverUri = utils.serverUri()
+        const consentMessage = `Delete context (${contextName}) from server: "${serverUri}"?\n\n${did}\n${timestamp}`
+        const success = await AuthManager.verifySignedConsentMessage(did, signature, consentMessage)
+
+        if (!success) {
+            return res.status(401).send({
+                status: "fail",
+                message: `Invalid signature`
+            });
+        }
+
+        const username = Utils.generateUsername(did, contextName)
+
+        try {
+            // Delete all databases
+            const results = await DbManager.deleteContextDatabases(did, username, contextName);
+
+            // Delete the database registry
+            await DbManager.deleteUserContextDatabase(did, contextName)
+
+            // @todo: Delete context replication users and any replication entries
+
+            return Utils.signedResponse({
+                status: "success",
+                results
+            }, res);
+        } catch (err) {
+            console.error(`Error deleting user context databases (${did} / ${contextName}): ${err.message}`)
+            return res.status(500).send({
+                status: "fail",
+                message: err.error + ": " + err.reason
             });
         }
     }
