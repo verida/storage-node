@@ -57,15 +57,17 @@ class DbManager {
         const db = await this.getUserDatabaseCouch(did, contextName)
         const id = Utils.generateDatabaseName(did, contextName, databaseName)
 
+        const data = {
+            _id: id,
+            did,
+            contextName,
+            databaseName,
+            databaseHash,
+            permissions: permissions ? permissions : {}
+        }
+
         try {
-            const result = await this._insertOrUpdate(db, {
-                _id: id,
-                did,
-                contextName,
-                databaseName,
-                databaseHash,
-                permissions: permissions ? permissions : {}
-            }, id)
+            await this._insertOrUpdate(db, data, id)
         } catch (err) {
             // It's possible the replication of the database list has already
             // replicated this database entry causing a document update conflict
@@ -151,6 +153,14 @@ class DbManager {
         }
     }
 
+    async deleteUserContextDatabase(did, contextName) {
+        const couch = Db.getCouch()
+        const didContextHash = Utils.generateDidContextHash(did, contextName)
+        const didContextDbName = `c${didContextHash}`
+
+        return await couch.db.destroy(didContextDbName)
+    }
+
     async createDatabase(did, databaseHash, contextName, options) {
         let couch = Db.getCouch();
         const username = Utils.generateUsername(did, contextName)
@@ -212,7 +222,7 @@ class DbManager {
             return false
         }
 
-        // Create database
+        // Delete database
         try {
             return await couch.db.destroy(databaseHash);
         } catch (err) {
@@ -221,6 +231,27 @@ class DbManager {
             // In that case, ignore the error and continue
             //console.log(err);
         }
+    }
+
+    async deleteContextDatabases(did, username, contextName) {
+        const databases = await this.getUserDatabases(did, contextName)
+        const results = []
+
+        for (let d in databases) {
+            const database = databases[d]
+            const databaseHash = Utils.generateDatabaseName(did, contextName, database.databaseName)
+            try {
+                let success = await this.deleteDatabase(databaseHash, username);
+                if (success) {
+                    await this.deleteUserDatabase(did, contextName, database.databaseName, databaseHash)
+                    results.push(database.databaseName)
+                }
+            } catch (err) {
+                console.error(`Error deleting database: (${did} / ${contextName}) ${err.message}`)
+            }
+        };
+
+        return results
     }
 
     async configurePermissions(did, db, username, contextName, permissions) {
