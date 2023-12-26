@@ -46,6 +46,9 @@
   "homepage": "https://github.com/verida/storage-node/README.md",
   "dependencies": {
     "@babel/runtime": "^7.16.7",
+    "@verida/did-client": "^3.0.1",
+    "@verida/did-document": "^3.0.1",
+    "@verida/encryption-utils": "^3.0.0",
     "aws-serverless-express": "^3.4.0",
     "axios": "^1.2.1",
     "cors": "^2.8.5",
