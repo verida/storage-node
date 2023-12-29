@@ -35,37 +35,48 @@ yarn build
 yarn serve
 ```
 
-Note: You may need to update `.env` to point to the appropriate Verida DID Server endpoint to use. By default it points to `testnet`, but you can point to a localhost instance for development purposes (http://localhost:5001) -- note, there is no trailing `/`
-
-This server is running on the Verida Testnet and is accessible by any application built on the Verida network during the pre-launch phase.
-
-### Testnet
-- https://db.testnet.verida.tech/
-- https://messages.testnet.verida.tech/
-
 ## Configuration
 
 A `sample.env` is included. Copy this to `.env` and update the configuration:
 
-- `DID_SERVER_URL`: URL of a Verida DID Server endpoint.
+- `DID_NETWORK`: Verida network to use (`testnet` or `mainnet`)
+- `DID_CACHE_DURATION`: How long to cache DIDs before reloading
 - `DB_PROTOCOL`: Protocol to use when connecting to CouchDB (`http` or `https`).
 - `DB_USER`: Username of CouchDB Admin (has access to create users and databases).
 - `DB_PASS`: Password of CouchDB Admin.
 - `DB_HOST`: Hostname of CouchDB Admin.
 - `DB_PORT`: Port of CouchDB server (`5984`).
+- `DB_REPLICATION_USER`: Replication username (for replicating data to other nodes). MUST be set to something random. MUST not change once the node is operational.
+- `DB_REPLICATION_PASS`: Replication password (for replicating data to other nodes). MUST be set to something random. MUST not change once the node is operational.
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
 - `DB_PUBLIC_USER`: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
 - `DB_PUBLIC_PASS`: Alphanumeric string for a public database password.
 - `ACCESS_TOKEN_EXPIRY`: Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token. CouchDB does not support a way to force the expiry of an issued token, so the access token expiry should always be set to 5 minutes (300)
 - `REFRESH_TOKEN_EXPIRY`: Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached. This should be set to 7 days (604800).
+- `DB_REFRESH_TOKENS`: Internal CouchDB database that stores refresh tokens (ie: `verida_refresh_tokens`)
+- `GC_PERCENT`: How often garbage collection runs on tokens (ie: `0.1` = 10% of requests)
 - `ACCESS_JWT_SIGN_PK`: The access token private key. The base64 version of this must be specified in the CouchDB configuration under `jwt_keys/hmac:_default`
 - `REFRESH_JWT_SIGN_PK`: The refresh token private key
+- `DB_PROTOCOL_INTERNAL`: Internal database protocol (`http` or `https`).
+- `DB_HOST_INTERNAL`: Internal database hostname (ie: `localhost`)
+- `DB_PORT_INTERNAL`: Internal database port (ie: `5984`)
+- `DB_PROTOCOL_INTERNAL`: External database protocol (`http` or `https`).
+- `DB_HOST_INTERNAL`: External database hostname (ie: `mydomain.com`)
+- `DB_PORT_INTERNAL`: External database port (ie: `5984`)
+- `ENDPOINT_URI`: The public URI of this storage node server (Will match what is stored in DID Documents). Note: Must include the port and have NO trailing slash. (ie: `"http://localhost:5000"`)
+- `VDA_PRIVATE_KEY`: Verida network private key as a hex string. Including leading 0x. This is used to sign server responses and in the future, prove VDA tokens are staked for this node. (ie: `0xaaaabbbb...`)
+- `DEFAULT_USER_CONTEXT_LIMIT_MB`: Maximum number of Megabytes for a storage context
+- `MAX_USERS`: Maximum number of users supported by this node (ie: `10000`)
+- `REPLICATION_EXPIRY_MINUTES`: How many minutes before the replication expires on an open database. Should be 2x ACCESS_TOKEN_EXPIRY. (ie: `20`)
+- `DB_DIDS`: Database for storing DID documents (ie: `verida_dids`)
+- `DB_REPLICATER_CREDS`: Database for storing replication credentials to third party nodes (ie: `verida_replicater_creds`)
+- `PORT`: Port this server runs on (ie: `5151`)
+
 
 ### Setting up environment variables on Windows
 
 * On a powershell execute the following ( replica of `.env` )
 ```bash
-$env:DID_SERVER_URL="https://dids.testnet.verida.io:5001"
 $env:DID_CACHE_DURATION=3600
 $env:DB_PROTOCOL="http"
 $env:DB_USER="admin"
@@ -83,7 +94,6 @@ $env:DB_PUBLIC_PASS="784c2n780c9cn0789"
 - A valid user must be enforced for security reasons
 
 [Ensure `{chttpd_auth, jwt_authentication_handler}` is added to the list of the active `chttpd/authentication_handlers`](https://docs.couchdb.org/en/stable/api/server/authn.html?highlight=jwt#jwt-authentication)
-
 
 
 ```
