@@ -161,7 +161,6 @@ Note that this uses the experimental `buildx` command to build both AMD64 (Intel
 docker buildx build --platform linux/amd64,linux/arm64 --push -t verida/storage-node:latest .
 ```
 
-
 ## Tests
 
 Run tests with `yarn run tests`
@@ -185,3 +184,15 @@ To test a deployed node, do the following
 # Production Infrastructure Notes
 
 When deploying behind a HTTP load balancer it is important to make sure it doesn't close the connection during a long-poll call. The server will keep pushing data through this connection, but some load balancers (eg the Google Cloud loadbalancer) will close anyway. In these case configure the load balancer with a long timeout (we recommend 3600 seconds).
+
+# Infrastructure requirements
+
+The Verida team is currently operating nodes with the following hardware requirements:
+
+1. 16GB RAM
+2. 4vCPUs
+3. 1TB storage (20,000 storage slots)
+
+These cost approx $US250 / month on AWS / GCP / Azure.
+
+Ideally nodes will have burstable CPU usage as the number of connected users is CPU bound and can fluxuate depending on active demand from end users.
