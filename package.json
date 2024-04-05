@@ -1,6 +1,6 @@
 {
   "name": "@verida/storage-node",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Verida Storage Node middleware that bridges decentralised identities so they can control access to databases within a CouchDB storage engine",
   "main": "dist/server.js",
   "scripts": {
@@ -41,7 +41,7 @@
     "url": "https://github.com/verida/storage-node/issues"
   },
   "engines": {
-    "node": "^14.0.0"
+    "node": "^18.0.0"
   },
   "homepage": "https://github.com/verida/storage-node/README.md",
   "dependencies": {
