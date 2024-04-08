@@ -1,4 +1,4 @@
-FROM node:14.20.0-slim as node
+FROM node:hydrogen-slim as node
 
 ENV NODE_ENV=production
 EXPOSE 5000

@@ -25,7 +25,7 @@ class DidLookup {
         }
 
         const didClient = new DIDClient({
-            network: process.env.DID_NETWORK
+            network: process.env.VERIDA_NETWORK
         })
 
         try {

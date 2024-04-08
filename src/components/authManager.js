@@ -119,7 +119,7 @@ class AuthManager {
                 if (!didClient) {
                     console.info(`DID client didn't exist, creating`)
                     const didClientConfig = {
-                        network: process.env.DID_NETWORK ? process.env.DID_NETWORK : 'testnet',
+                        network: process.env.VERIDA_NETWORK ? process.env.VERIDA_NETWORK : 'banksia',
                         rpcUrl: process.env.DID_RPC_URL
                       }
           

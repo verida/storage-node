@@ -39,7 +39,7 @@ yarn serve
 
 A `sample.env` is included. Copy this to `.env` and update the configuration:
 
-- `DID_NETWORK`: Verida network to use (`testnet` or `mainnet`)
+- `VERIDA_NETWORK`: Verida network to use. See https://developers.verida.network/docs/infrastructure/networks for valid networks.
 - `DID_CACHE_DURATION`: How long to cache DIDs before reloading
 - `DB_PROTOCOL`: Protocol to use when connecting to CouchDB (`http` or `https`).
 - `DB_USER`: Username of CouchDB Admin (has access to create users and databases).

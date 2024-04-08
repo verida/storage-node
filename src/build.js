@@ -1,1 +1,1 @@
-export const BUILD_DETAILS = {buildTimestamp: "2023-12-08T03:34:02+00:00"};
+export const BUILD_DETAILS = {buildTimestamp: "2024-04-05T02:24:03+00:00"};
