@@ -3,11 +3,16 @@ import randtoken from 'rand-token';
 import jwt from 'jsonwebtoken';
 import mcache from 'memory-cache';
 
-import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
 import dbManager from './dbManager.js';
+import { getResolver } from '@verida/vda-did-resolver';
+import { DIDDocument } from '@verida/did-document';
+import { Resolver } from 'did-resolver';
+
+const vdaDidResolver = getResolver()
+const didResolver = new Resolver(vdaDidResolver)
 
 dotenv.config();
 
@@ -104,6 +109,14 @@ class AuthManager {
         }
     }
 
+    /**
+     * 
+     * @todo: Refactor to use @verida/vda-did-resolver, Ensure signature checks verify context
+     * 
+     * @param {*} did 
+     * @param {*} ignoreCache 
+     * @returns 
+     */
     async getDidDocument(did, ignoreCache=false) {
         // Verify the signature signed the correct string
         const cacheKey = did
@@ -116,17 +129,9 @@ class AuthManager {
 
             if (!didDocument) {
                 console.info(`DID document not in cache: ${did}, fetching`)
-                if (!didClient) {
-                    console.info(`DID client didn't exist, creating`)
-                    const didClientConfig = {
-                        network: process.env.VERIDA_NETWORK ? process.env.VERIDA_NETWORK : 'banksia',
-                        rpcUrl: process.env.DID_RPC_URL
-                      }
-          
-                      didClient = new DIDClient(didClientConfig);
-                }
-
-                didDocument = await didClient.get(did)
+                
+                const response = await didResolver.resolve(did)
+                didDocument = new DIDDocument(response.didDocument)
 
                 if (didDocument) {
                     console.info(`Adding DID document to cache: ${did}`)

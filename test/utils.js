@@ -21,12 +21,12 @@ class Utils {
         const account = new AutoAccount({
             privateKey: privateKey,
             didClientConfig: CONFIG.DID_CLIENT_CONFIG,
-            environment: CONFIG.ENVIRONMENT
+            network: CONFIG.NETWORK
         }, CONFIG.DEFAULT_ENDPOINTS)
 
         return await Network.connect({
             client: {
-                environment: CONFIG.ENVIRONMENT
+                network: CONFIG.NETWORK
             },
             account: account,
             context: {
@@ -39,7 +39,7 @@ class Utils {
         const account = new AutoAccount({
             privateKey: privateKey,
             didClientConfig: CONFIG.DID_CLIENT_CONFIG,
-            environment: CONFIG.ENVIRONMENT
+            network: CONFIG.NETWORK
         }, CONFIG.DEFAULT_ENDPOINTS)
 
         const did = await account.did()
