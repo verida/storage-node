@@ -265,12 +265,12 @@ class AuthController {
             return Utils.error(res, `Unable to locate DID: ${did}`)
         }
 
-        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
         if (!endpointService || !endpointService.serviceEndpoint) {
             // DID document may have recently been updated, so re-fetch
             didDocument = await AuthManager.getDidDocument(did, true)
             if (didDocument) {
-                endpointService = didDocument.locateServiceEndpoint(contextName, 'database')
+                endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
             }
 
             if (!didDocument || !endpointService || !endpointService.serviceEndpoint) {

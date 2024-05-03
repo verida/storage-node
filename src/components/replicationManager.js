@@ -6,6 +6,7 @@ import Axios from 'axios'
 import EncryptionUtils from '@verida/encryption-utils';
 
 import dotenv from 'dotenv';
+import { DIDDocument } from '@verida/did-document';
 dotenv.config();
 
 function now() {
@@ -193,12 +194,12 @@ class ReplicationManager {
     async getReplicationEndpoints(did, contextName) {
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
-        let didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
 
         if (!didService) {
             // Service not found, try to fetch the DID document without caching (as it may have been updated)
             didDocument = await AuthManager.getDidDocument(did, true)
-            didService = didDocument.locateServiceEndpoint(contextName, 'database')
+            didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
         }
 
         if (!didService) {
