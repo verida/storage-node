@@ -77,10 +77,10 @@ class AuthManager {
         }
 
         const consentMessage = `Authenticate this application context: "${contextName}"?\n\n${did}\n${decodedJwt.authRequestId}`
-        return this.verifySignedConsentMessage(did, signature, consentMessage)
+        return this.verifySignedConsentMessage(did, signature, consentMessage, contextName)
     }
 
-    async verifySignedConsentMessage(did, signature, consentMessage) {
+    async verifySignedConsentMessage(did, signature, consentMessage, contextName) {
         // Verify the signature signed the correct string
         try {
             const didDocument = await this.getDidDocument(did)
@@ -89,11 +89,17 @@ class AuthManager {
                 return false
             }
 
-            const result = didDocument.verifySig(consentMessage, signature)
+            // Check signature sourced from context key
+            const result = didDocument.verifyContextSignature(consentMessage, contextName, signature)
 
             if (!result) {
-                console.info('Invalid signature when verifying signed consent message')
-                return false
+                // Check singature sourced from master DID key
+                const result2 = didDocument.verifySig(consentMessage, signature)
+
+                if (!result2) {
+                    console.info('Invalid signature when verifying signed consent message')
+                    return false
+                }
             }
 
             return true
@@ -297,7 +303,7 @@ class AuthManager {
     async invalidateDeviceId(did, contextName, deviceId, signature) {
         did = did.toLowerCase()
         const consentMessage = `Invalidate device for this application context: "${contextName}"?\n\n${did}\n${deviceId}`
-        const validSignature = await this.verifySignedConsentMessage(did, signature, consentMessage)
+        const validSignature = await this.verifySignedConsentMessage(did, signature, consentMessage, contextName)
 
         if (!validSignature) {
             return false
