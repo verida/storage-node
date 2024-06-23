@@ -4,6 +4,7 @@
 Breaking changes:
 
 - `.env` `DID_NETWORK` renamed to `VERIDA_NETWORK`. Represents the Verida network (ie: `myrtle`) this node is operating on.
+- Some environment variables have moved out of `.env` and are now hard coded as protocol variables. See `src/config.js`
 
 Other changes:
 
