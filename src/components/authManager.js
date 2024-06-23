@@ -95,10 +95,10 @@ class AuthManager {
             }
 
             // Check signature sourced from context key
-            const result = didDocument.verifyContextSignature(consentMessage, contextName, signature)
+            const result = didDocument.verifyContextSignature(consentMessage, process.env.VERIDA_NETWORK, contextName, signature)
 
             if (!result) {
-                // Check singature sourced from master DID key
+                // Check signature sourced from master DID key
                 const result2 = didDocument.verifySig(consentMessage, signature)
 
                 if (!result2) {

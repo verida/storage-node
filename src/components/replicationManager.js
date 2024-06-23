@@ -194,12 +194,12 @@ class ReplicationManager {
     async getReplicationEndpoints(did, contextName) {
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
-        let didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
+        let didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
 
         if (!didService) {
             // Service not found, try to fetch the DID document without caching (as it may have been updated)
             didDocument = await AuthManager.getDidDocument(did, true)
-            didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
+            didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
         }
 
         if (!didService) {

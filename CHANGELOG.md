@@ -1,6 +1,12 @@
 2023-08-22 (2.2.0)
 --------------------
 
+Breaking changes:
+
+- `.env` `DID_NETWORK` renamed to `VERIDA_NETWORK`. Represents the Verida network (ie: `myrtle`) this node is operating on.
+
+Other changes:
+
 - Refactor to process replication entries differently depending on those that are missing, broken or need touching (update expiry)
 - Log the full replication identifier when replication entry fails to update
 - Improve insert / update error logging

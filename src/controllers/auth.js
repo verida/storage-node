@@ -265,12 +265,12 @@ class AuthController {
             return Utils.error(res, `Unable to locate DID: ${did}`)
         }
 
-        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
+        let endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
         if (!endpointService || !endpointService.serviceEndpoint) {
             // DID document may have recently been updated, so re-fetch
             didDocument = await AuthManager.getDidDocument(did, true)
             if (didDocument) {
-                endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.DID_NETWORK)
+                endpointService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
             }
 
             if (!didDocument || !endpointService || !endpointService.serviceEndpoint) {
