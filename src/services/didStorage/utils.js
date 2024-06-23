@@ -1,4 +1,5 @@
 import Db from "../../components/db.js"
+import CONFIG from '../../config.js'
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -74,8 +75,8 @@ class Utils {
     async createDb() {
         try {
             const couch = this.getDb()
-            await couch.db.create(process.env.DB_DIDS)
-            const dbDids = couch.db.use(process.env.DB_DIDS)
+            await couch.db.create(CONFIG.DB_DIDS)
+            const dbDids = couch.db.use(CONFIG.DB_DIDS)
             await dbDids.createIndex({
                 index: {
                     fields: ['id', 'versionId']
@@ -92,7 +93,7 @@ class Utils {
     }
 
     getDidDocumentDb() {
-        return this.getDb().use(process.env.DB_DIDS);
+        return this.getDb().use(CONFIG.DB_DIDS);
     }
 
     async getDidDocument(did, allVersions=false, stripCouchMetadata=true) {

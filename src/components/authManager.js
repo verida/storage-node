@@ -6,6 +6,7 @@ import mcache from 'memory-cache';
 import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
+import CONFIG from '../config.js'
 import dbManager from './dbManager.js';
 import { getResolver } from '@verida/vda-did-resolver';
 import { DIDDocument } from '@verida/did-document';
@@ -141,7 +142,7 @@ class AuthManager {
 
                 if (didDocument) {
                     console.info(`Adding DID document to cache: ${did}`)
-                    const { DID_CACHE_DURATION }  = process.env
+                    const { DID_CACHE_DURATION }  = CONFIG
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
                 }
             }
@@ -173,7 +174,7 @@ class AuthManager {
 
         // Set the token to expire
         if (!expiresIn) {
-            expiresIn = parseInt(process.env.REFRESH_TOKEN_EXPIRY)
+            expiresIn = parseInt(CONFIG.REFRESH_TOKEN_EXPIRY)
         }
 
         const deviceHash = EncryptionUtils.hash(`${did}/${contextName}/${deviceId}`)
@@ -193,7 +194,7 @@ class AuthManager {
 
         // Save refresh token in the database
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         const now = parseInt((new Date()).getTime() / 1000.0)
         const tokenRow = {
@@ -242,7 +243,7 @@ class AuthManager {
 
         // check this refresh token is in the database (hasn't been invalidated)
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         try {
             const tokenRow = await tokenDb.get(decodedJwt.id);
@@ -277,7 +278,7 @@ class AuthManager {
         }
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         try {
             const tokenRow = await tokenDb.get(decodedJwt.id);
@@ -323,7 +324,7 @@ class AuthManager {
         };
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
         const tokenRows = await tokenDb.find(query)
 
         if (!tokenRows || !tokenRows.docs.length) {
@@ -355,7 +356,7 @@ class AuthManager {
         
         const username = Utils.generateUsername(decodedJwt.sub.toLowerCase(), decodedJwt.contextName);
 
-        const expiresIn = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
+        const expiresIn = parseInt(CONFIG.ACCESS_TOKEN_EXPIRY)
 
         // generate new request token
         const requestTokenId = randtoken.generate(256);
@@ -401,7 +402,7 @@ class AuthManager {
     async initDb() {
         const couch = Db.getCouch('internal');
         try {
-            await couch.db.create(process.env.DB_REFRESH_TOKENS)
+            await couch.db.create(CONFIG.DB_REFRESH_TOKENS)
         } catch (err) {
             if (err.message.match(/already exists/)) {
                 // Database already exists
@@ -412,7 +413,7 @@ class AuthManager {
         }
 
         try {
-            await couch.db.create(process.env.DB_REPLICATER_CREDS)
+            await couch.db.create(CONFIG.DB_REPLICATER_CREDS)
         } catch (err) {
             if (err.message.match(/already exists/)) {
                 // Database already exists
@@ -463,7 +464,7 @@ class AuthManager {
         const replicatorDb = couch.db.use('_replicator');
         await replicatorDb.createIndex(expiryIndex);
 
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
             index: { fields: ['deviceHash'] },
@@ -557,7 +558,7 @@ class AuthManager {
         };
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
         const tokenRows = await tokenDb.find(query)
 
         if (tokenRows && tokenRows.docs && tokenRows.docs.length) {
