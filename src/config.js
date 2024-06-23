@@ -1,7 +1,10 @@
 export default {
     DID_CACHE_DURATION: 3600,
+    // Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token.
+    // CouchDB does not support a way to force the expiry of an issued token.
     // 10 Minutes
     ACCESS_TOKEN_EXPIRY: 600,
+    // Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached.
     // 30 Days
     REFRESH_TOKEN_EXPIRY: 2592000,
     DB_REFRESH_TOKENS: 'verida_refresh_tokens',
