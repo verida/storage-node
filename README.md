@@ -39,8 +39,7 @@ yarn serve
 
 A `sample.env` is included. Copy this to `.env` and update the configuration:
 
-- `VERIDA_NETWORK`: Verida network to use. See https://developers.verida.network/docs/infrastructure/networks for valid networks.
-- `DID_CACHE_DURATION`: How long to cache DIDs before reloading
+- `VERIDA_NETWORK`: Verida network to use. See https://developers.verida.network/docs/infrastructure/networks for valid networks. (ie: `banksia`)
 - `DB_PROTOCOL`: Protocol to use when connecting to CouchDB (`http` or `https`).
 - `DB_USER`: Username of CouchDB Admin (has access to create users and databases).
 - `DB_PASS`: Password of CouchDB Admin.
@@ -51,10 +50,7 @@ A `sample.env` is included. Copy this to `.env` and update the configuration:
 - `DB_REJECT_UNAUTHORIZED_SSL`: Boolean indicating if unauthorized SSL certificates should be rejected (`true` or `false`). Defaults to `false` for development testing. Must be `true` for production environments otherwise SSL certificates won't be verified.
 - `DB_PUBLIC_USER`: Alphanumeric string for a public database user. These credentials can be requested by anyone and provide access to all databases where the permissions have been set to `public`.
 - `DB_PUBLIC_PASS`: Alphanumeric string for a public database password.
-- `ACCESS_TOKEN_EXPIRY`: Number of seconds before an access token expires. The protocol will use the refresh token to obtain a new access token. CouchDB does not support a way to force the expiry of an issued token, so the access token expiry should always be set to 5 minutes (300)
-- `REFRESH_TOKEN_EXPIRY`: Number of seconds before a refresh token expires. Users will be forced to re-login once this time limit is reached. This should be set to 7 days (604800).
 - `DB_REFRESH_TOKENS`: Internal CouchDB database that stores refresh tokens (ie: `verida_refresh_tokens`)
-- `GC_PERCENT`: How often garbage collection runs on tokens (ie: `0.1` = 10% of requests)
 - `ACCESS_JWT_SIGN_PK`: The access token private key. The base64 version of this must be specified in the CouchDB configuration under `jwt_keys/hmac:_default`
 - `REFRESH_JWT_SIGN_PK`: The refresh token private key
 - `DB_PROTOCOL_INTERNAL`: Internal database protocol (`http` or `https`).
@@ -65,11 +61,7 @@ A `sample.env` is included. Copy this to `.env` and update the configuration:
 - `DB_PORT_INTERNAL`: External database port (ie: `5984`)
 - `ENDPOINT_URI`: The public URI of this storage node server (Will match what is stored in DID Documents). Note: Must include the port and have NO trailing slash. (ie: `"http://localhost:5000"`)
 - `VDA_PRIVATE_KEY`: Verida network private key as a hex string. Including leading 0x. This is used to sign server responses and in the future, prove VDA tokens are staked for this node. (ie: `0xaaaabbbb...`)
-- `DEFAULT_USER_CONTEXT_LIMIT_MB`: Maximum number of Megabytes for a storage context
 - `MAX_USERS`: Maximum number of users supported by this node (ie: `10000`)
-- `REPLICATION_EXPIRY_MINUTES`: How many minutes before the replication expires on an open database. Should be 2x ACCESS_TOKEN_EXPIRY. (ie: `20`)
-- `DB_DIDS`: Database for storing DID documents (ie: `verida_dids`)
-- `DB_REPLICATER_CREDS`: Database for storing replication credentials to third party nodes (ie: `verida_replicater_creds`)
 - `PORT`: Port this server runs on (ie: `5151`)
 
 

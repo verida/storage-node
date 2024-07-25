@@ -15,6 +15,11 @@ class SystemController {
         const storageSlotsUsed = await db.totalUsers();
         const metrics = await db.getCouchStats();
         const wallet = new ethers.Wallet(process.env.VDA_PRIVATE_KEY)
+        const timestamp = Math.floor(Date.now() / 1000)
+
+        const availableSlots = parseInt(process.env.MAX_USERS) - storageSlotsUsed
+        const availableSlotsMessage = `${wallet.address}/${availableSlots}/${timestamp}`
+        const availableSlotsProof = await wallet.signMessage(availableSlotsMessage)
 
         const results = {
             maxStorageSlots: parseInt(process.env.MAX_USERS),
@@ -25,6 +30,8 @@ class SystemController {
             version: packageJson.version,
             publicKey: wallet.publicKey,
             couchUri: db.buildHost(),
+            availableSlotsProof,
+            timestamp,
             buildTimestamp: BUILD_DETAILS.buildTimestamp
         }
 

@@ -1,6 +1,7 @@
 import Db from './db.js'
 import Utils from './utils.js'
 import DbManager from './dbManager.js';
+import CONFIG from '../config.js'
 import AuthManager from './authManager.js';
 import Axios from 'axios'
 import EncryptionUtils from '@verida/encryption-utils';
@@ -121,7 +122,7 @@ class ReplicationManager {
                     console.error(`${Utils.serverUri()}: Attempting to touched replication entry that doesn't exist: ${endpointUri} (${replicatorId}-${dbHash})`)
                     continue;
                 }
-                doc.expiry = (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
+                doc.expiry = (now() + CONFIG.REPLICATION_EXPIRY_MINUTES*60)
                 const result = await DbManager._insertOrUpdate(replicationDb, doc, doc._id)
                 //console.log(`${Utils.serverUri()}: Touched replication entry for ${endpointUri} (${replicatorId}-${dbHash})`)
             } catch (err) {
@@ -170,7 +171,7 @@ class ReplicationManager {
                 create_target: false,
                 continuous: true,
                 owner: 'admin',
-                expiry: (now() + process.env.REPLICATION_EXPIRY_MINUTES*60)
+                expiry: (now() + CONFIG.REPLICATION_EXPIRY_MINUTES*60)
             }
 
             try {
@@ -193,12 +194,12 @@ class ReplicationManager {
     async getReplicationEndpoints(did, contextName) {
         // Lookup DID document and get list of endpoints for this context
         let didDocument = await AuthManager.getDidDocument(did)
-        let didService = didDocument.locateServiceEndpoint(contextName, 'database')
+        let didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
 
         if (!didService) {
             // Service not found, try to fetch the DID document without caching (as it may have been updated)
             didDocument = await AuthManager.getDidDocument(did, true)
-            didService = didDocument.locateServiceEndpoint(contextName, 'database')
+            didService = didDocument.locateServiceEndpoint(contextName, 'database', process.env.VERIDA_NETWORK)
         }
 
         if (!didService) {
@@ -240,9 +241,9 @@ class ReplicationManager {
      * @returns 
      */
     async fetchReplicaterCredentials(remoteEndpointUri, did, contextName, force = false) {
-        // Check process.env.DB_REPLICATER_CREDS for existing credentials
+        // Check CONFIG.DB_REPLICATER_CREDS for existing credentials
         const couch = Db.getCouch('internal');
-        const replicaterCredsDb = await couch.db.use(process.env.DB_REPLICATER_CREDS)
+        const replicaterCredsDb = await couch.db.use(CONFIG.DB_REPLICATER_CREDS)
 
         const thisEndointUri = Utils.serverUri()
         const thisReplicaterUsername = Utils.generateReplicaterUsername(Utils.serverUri())

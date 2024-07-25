@@ -3,11 +3,17 @@ import randtoken from 'rand-token';
 import jwt from 'jsonwebtoken';
 import mcache from 'memory-cache';
 
-import { DIDClient } from '@verida/did-client'
 import EncryptionUtils from '@verida/encryption-utils';
 import Utils from './utils.js';
 import Db from './db.js';
+import CONFIG from '../config.js'
 import dbManager from './dbManager.js';
+import { getResolver } from '@verida/vda-did-resolver';
+import { DIDDocument } from '@verida/did-document';
+import { Resolver } from 'did-resolver';
+
+const vdaDidResolver = getResolver()
+const didResolver = new Resolver(vdaDidResolver)
 
 dotenv.config();
 
@@ -77,10 +83,10 @@ class AuthManager {
         }
 
         const consentMessage = `Authenticate this application context: "${contextName}"?\n\n${did}\n${decodedJwt.authRequestId}`
-        return this.verifySignedConsentMessage(did, signature, consentMessage)
+        return this.verifySignedConsentMessage(did, signature, consentMessage, contextName)
     }
 
-    async verifySignedConsentMessage(did, signature, consentMessage) {
+    async verifySignedConsentMessage(did, signature, consentMessage, contextName) {
         // Verify the signature signed the correct string
         try {
             const didDocument = await this.getDidDocument(did)
@@ -89,11 +95,17 @@ class AuthManager {
                 return false
             }
 
-            const result = didDocument.verifySig(consentMessage, signature)
+            // Check signature sourced from context key
+            const result = didDocument.verifyContextSignature(consentMessage, process.env.VERIDA_NETWORK, contextName, signature)
 
             if (!result) {
-                console.info('Invalid signature when verifying signed consent message')
-                return false
+                // Check signature sourced from master DID key
+                const result2 = didDocument.verifySig(consentMessage, signature)
+
+                if (!result2) {
+                    console.info('Invalid signature when verifying signed consent message')
+                    return false
+                }
             }
 
             return true
@@ -104,6 +116,14 @@ class AuthManager {
         }
     }
 
+    /**
+     * 
+     * @todo: Refactor to use @verida/vda-did-resolver, Ensure signature checks verify context
+     * 
+     * @param {*} did 
+     * @param {*} ignoreCache 
+     * @returns 
+     */
     async getDidDocument(did, ignoreCache=false) {
         // Verify the signature signed the correct string
         const cacheKey = did
@@ -116,21 +136,13 @@ class AuthManager {
 
             if (!didDocument) {
                 console.info(`DID document not in cache: ${did}, fetching`)
-                if (!didClient) {
-                    console.info(`DID client didn't exist, creating`)
-                    const didClientConfig = {
-                        network: process.env.VERIDA_NETWORK ? process.env.VERIDA_NETWORK : 'banksia',
-                        rpcUrl: process.env.DID_RPC_URL
-                      }
-          
-                      didClient = new DIDClient(didClientConfig);
-                }
-
-                didDocument = await didClient.get(did)
+                
+                const response = await didResolver.resolve(did)
+                didDocument = new DIDDocument(response.didDocument)
 
                 if (didDocument) {
                     console.info(`Adding DID document to cache: ${did}`)
-                    const { DID_CACHE_DURATION }  = process.env
+                    const { DID_CACHE_DURATION }  = CONFIG
                     mcache.put(cacheKey, didDocument, DID_CACHE_DURATION * 1000)
                 }
             }
@@ -162,7 +174,7 @@ class AuthManager {
 
         // Set the token to expire
         if (!expiresIn) {
-            expiresIn = parseInt(process.env.REFRESH_TOKEN_EXPIRY)
+            expiresIn = parseInt(CONFIG.REFRESH_TOKEN_EXPIRY)
         }
 
         const deviceHash = EncryptionUtils.hash(`${did}/${contextName}/${deviceId}`)
@@ -182,7 +194,7 @@ class AuthManager {
 
         // Save refresh token in the database
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         const now = parseInt((new Date()).getTime() / 1000.0)
         const tokenRow = {
@@ -231,7 +243,7 @@ class AuthManager {
 
         // check this refresh token is in the database (hasn't been invalidated)
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         try {
             const tokenRow = await tokenDb.get(decodedJwt.id);
@@ -266,7 +278,7 @@ class AuthManager {
         }
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         try {
             const tokenRow = await tokenDb.get(decodedJwt.id);
@@ -297,7 +309,7 @@ class AuthManager {
     async invalidateDeviceId(did, contextName, deviceId, signature) {
         did = did.toLowerCase()
         const consentMessage = `Invalidate device for this application context: "${contextName}"?\n\n${did}\n${deviceId}`
-        const validSignature = await this.verifySignedConsentMessage(did, signature, consentMessage)
+        const validSignature = await this.verifySignedConsentMessage(did, signature, consentMessage, contextName)
 
         if (!validSignature) {
             return false
@@ -312,7 +324,7 @@ class AuthManager {
         };
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
         const tokenRows = await tokenDb.find(query)
 
         if (!tokenRows || !tokenRows.docs.length) {
@@ -344,7 +356,7 @@ class AuthManager {
         
         const username = Utils.generateUsername(decodedJwt.sub.toLowerCase(), decodedJwt.contextName);
 
-        const expiresIn = parseInt(process.env.ACCESS_TOKEN_EXPIRY)
+        const expiresIn = parseInt(CONFIG.ACCESS_TOKEN_EXPIRY)
 
         // generate new request token
         const requestTokenId = randtoken.generate(256);
@@ -390,7 +402,7 @@ class AuthManager {
     async initDb() {
         const couch = Db.getCouch('internal');
         try {
-            await couch.db.create(process.env.DB_REFRESH_TOKENS)
+            await couch.db.create(CONFIG.DB_REFRESH_TOKENS)
         } catch (err) {
             if (err.message.match(/already exists/)) {
                 // Database already exists
@@ -401,7 +413,7 @@ class AuthManager {
         }
 
         try {
-            await couch.db.create(process.env.DB_REPLICATER_CREDS)
+            await couch.db.create(CONFIG.DB_REPLICATER_CREDS)
         } catch (err) {
             if (err.message.match(/already exists/)) {
                 // Database already exists
@@ -452,7 +464,7 @@ class AuthManager {
         const replicatorDb = couch.db.use('_replicator');
         await replicatorDb.createIndex(expiryIndex);
 
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
 
         const deviceIndex = {
             index: { fields: ['deviceHash'] },
@@ -546,7 +558,7 @@ class AuthManager {
         };
 
         const couch = Db.getCouch();
-        const tokenDb = couch.db.use(process.env.DB_REFRESH_TOKENS);
+        const tokenDb = couch.db.use(CONFIG.DB_REFRESH_TOKENS);
         const tokenRows = await tokenDb.find(query)
 
         if (tokenRows && tokenRows.docs && tokenRows.docs.length) {

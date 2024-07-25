@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import Db from './db.js'
 import Utils from './utils.js'
+import CONFIG from '../config.js'
 import DbManager from './dbManager.js';
 import AuthManager from './authManager';
 import ReplicationManager from './replicationManager';
@@ -43,7 +44,7 @@ class UserManager {
         const couch = Db.getCouch()
         const password = crypto.createHash('sha256').update(signature).digest("hex")
 
-        const storageLimit = process.env.DEFAULT_USER_CONTEXT_LIMIT_MB*1048576
+        const storageLimit = CONFIG.DEFAULT_USER_CONTEXT_LIMIT_MB*1048576
 
         // Create CouchDB database user matching username and password
         let userData = {
