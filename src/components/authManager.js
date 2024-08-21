@@ -96,6 +96,7 @@ class AuthManager {
             }
 
             // Check signature sourced from context key
+            console.log(`DEBUG: ${process.env.VERIDA_NETWORK}, ${contextName}, ${process.env.MAX_USERS}`)
             const result = didDocument.verifyContextSignature(consentMessage, process.env.VERIDA_NETWORK, contextName, signature)
 
             if (!result) {
