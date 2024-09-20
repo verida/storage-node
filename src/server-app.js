@@ -55,4 +55,6 @@ app.use(publicRoutes);
 app.use(requestValidator);
 app.use(privateRoutes);
 
+console.log("Server running")
+
 export default app;
