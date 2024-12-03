@@ -103,7 +103,7 @@ class AuthManager {
                 const result2 = didDocument.verifySig(consentMessage, signature)
 
                 if (!result2) {
-                    console.info('Invalid signature when verifying signed consent message')
+                    console.info('Invalid signature when verifying signed consent message', consentMessage, process.env.VERIDA_NETWORK, contextName, signature)
                     return false
                 }
             }
