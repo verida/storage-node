@@ -118,14 +118,20 @@ The `hmac:_default` key is a base64 encoded representation of the access token J
 
 Note: A secret key (string) suitable for `jwt_keys` can be base64 encoded with the following:
 
-```
+```js
 const secretKey = 'secretKey'
 const encodedKey = Buffer.from(secretKey).toString('base64')
 ```
 
+You can generate the base64 encoced string with:
+
+```bash
+node src/base64key.js <yourkey>
+```
+
 This can be tested via curl:
 
-```
+```bash
 curl -H "Host: localhost:5984" \
  -H "accept: application/json, text/plain, */*" \
  -H "authorization: Bearer <bearer_token>" \
