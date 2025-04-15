@@ -1,3 +1,9 @@
+2023-08-22 (4.1.0)
+--------------------
+
+- Add support for RPC URL specified in .env file
+- Update to latest Verida SDK
+
 2023-08-22 (2.2.0)
 --------------------
 

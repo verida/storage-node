@@ -12,7 +12,9 @@ import { getResolver } from '@verida/vda-did-resolver';
 import { DIDDocument } from '@verida/did-document';
 import { Resolver } from 'did-resolver';
 
-const vdaDidResolver = getResolver()
+const vdaDidResolver = getResolver({
+    rpcUrl: process.env.DID_RPC_URL ? process.env.DID_RPC_URL : undefined
+})
 const didResolver = new Resolver(vdaDidResolver)
 
 dotenv.config();

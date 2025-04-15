@@ -25,7 +25,8 @@ class DidLookup {
         }
 
         const didClient = new DIDClient({
-            network: process.env.VERIDA_NETWORK
+            network: process.env.VERIDA_NETWORK,
+            rpcUrl: process.env.DID_RPC_URL ? process.env.DID_RPC_URL : undefined
         })
 
         try {
